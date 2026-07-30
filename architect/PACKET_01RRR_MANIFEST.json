@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate1rrr-draft-1",
+  "createdAt": "2026-07-30T20:38:24+09:00",
+  "status": "prepared",
+  "supersedesPacketSha256": "eee5ab4dad190fd6eb220c69895932de89935c59abfd6ae11c0ad8cebd48b500",
+  "respondsToDecisionSha256": "d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303",
+  "correctionCommit": "7dd9484aaf18e3d5e2691f5a1e48e2bb7f799be1",
+  "packet": {
+    "path": "architect/PACKET_01RRR_NARROW_CONTRACT_CORRECTIONS.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-1rrr.md",
+    "sha256": "9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d",
+    "characterCount": 10526,
+    "byteCount": 10548,
+    "copiesByteIdentical": true
+  },
+  "validation": {
+    "path": "docs/evaluation/gate1rrr-validation.md",
+    "sha256": "e25c8cff9e2563d4b1cc21337352c722fe70b9a041dc7bf0b227cd982ad78ff6",
+    "precheck": "PASS schemas=33 type_registry=valid splits=28/14/14/14+45/10/34 multicause_graph=14_edges_degree4 lifecycle=qualified_deployed_terminated deployment=null_anchor_swap termination=transaction_bound gate=one_shot h3=B6_vs_B6-RAW spike=quarantined markdown_links=10"
+  },
+  "frozenInputs": {
+    "splitManifestSha256": "fbab1b5bb8c7796cab08ee5c4b3368647edbae4ec99678b408d6e3ff240966fb",
+    "evaluationBudgetSha256": "010e508d18e7bca6697841b8ed1c33b8e060f946c6e975eb0a65a353f84d5b4d",
+    "gateFeedbackPolicySha256": "11b6645fd7a659dc920950f7340122f38d3c1f4b87e56d1e26f0d92e96bdcea7",
+    "baselineMatrixSha256": "2d28bbc7339bc69ed613a09352968e9f3126291ea9311b8bf2414a3698af82a8",
+    "fixtureGraphSha256": "00a802e92ed1214d1ae29f81858b894e23fb9cf8cc81f786df7153c84778980c"
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "benchmarkExecution": false,
+    "gateOrFinalAccess": false,
+    "externalRepositoryWrite": false
+  },
+  "review": {
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "plannedOracleSessionId": "self-evolving-harness-gate1-packet-4",
+    "decision": null,
+    "responsePath": null,
+    "responseSha256": null
+  }
+}

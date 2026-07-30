@@ -113,3 +113,19 @@ response path, interpreted decision, required revisions, and the commit containi
 - remaining authorized corrections: complete post-rollback pointer tuple, executable initialization
   anchor predicate, and cross-record termination-transaction continuity
 - still prohibited: Gate 2 implementation and every provider/benchmark/gate/final/deployment execution
+
+## Round 1RRR preparation — 2026-07-30
+
+- packet: `.codex/gpt-pro-architect/packets/packet-1rrr.md`
+- authoritative project copy: `architect/PACKET_01RRR_NARROW_CONTRACT_CORRECTIONS.md`
+- packet hash: `9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d`
+- packet size: 10,526 characters / 10,548 bytes
+- correction commit: `7dd9484aaf18e3d5e2691f5a1e48e2bb7f799be1`
+- manifest: `architect/PACKET_01RRR_MANIFEST.json`
+- local precheck: `PASS schemas=33 type_registry=valid splits=28/14/14/14+45/10/34
+  multicause_graph=14_edges_degree4 lifecycle=qualified_deployed_terminated
+  deployment=null_anchor_swap termination=transaction_bound gate=one_shot h3=B6_vs_B6-RAW
+  spike=quarantined markdown_links=10`
+- scope: only the three Gate 1RR contract corrections and replacement hashes
+- authorized transport: same exact project conversation and browser target only
+- status: prepared, not yet transmitted

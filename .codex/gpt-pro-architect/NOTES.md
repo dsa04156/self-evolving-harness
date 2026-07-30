@@ -42,4 +42,16 @@ any paid-provider request.
 - HarnessFaultBench fixture semantics and independent review must freeze before implementation.
 - The trust plane requires authenticated protocol messages and an explicit principal-capability/TCB
   contract; language separation is not a security boundary.
-- Runtime implementation remains prohibited until packet 1R is approved.
+- Runtime implementation remains prohibited until Gate 1 is explicitly approved.
+
+## Durable Gate 1R and Gate 1RR decisions
+
+- Gate 1R and Gate 1RR both returned `REVISE`.
+- Gate 1RR accepted H3/B6-RAW, one-shot gate governance, the exact candidate-cost formula, the corrected
+  multi-cause graph, H4 disposition, qualification/deployment separation, and claim discipline.
+- The only Gate 1RR blockers were the complete rollback post-state, an executable initialization
+  anchor, and immutable cross-record termination continuity.
+- Gate 1RRR selects a null initialization anchor, deterministic target/rollback-target swap, and one
+  byte-identical five-field termination descriptor with direct initiator reference.
+- No Gate 2 implementation, provider call, benchmark/gate/final access, deployment, or empirical claim
+  is authorized before the Gate 1RRR decision.
