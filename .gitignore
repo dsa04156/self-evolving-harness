@@ -6,8 +6,13 @@ node_modules/
 dist/
 coverage/
 .pytest_cache/
+.seh/
+.worktrees/
+*.sock
+*.pid
 __pycache__/
 *.py[cod]
+.venv/
 
 # Secrets and local overrides
 .env
