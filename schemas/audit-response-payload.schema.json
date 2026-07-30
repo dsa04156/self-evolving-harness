@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/audit-response-payload.schema.json",
+  "title": "Audit Service Response Payload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "link"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "audit_link"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "link": {"$ref": "./common.schema.json#/$defs/auditLink"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "verified"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"}
+      }
+    }
+  ]
+}

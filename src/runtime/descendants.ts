@@ -11,6 +11,8 @@ import type {
   BubblewrapProcessRunner,
   SandboxProcessResult,
 } from "./sandbox-process.js";
+import type { HarnessReferenceLedger } from "../evolution/reference-ledger.js";
+import type { PrincipalSigner } from "../trust/identity.js";
 
 export type DescendantKind = "subagent" | "backend_job";
 export type DescendantState =
@@ -78,6 +80,8 @@ export class DescendantManager {
   readonly #clock: Clock;
   readonly #ids: IdFactory;
   readonly #log: AppendOnlyLog<JsonValue>;
+  readonly #references: HarnessReferenceLedger | null;
+  readonly #referenceSigner: PrincipalSigner | null;
   readonly #controllers = new Map<string, AbortController>();
   readonly #live = new Map<string, Promise<DescendantRecord>>();
 
@@ -92,6 +96,8 @@ export class DescendantManager {
     artifacts: ArtifactStore;
     clock: Clock;
     ids: IdFactory;
+    references?: HarnessReferenceLedger;
+    referenceSigner?: PrincipalSigner;
   }) {
     this.#parentSessionId = input.parentSessionId;
     this.#pins = input.pins;
@@ -102,6 +108,13 @@ export class DescendantManager {
     this.#artifacts = input.artifacts;
     this.#clock = input.clock;
     this.#ids = input.ids;
+    assertCondition(
+      (input.references === undefined) === (input.referenceSigner === undefined),
+      "SCHEMA_INVALID",
+      "Descendant reference ledger and signer must be configured together",
+    );
+    this.#references = input.references ?? null;
+    this.#referenceSigner = input.referenceSigner ?? null;
     this.#log = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "descendants"),
       `descendants.${input.parentSessionId}`,
@@ -119,6 +132,7 @@ export class DescendantManager {
     const descendantId = this.#ids.next("subagent");
     const controller = new AbortController();
     this.#controllers.set(descendantId, controller);
+    await this.#acquireHold(descendantId);
     await this.#append({
       descendantId,
       kind: "subagent",
@@ -150,7 +164,7 @@ export class DescendantManager {
       )
       .then(async (result) => {
         const artifact = await this.#artifacts.putJson(result as unknown as JsonValue);
-        return this.#append({
+        const record = await this.#append({
           descendantId,
           kind: "subagent",
           state: result.state === "completed" ? "completed" : "failed",
@@ -159,10 +173,12 @@ export class DescendantManager {
           artifactHash: artifact.contentHash,
           failureCode: result.state === "completed" ? null : result.terminationReason ?? result.state,
         });
+        await this.#releaseHold(descendantId);
+        return record;
       })
       .catch(async (error: unknown) => {
         const failure = asHarnessError(error);
-        return this.#append({
+        const record = await this.#append({
           descendantId,
           kind: "subagent",
           state: controller.signal.aborted ? "cancelled" : "failed",
@@ -171,6 +187,8 @@ export class DescendantManager {
           artifactHash: null,
           failureCode: failure.code,
         });
+        await this.#releaseHold(descendantId);
+        return record;
       })
       .finally(() => {
         this.#controllers.delete(descendantId);
@@ -196,6 +214,7 @@ export class DescendantManager {
     const descendantId = this.#ids.next("backend-job");
     const controller = new AbortController();
     this.#controllers.set(descendantId, controller);
+    await this.#acquireHold(descendantId);
     await this.#append({
       descendantId,
       kind: "backend_job",
@@ -218,7 +237,7 @@ export class DescendantManager {
       .runShell(input.command, controller.signal)
       .then(async (result: SandboxProcessResult) => {
         const artifact = await this.#artifacts.putJson(result as unknown as JsonValue);
-        return this.#append({
+        const record = await this.#append({
           descendantId,
           kind: "backend_job",
           state: result.exitCode === 0 && !result.timedOut ? "completed" : "failed",
@@ -232,10 +251,12 @@ export class DescendantManager {
                 ? "DEADLINE_EXCEEDED"
                 : `EXIT_${result.exitCode ?? "SIGNAL"}`,
         });
+        await this.#releaseHold(descendantId);
+        return record;
       })
       .catch(async (error: unknown) => {
         const failure = asHarnessError(error);
-        return this.#append({
+        const record = await this.#append({
           descendantId,
           kind: "backend_job",
           state: controller.signal.aborted ? "cancelled" : "failed",
@@ -244,6 +265,8 @@ export class DescendantManager {
           artifactHash: null,
           failureCode: failure.code,
         });
+        await this.#releaseHold(descendantId);
+        return record;
       })
       .finally(() => {
         this.#controllers.delete(descendantId);
@@ -300,6 +323,7 @@ export class DescendantManager {
           kind: terminal.kind,
           state: terminal.state,
         });
+        await this.#releaseHold(record.descendantId);
       }
     }
     return reaped;
@@ -346,5 +370,32 @@ export class DescendantManager {
     };
     await this.#log.append(record as unknown as JsonValue);
     return record;
+  }
+
+  async #acquireHold(descendantId: string): Promise<void> {
+    if (this.#references === null || this.#referenceSigner === null) return;
+    await this.#references.acquire({
+      holdId: `hold.descendant.${descendantId}`,
+      harnessVersionId: this.#pins.harnessVersionId,
+      holdKind: "live_descendant",
+      subjectId: descendantId,
+      signer: this.#referenceSigner,
+    });
+  }
+
+  async #releaseHold(descendantId: string): Promise<void> {
+    if (this.#references === null || this.#referenceSigner === null) return;
+    const holdId = `hold.descendant.${descendantId}`;
+    const active = (await this.#references.activeHolds()).some(
+      (hold) => hold.holdId === holdId,
+    );
+    if (!active) return;
+    await this.#references.release({
+      holdId,
+      harnessVersionId: this.#pins.harnessVersionId,
+      holdKind: "live_descendant",
+      subjectId: descendantId,
+      signer: this.#referenceSigner,
+    });
   }
 }

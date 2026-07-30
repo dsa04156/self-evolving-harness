@@ -7,6 +7,7 @@ import test from "node:test";
 
 import {
   canonicalize,
+  HarnessError,
   parseCanonicalJson,
   parseStrictJson,
   sha256,
@@ -27,6 +28,7 @@ interface CanonicalCorpus {
   }[];
   readonly invalid: readonly {
     readonly id: string;
+    readonly errorCategory: "SCHEMA_INVALID";
     readonly json: string;
   }[];
 }
@@ -46,49 +48,67 @@ test("TypeScript and Python share the integer-only canonical profile", async () 
     assert.deepEqual(parseCanonicalJson(vector.canonical), vector.value, vector.id);
   }
   for (const vector of corpus.invalid) {
-    assert.throws(() => parseCanonicalJson(vector.json), vector.id);
+    assert.throws(
+      () => parseCanonicalJson(vector.json),
+      (error: unknown) =>
+        error instanceof HarnessError &&
+        error.code === vector.errorCategory,
+      vector.id,
+    );
   }
 
-  const { stdout, stderr } = await execFileAsync(
-    PYTHON,
-    ["-I", path.resolve("evaluator/external_evaluator.py"), "--canonical-corpus", corpusPath],
-    {
-      cwd: path.resolve("."),
-      env: {
-        PATH: "/usr/bin:/bin",
-        LANG: "C.UTF-8",
-        LC_ALL: "C.UTF-8",
-        PYTHONHASHSEED: "0",
-        PYTHONDONTWRITEBYTECODE: "1",
+  for (const script of [
+    "evaluator/external_evaluator.py",
+    "evaluator/external_audit.py",
+  ]) {
+    const { stdout, stderr } = await execFileAsync(
+      PYTHON,
+      ["-I", path.resolve(script), "--canonical-corpus", corpusPath],
+      {
+        cwd: path.resolve("."),
+        env: {
+          PATH: "/usr/bin:/bin",
+          LANG: "C.UTF-8",
+          LC_ALL: "C.UTF-8",
+          PYTHONHASHSEED: "0",
+          PYTHONDONTWRITEBYTECODE: "1",
+        },
+        maxBuffer: 1024 * 1024,
       },
-      maxBuffer: 1024 * 1024,
-    },
-  );
-  assert.equal(stderr, "");
-  assert.ok(stdout.endsWith("\n"));
-  const result = parseCanonicalJson(stdout.slice(0, -1)) as unknown as {
-    readonly profile: string;
-    readonly valid: readonly {
-      readonly id: string;
-      readonly canonical: string;
-      readonly sha256: string;
-    }[];
-    readonly invalid: readonly {
-      readonly id: string;
-      readonly rejected: boolean;
-    }[];
-  };
-  assert.equal(result.profile, corpus.profile);
-  assert.deepEqual(
-    result.valid,
-    corpus.valid.map(({ id, canonical, sha256: digest }) => ({
-      id,
-      canonical,
-      sha256: digest,
-    })),
-  );
-  assert.deepEqual(
-    result.invalid,
-    corpus.invalid.map(({ id }) => ({ id, rejected: true })),
-  );
+    );
+    assert.equal(stderr, "", script);
+    assert.ok(stdout.endsWith("\n"), script);
+    const result = parseCanonicalJson(stdout.slice(0, -1)) as unknown as {
+      readonly profile: string;
+      readonly valid: readonly {
+        readonly id: string;
+        readonly canonical: string;
+        readonly sha256: string;
+      }[];
+      readonly invalid: readonly {
+        readonly id: string;
+        readonly rejected: boolean;
+        readonly errorCategory: string;
+      }[];
+    };
+    assert.equal(result.profile, corpus.profile, script);
+    assert.deepEqual(
+      result.valid,
+      corpus.valid.map(({ id, canonical, sha256: digest }) => ({
+        id,
+        canonical,
+        sha256: digest,
+      })),
+      script,
+    );
+    assert.deepEqual(
+      result.invalid,
+      corpus.invalid.map(({ id, errorCategory }) => ({
+        id,
+        rejected: true,
+        errorCategory,
+      })),
+      script,
+    );
+  }
 });

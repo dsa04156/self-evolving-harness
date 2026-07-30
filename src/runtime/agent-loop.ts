@@ -79,6 +79,12 @@ function toolRequest(call: ToolCallOutput): ToolCallRequest {
   };
 }
 
+function assertSessionAuthority(abortSignal?: AbortSignal, detail = "Session authority was revoked"): void {
+  if (abortSignal?.aborted === true) {
+    throw new HarnessError("DEADLINE_EXCEEDED", detail);
+  }
+}
+
 export interface AgentLoopConfiguration {
   readonly sessionId: string;
   readonly pins: SessionPins;
@@ -169,6 +175,7 @@ export class AgentExecutionLoop {
       });
 
       while (true) {
+        assertSessionAuthority(abortSignal);
         this.#budget.assertTime();
         const memory =
           this.#configuration.memory === undefined
@@ -235,6 +242,7 @@ export class AgentExecutionLoop {
           },
         });
         const response = await this.#provider.generate(request);
+        assertSessionAuthority(abortSignal, "Late model output was rejected");
         this.#budget.chargeModelUsage(response.usage);
         aggregateUsage = addUsage(aggregateUsage, response.usage);
         await this.#events.emit({
@@ -273,7 +281,10 @@ export class AgentExecutionLoop {
                 trustLevel: "untrusted_input",
               },
             });
-            const result = await this.#toolExecutor.execute(toolRequest(call));
+            const result = await this.#toolExecutor.execute(
+              toolRequest(call),
+              abortSignal,
+            );
             transcript.push({
               kind: "tool_output",
               callId: result.callId,
@@ -314,6 +325,7 @@ export class AgentExecutionLoop {
           proposedAnswer: finalText,
           workspaceRoot: this.#configuration.workspaceRoot,
         });
+        assertSessionAuthority(abortSignal, "Late verifier output was rejected");
         await this.#events.emit({
           eventType: "verification_completed",
           payload: {
@@ -393,6 +405,7 @@ export class AgentExecutionLoop {
       if (!(failure instanceof HarnessError)) throw failure;
     }
 
+    const usage = this.#budget.seal();
     const events = await this.#events.events();
     const resultState =
       this.#state.state === "completed"
@@ -405,7 +418,7 @@ export class AgentExecutionLoop {
       state: resultState,
       finalText,
       verification,
-      usage: this.#budget.snapshot(),
+      usage,
       modelUsage: aggregateUsage,
       eventHeadHash: await this.#events.headHash(),
       eventCount: events.length,

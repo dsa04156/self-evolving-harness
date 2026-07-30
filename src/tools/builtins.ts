@@ -94,6 +94,9 @@ export function createWriteTool(): ImmutableToolImplementation {
       await context.workspace.writeFile(relativePath, bytes, {
         overwrite,
         maxBytes: MAX_FILE_BYTES,
+        ...(context.abortSignal === undefined
+          ? {}
+          : { abortSignal: context.abortSignal }),
       });
       return {
         path: relativePath,
@@ -143,6 +146,9 @@ export function createEditTool(): ImmutableToolImplementation {
       await context.workspace.writeFile(relativePath, editedBytes, {
         overwrite: true,
         maxBytes: MAX_FILE_BYTES,
+        ...(context.abortSignal === undefined
+          ? {}
+          : { abortSignal: context.abortSignal }),
       });
       return {
         path: relativePath,

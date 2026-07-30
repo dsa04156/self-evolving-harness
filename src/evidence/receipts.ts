@@ -110,6 +110,8 @@ export class EvidenceReceiptStore {
   }
 
   public async create(input: {
+    receiptId?: string;
+    createdAt?: string;
     receiptType: ReceiptType;
     subjectIds: readonly string[];
     harnessVersionIds?: readonly string[];
@@ -131,7 +133,7 @@ export class EvidenceReceiptStore {
     }
     const core: ReceiptCore = {
       schemaVersion: 2,
-      receiptId: this.#ids.next("receipt"),
+      receiptId: input.receiptId ?? this.#ids.next("receipt"),
       protocolId: this.#protocolId,
       receiptType: input.receiptType,
       subjectIds: uniqueSorted(input.subjectIds),
@@ -143,9 +145,21 @@ export class EvidenceReceiptStore {
       inferenceEventIds: uniqueSorted(input.inferenceEventIds ?? []),
       artifactRefs: [...(input.artifactRefs ?? [])],
       producer: input.signer.identity,
-      createdAt: this.#clock.now().toISOString(),
+      createdAt: input.createdAt ?? this.#clock.now().toISOString(),
     };
     const receiptHash = sha256(core);
+    const existing = (await this.all()).find(
+      (candidate) => candidate.receiptId === core.receiptId,
+    );
+    if (existing !== undefined) {
+      assertCondition(
+        existing.receiptHash === receiptHash,
+        "CONFLICT",
+        "Receipt ID was reused with different content",
+      );
+      await this.verify(existing);
+      return existing;
+    }
     const auditLink = await this.#audit.appendSubject({
       subjectType: "EvidenceReceipt",
       subjectId: core.receiptId,

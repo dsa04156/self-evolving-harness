@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/filesystem-snapshot.schema.json",
+  "title": "Exact Evaluator Filesystem Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "headCommit",
+    "treeHash",
+    "entries",
+    "filesystemSnapshotHash"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "headCommit": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+    "treeHash": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "gitMode",
+          "gitObjectId",
+          "sizeBytes",
+          "contentHash"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\).+$"
+          },
+          "gitMode": {"type": "string", "enum": ["100644", "100755"]},
+          "gitObjectId": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16777216
+          },
+          "contentHash": {"$ref": "./common.schema.json#/$defs/sha256"}
+        }
+      }
+    },
+    "filesystemSnapshotHash": {"$ref": "./common.schema.json#/$defs/sha256"}
+  }
+}

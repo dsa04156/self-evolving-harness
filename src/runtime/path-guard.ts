@@ -1,11 +1,11 @@
 import { constants } from "node:fs";
 import {
   lstat,
+  link,
   mkdir,
   open,
   realpath,
   rename,
-  stat,
   unlink,
 } from "node:fs/promises";
 import path from "node:path";
@@ -96,8 +96,9 @@ export class WorkspacePathGuard {
   public async writeFile(
     relativePath: string,
     bytes: Uint8Array,
-    options: { overwrite: boolean; maxBytes: number },
+    options: { overwrite: boolean; maxBytes: number; abortSignal?: AbortSignal },
   ): Promise<void> {
+    this.#assertAuthority(options.abortSignal);
     assertCondition(bytes.byteLength <= options.maxBytes, "PAYLOAD_TOO_LARGE", "Write too large");
     const target = await this.resolveForWrite(relativePath);
     const directory = path.dirname(target);
@@ -111,38 +112,36 @@ export class WorkspacePathGuard {
       0o600,
     );
     try {
+      this.#assertAuthority(options.abortSignal);
       await handle.writeFile(bytes);
       await handle.sync();
     } finally {
       await handle.close();
     }
     try {
+      this.#assertAuthority(options.abortSignal);
       if (options.overwrite) {
         await rename(temporary, target);
       } else {
-        const existing = await stat(target).catch((error: unknown) => {
-          if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-          throw error;
-        });
-        if (existing !== null) {
-          throw new HarnessError("CONFLICT", `${relativePath} already exists`);
-        }
-        const exclusive = await open(
-          target,
-          constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
-          0o600,
-        );
         try {
-          await exclusive.writeFile(bytes);
-          await exclusive.sync();
-        } finally {
-          await exclusive.close();
+          await link(temporary, target);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+            throw new HarnessError("CONFLICT", `${relativePath} already exists`);
+          }
+          throw error;
         }
         await unlink(temporary);
       }
     } catch (error) {
       await unlink(temporary).catch(() => undefined);
       throw error;
+    }
+  }
+
+  #assertAuthority(abortSignal?: AbortSignal): void {
+    if (abortSignal?.aborted === true) {
+      throw new HarnessError("DEADLINE_EXCEEDED", "Workspace commit authority was revoked");
     }
   }
 

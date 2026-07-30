@@ -11,6 +11,12 @@ import type { WorkspacePathGuard } from "./path-guard.js";
 
 export type JsonObject = { readonly [key: string]: JsonValue };
 
+function assertToolAuthority(abortSignal?: AbortSignal): void {
+  if (abortSignal?.aborted === true) {
+    throw new HarnessError("DEADLINE_EXCEEDED", "Tool authority was revoked");
+  }
+}
+
 export interface ToolExecutionContext {
   readonly workspace: WorkspacePathGuard;
   readonly processRunner: BubblewrapProcessRunner;
@@ -147,10 +153,14 @@ export class ToolExecutor {
     this.#clock = input.clock;
   }
 
-  public async execute(call: ToolCallRequest): Promise<ToolExecutionResult> {
+  public async execute(
+    call: ToolCallRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ToolExecutionResult> {
     const started = this.#clock.monotonicNanos();
     let registered: RegisteredTool;
     try {
+      assertToolAuthority(abortSignal);
       registered = this.#registry.resolveByName(call.toolName);
       assertCondition(
         this.#permissions.allowedToolIds.includes(registered.implementation.toolId),
@@ -173,8 +183,12 @@ export class ToolExecutor {
       this.#budget.reserveToolCall();
       const output = await registered.implementation.execute(
         call.arguments as JsonObject,
-        this.#context,
+        {
+          ...this.#context,
+          ...(abortSignal === undefined ? {} : { abortSignal }),
+        },
       );
+      assertToolAuthority(abortSignal);
       const artifact = await this.#artifacts.putJson(output);
       const elapsed = Number((this.#clock.monotonicNanos() - started) / 1_000_000n);
       return {
@@ -187,6 +201,7 @@ export class ToolExecutor {
       };
     } catch (error) {
       const failure = asHarnessError(error);
+      if (abortSignal?.aborted === true) throw failure;
       const elapsed = Number((this.#clock.monotonicNanos() - started) / 1_000_000n);
       const safeOutput: JsonValue = {
         error: {

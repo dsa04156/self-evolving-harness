@@ -12,9 +12,13 @@ activation pointers never contribute to a content identity.
 - Digest: SHA-256, rendered as lowercase hexadecimal with the object-specific prefix.
 - JSON: the project-owned `seh-c14n-int-v1` profile, encoded as UTF-8 without BOM. It is deliberately
   narrower than RFC 8785 and does not claim support for the RFC 8785 number domain.
-- The only admitted JSON numbers are integers in
-  `[-9007199254740991, 9007199254740991]`. Fractions, exponent forms that decode to fractions, `NaN`,
-  infinities, negative zero, and out-of-range integers are rejected before hashing or signing.
+- The only admitted JSON numbers are canonical decimal integers in
+  `[-9007199254740991, 9007199254740991]`. Fractions, every exponent spelling, `NaN`, infinities,
+  negative zero, leading-zero spellings, and out-of-range integers are rejected before hashing or
+  signing.
+- Every out-of-profile or noncanonical input fails with the frozen cross-language category
+  `SCHEMA_INVALID`; the golden corpus records that category for each negative vector rather than only
+  a boolean rejection.
 - Object keys are sorted by their UTF-16 code-unit sequence. Strings use JSON escaping without ASCII
   forcing; lone surrogates and invalid Unicode scalar values are rejected.
 - Ratios, probabilities, confidence, and percentage-point quantities use named fixed-scale integer

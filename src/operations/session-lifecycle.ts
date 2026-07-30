@@ -239,6 +239,8 @@ export class SessionLifecycleStore {
       input.finalEvidenceReceiptId,
     ];
     return this.#append({
+      recordId: `${initiating.terminationTransaction.terminationTransactionId}.completed`,
+      transitionedAt: initiating.transitionedAt,
       sessionId: input.sessionId,
       pins: {
         protocolId: initiating.protocolId,
@@ -305,6 +307,7 @@ export class SessionLifecycleStore {
 
   async #append(input: {
     recordId?: string;
+    transitionedAt?: string;
     sessionId: string;
     pins: Pick<SessionPins, "protocolId" | "harnessVersionId" | "runtimeStateSnapshotId">;
     fromState: SessionState | null;
@@ -353,7 +356,7 @@ export class SessionLifecycleStore {
       termination: input.termination,
       evidenceReceiptIds: [...new Set(input.evidenceReceiptIds)],
       transitionedBy: input.signer.identity,
-      transitionedAt: this.#clock.now().toISOString(),
+      transitionedAt: input.transitionedAt ?? this.#clock.now().toISOString(),
     };
     const auditLink = await this.#audit.appendSubject({
       subjectType: "SessionLifecycleRecord",

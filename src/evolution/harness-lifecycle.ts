@@ -15,6 +15,7 @@ import type {
   PrincipalRole,
   PrincipalSigner,
 } from "../trust/identity.js";
+import type { HarnessReferenceLedger } from "./reference-ledger.js";
 
 export const HARNESS_LIFECYCLE_SCHEMA_ID =
   `${SCHEMA_BASE_URL}harness-lifecycle-record.schema.json`;
@@ -85,6 +86,7 @@ export class HarnessQualificationStore {
   readonly #clock: Clock;
   readonly #ids: IdFactory;
   readonly #log: AppendOnlyLog<JsonValue>;
+  readonly #references: HarnessReferenceLedger | null;
 
   public constructor(input: {
     root: string;
@@ -95,6 +97,7 @@ export class HarnessQualificationStore {
     principals: PrincipalRegistry;
     clock: Clock;
     ids: IdFactory;
+    references?: HarnessReferenceLedger;
   }) {
     this.#protocolId = input.protocolId;
     this.#schemas = input.schemas;
@@ -103,6 +106,7 @@ export class HarnessQualificationStore {
     this.#principals = input.principals;
     this.#clock = input.clock;
     this.#ids = input.ids;
+    this.#references = input.references ?? null;
     this.#log = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "evolution"),
       "harness.lifecycle",
@@ -141,6 +145,9 @@ export class HarnessQualificationStore {
       "INVALID_STATE_TRANSITION",
       `Harness cannot transition ${previous.toState} → ${input.toState}`,
     );
+    if (input.toState === "retired" && this.#references !== null) {
+      await this.#references.assertRetirable(input.harnessVersionId);
+    }
     return this.#append({
       harnessVersionId: input.harnessVersionId,
       fromState: previous.toState,

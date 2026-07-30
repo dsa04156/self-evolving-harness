@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evaluator-request-payload.schema.json",
+  "title": "Evaluator Request Payload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operation",
+        "requestId",
+        "evaluationResultId",
+        "datasetRole",
+        "phase",
+        "methodId",
+        "parentHarnessVersionId",
+        "candidateHarnessVersionId",
+        "candidateFilesystemSnapshotHash",
+        "runtimeStateSnapshotIds",
+        "rolloutSeeds",
+        "manifestPins",
+        "taskPairs",
+        "totalUsage",
+        "pairedCi95LowerPercentagePointMicros",
+        "pairedCi95UpperPercentagePointMicros",
+        "sourceEvidenceReceiptIds",
+        "violations",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "evaluate"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "evaluationResultId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "datasetRole": {"const": "deterministic"},
+        "phase": {"const": "deterministic"},
+        "methodId": {
+          "type": "string",
+          "enum": ["B0", "B1", "B2", "B3", "B4", "B5-U", "B5-SM", "B6-ABL", "B6"]
+        },
+        "parentHarnessVersionId": {"$ref": "./common.schema.json#/$defs/harnessVersionId"},
+        "candidateHarnessVersionId": {"$ref": "./common.schema.json#/$defs/harnessVersionId"},
+        "candidateFilesystemSnapshotHash": {
+          "oneOf": [
+            {"$ref": "./common.schema.json#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        },
+        "runtimeStateSnapshotIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^rss-sha256:[a-f0-9]{64}$"}
+        },
+        "rolloutSeeds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "manifestPins": {"$ref": "#/$defs/manifestPins"},
+        "taskPairs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {"$ref": "#/$defs/taskPair"}
+        },
+        "totalUsage": {"$ref": "#/$defs/usage"},
+        "pairedCi95LowerPercentagePointMicros": {
+          "type": "integer",
+          "minimum": -100000000,
+          "maximum": 100000000
+        },
+        "pairedCi95UpperPercentagePointMicros": {
+          "type": "integer",
+          "minimum": -100000000,
+          "maximum": 100000000
+        },
+        "sourceEvidenceReceiptIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "./common.schema.json#/$defs/entityId"}
+        },
+        "violations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/violation"}
+        },
+        "createdAt": {"$ref": "./common.schema.json#/$defs/timestamp"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "coreHash", "auditLink"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "finalize"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "coreHash": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "auditLink": {"$ref": "./common.schema.json#/$defs/auditLink"}
+      }
+    }
+  ],
+  "$defs": {
+    "manifestPins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "budget",
+        "modelConfiguration",
+        "split",
+        "evaluator",
+        "environment",
+        "toolchain",
+        "statisticalPlan"
+      ],
+      "properties": {
+        "protocol": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "budget": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "modelConfiguration": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "split": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "evaluator": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "environment": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "toolchain": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "statisticalPlan": {"$ref": "./common.schema.json#/$defs/sha256"}
+      }
+    },
+    "taskPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opaqueTaskHandleHash",
+        "rolloutSeed",
+        "parentPassed",
+        "candidatePassed",
+        "parentReceiptId",
+        "candidateReceiptId"
+      ],
+      "properties": {
+        "opaqueTaskHandleHash": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "rolloutSeed": {"type": "integer", "minimum": 0},
+        "parentPassed": {"type": "boolean"},
+        "candidatePassed": {"type": "boolean"},
+        "parentReceiptId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "candidateReceiptId": {"$ref": "./common.schema.json#/$defs/entityId"}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelRequestAttempts",
+        "completedModelCalls",
+        "failedModelCalls",
+        "cancelledModelCalls",
+        "inputTokens",
+        "outputTokens",
+        "reasoningTokens",
+        "cachedInputTokens",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "toolCalls",
+        "feedbackEvents",
+        "wallClockMillis"
+      ],
+      "properties": {
+        "modelRequestAttempts": {"type": "integer", "minimum": 0},
+        "completedModelCalls": {"type": "integer", "minimum": 0},
+        "failedModelCalls": {"type": "integer", "minimum": 0},
+        "cancelledModelCalls": {"type": "integer", "minimum": 0},
+        "inputTokens": {"type": "integer", "minimum": 0},
+        "outputTokens": {"type": "integer", "minimum": 0},
+        "reasoningTokens": {"type": "integer", "minimum": 0},
+        "cachedInputTokens": {"type": "integer", "minimum": 0},
+        "totalChargedTokens": {"type": "integer", "minimum": 0},
+        "providerCostMicros": {"type": "integer", "minimum": 0},
+        "toolCalls": {"type": "integer", "minimum": 0},
+        "feedbackEvents": {"type": "integer", "minimum": 0},
+        "wallClockMillis": {"type": "integer", "minimum": 0}
+      }
+    },
+    "violation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "count", "receiptIds"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "safety",
+            "permission",
+            "budget",
+            "manifest",
+            "state_snapshot",
+            "data_access",
+            "audit",
+            "protocol"
+          ]
+        },
+        "count": {"type": "integer", "minimum": 0},
+        "receiptIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "./common.schema.json#/$defs/entityId"}
+        }
+      }
+    }
+  }
+}

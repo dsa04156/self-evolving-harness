@@ -22,11 +22,22 @@ import type {
 } from "../trust/identity.js";
 import type { HarnessQualificationStore } from "./harness-lifecycle.js";
 import type { PromotionService } from "./promotion.js";
+import type {
+  HarnessReferenceKind,
+  HarnessReferenceLedger,
+} from "./reference-ledger.js";
 
 export const DEPLOYMENT_DECISION_SCHEMA_ID =
   `${SCHEMA_BASE_URL}deployment-decision.schema.json`;
 export const DEPLOYMENT_POINTER_SCHEMA_ID =
   `${SCHEMA_BASE_URL}deployment-pointer-record.schema.json`;
+
+export class SimulatedDeploymentCrash extends Error {
+  public constructor() {
+    super("Simulated process crash after durable deployment-pointer append");
+    this.name = "SimulatedDeploymentCrash";
+  }
+}
 
 export interface PointerExpectation {
   readonly generation: number;
@@ -91,6 +102,39 @@ type DecisionSignedBody = Omit<DeploymentDecision, "attestation">;
 type PointerCore = Omit<DeploymentPointerRecord, "auditLink" | "attestation">;
 type PointerSignedBody = Omit<DeploymentPointerRecord, "attestation">;
 
+interface DeploymentHoldSpec {
+  readonly holdId: string;
+  readonly harnessVersionId: string;
+  readonly holdKind: HarnessReferenceKind;
+  readonly subjectId: string;
+}
+
+function pendingHoldSpecs(
+  decision: Pick<
+    DecisionCore,
+    "deploymentDecisionId" | "target" | "rollbackTargetHarnessVersionId"
+  >,
+): DeploymentHoldSpec[] {
+  const specs: DeploymentHoldSpec[] = [];
+  if (decision.target.harnessVersionId !== null) {
+    specs.push({
+      holdId: `deployment-pending:${decision.deploymentDecisionId}:target`,
+      harnessVersionId: decision.target.harnessVersionId,
+      holdKind: "pending_deployment",
+      subjectId: decision.deploymentDecisionId,
+    });
+  }
+  if (decision.rollbackTargetHarnessVersionId !== null) {
+    specs.push({
+      holdId: `deployment-pending:${decision.deploymentDecisionId}:rollback`,
+      harnessVersionId: decision.rollbackTargetHarnessVersionId,
+      holdKind: "pending_deployment",
+      subjectId: decision.deploymentDecisionId,
+    });
+  }
+  return specs;
+}
+
 function decisionCore(decision: DeploymentDecision): DecisionCore {
   const { auditLink: _auditLink, attestation: _attestation, ...core } = decision;
   return core;
@@ -142,7 +186,9 @@ export class DeploymentAuthorizer {
   readonly #signer: PrincipalSigner;
   readonly #clock: Clock;
   readonly #ids: IdFactory;
+  readonly #references: HarnessReferenceLedger | null;
   readonly #log: AppendOnlyLog<JsonValue>;
+  #queue: Promise<void> = Promise.resolve();
 
   public constructor(input: {
     root: string;
@@ -155,6 +201,7 @@ export class DeploymentAuthorizer {
     signer: PrincipalSigner;
     clock: Clock;
     ids: IdFactory;
+    references?: HarnessReferenceLedger;
   }) {
     assertCondition(
       input.signer.identity.role === "promoter",
@@ -170,17 +217,27 @@ export class DeploymentAuthorizer {
     this.#signer = input.signer;
     this.#clock = input.clock;
     this.#ids = input.ids;
+    this.#references = input.references ?? null;
     this.#log = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "evolution"),
       "deployment.decisions",
     );
   }
 
-  public async authorize(input: {
+  public authorize(input: {
     action: DeploymentDecision["action"];
     expectedBefore: PointerExpectation;
     targetHarnessVersionId?: string;
   }): Promise<DeploymentDecision> {
+    return this.#serialized(() => this.#authorizeLocked(input));
+  }
+
+  async #authorizeLocked(input: {
+    action: DeploymentDecision["action"];
+    expectedBefore: PointerExpectation;
+    targetHarnessVersionId?: string;
+  }): Promise<DeploymentDecision> {
+    await this.#recoverOrphanHoldsLocked();
     const expected = input.expectedBefore;
     let target: PointerTarget;
     let targetQualificationDecisionId: string | null;
@@ -282,19 +339,105 @@ export class DeploymentAuthorizer {
       decidedBy: this.#signer.identity,
       decidedAt: this.#clock.now().toISOString(),
     };
-    const auditLink = await this.#audit.appendSubject({
-      subjectType: "DeploymentDecision",
-      subjectId: core.deploymentDecisionId,
-      subjectHash: sha256(core),
-    });
-    const body: DecisionSignedBody = { ...core, auditLink };
-    const decision: DeploymentDecision = {
-      ...body,
-      attestation: this.#signer.attest(body as unknown as JsonValue),
-    };
-    this.#schemas.validate(DEPLOYMENT_DECISION_SCHEMA_ID, decision as unknown as JsonValue);
-    await this.#log.append(decision as unknown as JsonValue);
-    return decision;
+    const acquired = await this.#acquirePendingHolds(core);
+    try {
+      const auditLink = await this.#audit.appendSubject({
+        subjectType: "DeploymentDecision",
+        subjectId: core.deploymentDecisionId,
+        subjectHash: sha256(core),
+      });
+      const body: DecisionSignedBody = { ...core, auditLink };
+      const decision: DeploymentDecision = {
+        ...body,
+        attestation: this.#signer.attest(body as unknown as JsonValue),
+      };
+      this.#schemas.validate(DEPLOYMENT_DECISION_SCHEMA_ID, decision as unknown as JsonValue);
+      await this.#log.append(decision as unknown as JsonValue);
+      return decision;
+    } catch (error) {
+      await this.#releaseHolds(acquired);
+      throw error;
+    }
+  }
+
+  public recoverOrphanHolds(): Promise<number> {
+    return this.#serialized(() => this.#recoverOrphanHoldsLocked());
+  }
+
+  async #recoverOrphanHoldsLocked(): Promise<number> {
+    if (this.#references === null) return 0;
+    const durableDecisionIds = new Set<string>();
+    for (const record of await this.#log.readAll()) {
+      const decision = asDecision(record.payload);
+      this.#schemas.validate(
+        DEPLOYMENT_DECISION_SCHEMA_ID,
+        decision as unknown as JsonValue,
+      );
+      assertCondition(
+        decision.protocolId === this.#protocolId &&
+          decision.deploymentPolicyHash === this.#deploymentPolicyHash &&
+          decision.decidedBy.role === "promoter",
+        "PROTOCOL_MISMATCH",
+        "Persisted deployment decision cannot authorize hold recovery",
+      );
+      durableDecisionIds.add(decision.deploymentDecisionId);
+    }
+    let released = 0;
+    for (const hold of await this.#references.activeHolds()) {
+      if (
+        hold.holdKind === "pending_deployment" &&
+        !durableDecisionIds.has(hold.subjectId)
+      ) {
+        await this.#references.release({
+          holdId: hold.holdId,
+          harnessVersionId: hold.harnessVersionId,
+          holdKind: hold.holdKind,
+          subjectId: hold.subjectId,
+          signer: this.#signer,
+        });
+        released += 1;
+      }
+    }
+    return released;
+  }
+
+  async #acquirePendingHolds(
+    decision: Pick<
+      DecisionCore,
+      | "deploymentDecisionId"
+      | "target"
+      | "rollbackTargetHarnessVersionId"
+    >,
+  ): Promise<DeploymentHoldSpec[]> {
+    if (this.#references === null) return [];
+    const specs = pendingHoldSpecs(decision);
+    const acquired: DeploymentHoldSpec[] = [];
+    try {
+      for (const spec of specs) {
+        await this.#references.acquire({ ...spec, signer: this.#signer });
+        acquired.push(spec);
+      }
+      return acquired;
+    } catch (error) {
+      await this.#releaseHolds(acquired);
+      throw error;
+    }
+  }
+
+  async #releaseHolds(specs: readonly DeploymentHoldSpec[]): Promise<void> {
+    if (this.#references === null) return;
+    for (const spec of [...specs].reverse()) {
+      await this.#references.release({ ...spec, signer: this.#signer });
+    }
+  }
+
+  async #serialized<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.#queue.then(operation, operation);
+    this.#queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
   }
 }
 
@@ -311,6 +454,8 @@ export class DeploymentRegistry {
   readonly #signer: PrincipalSigner;
   readonly #clock: Clock;
   readonly #ids: IdFactory;
+  readonly #references: HarnessReferenceLedger | null;
+  readonly #crashAfterPointerAppend: boolean;
   readonly #log: AppendOnlyLog<JsonValue>;
   #queue: Promise<void> = Promise.resolve();
 
@@ -327,6 +472,8 @@ export class DeploymentRegistry {
     signer: PrincipalSigner;
     clock: Clock;
     ids: IdFactory;
+    references?: HarnessReferenceLedger;
+    crashAfterPointerAppend?: boolean;
   }) {
     assertCondition(
       input.signer.identity.role === "operations_owner",
@@ -345,12 +492,29 @@ export class DeploymentRegistry {
     this.#signer = input.signer;
     this.#clock = input.clock;
     this.#ids = input.ids;
+    this.#references = input.references ?? null;
+    this.#crashAfterPointerAppend = input.crashAfterPointerAppend ?? false;
     this.#log = new AppendOnlyLog<JsonValue>(this.#root, "deployment.production");
   }
 
+  public async initialize(): Promise<void> {
+    await this.recoverStaleLock();
+    const records = await this.#recordsAndVerify();
+    await this.#reconcileReferenceHolds(
+      await this.#projectCurrent(records),
+      new Set(records.map((record) => record.deploymentDecisionId)),
+    );
+  }
+
   public async current(): Promise<PointerExpectation> {
+    return this.#projectCurrent(await this.#recordsAndVerify());
+  }
+
+  async #projectCurrent(
+    records: readonly DeploymentPointerRecord[],
+  ): Promise<PointerExpectation> {
     let state = nullAnchor();
-    for (const record of await this.#recordsAndVerify()) {
+    for (const record of records) {
       assertCondition(
         sha256(record.expectedBefore) === sha256(state),
         "HASH_MISMATCH",
@@ -424,11 +588,14 @@ export class DeploymentRegistry {
       }
       throw error;
     }
+    let pointerAppended = false;
     try {
       await lock.writeFile(canonicalBytes({ pid: process.pid, protocolId: this.#protocolId }));
       await lock.sync();
       await this.#verifyDecision(decision);
       const before = await this.current();
+      await this.#reconcileReferenceHolds(before, new Set());
+      await this.#ensurePendingHolds(decision);
       assertCondition(
         sha256(decision.expectedBefore) === sha256(before),
         "CONFLICT",
@@ -476,7 +643,31 @@ export class DeploymentRegistry {
       };
       this.#schemas.validate(DEPLOYMENT_POINTER_SCHEMA_ID, record as unknown as JsonValue);
       await this.#log.append(record as unknown as JsonValue);
+      pointerAppended = true;
+      if (this.#crashAfterPointerAppend) {
+        throw new SimulatedDeploymentCrash();
+      }
+      await this.#reconcileReferenceHolds(
+        {
+          generation: record.after.generation,
+          harnessVersionId: record.after.harnessVersionId,
+          manifestHash: record.after.manifestHash,
+          targetQualificationDecisionId: record.targetQualificationDecisionId,
+          rollbackTargetHarnessVersionId:
+            record.rollbackTargetHarnessVersionId,
+          rollbackTargetManifestHash: record.rollbackTargetManifestHash,
+          rollbackTargetQualificationDecisionId:
+            record.rollbackTargetQualificationDecisionId,
+          pointerRecordHash: sha256(pointerCore(record)),
+        },
+        new Set([record.deploymentDecisionId]),
+      );
       return record;
+    } catch (error) {
+      if (!pointerAppended) {
+        await this.#releasePendingHolds(decision.deploymentDecisionId);
+      }
+      throw error;
     } finally {
       await lock.close();
       await unlink(lockPath).catch(() => undefined);
@@ -606,5 +797,98 @@ export class DeploymentRegistry {
       "AUTHORIZATION_DENIED",
       "Deployment tuple is not currently approved",
     );
+  }
+
+  async #ensurePendingHolds(decision: DeploymentDecision): Promise<void> {
+    if (this.#references === null) return;
+    const active = await this.#references.activeHolds();
+    for (const spec of pendingHoldSpecs(decisionCore(decision))) {
+      const alreadyProtected = active.some(
+        (hold) =>
+          hold.holdKind === "pending_deployment" &&
+          hold.subjectId === decision.deploymentDecisionId &&
+          hold.harnessVersionId === spec.harnessVersionId,
+      );
+      if (alreadyProtected) continue;
+      await this.#references.acquire({
+        ...spec,
+        holdId:
+          `${spec.holdId}:attempt:${this.#ids.next("deployment-hold")}`,
+        signer: this.#signer,
+      });
+    }
+  }
+
+  async #releasePendingHolds(deploymentDecisionId: string): Promise<void> {
+    if (this.#references === null) return;
+    const active = await this.#references.activeHolds();
+    for (const hold of active) {
+      if (
+        hold.holdKind === "pending_deployment" &&
+        hold.subjectId === deploymentDecisionId
+      ) {
+        await this.#references.release({
+          holdId: hold.holdId,
+          harnessVersionId: hold.harnessVersionId,
+          holdKind: hold.holdKind,
+          subjectId: hold.subjectId,
+          signer: this.#signer,
+        });
+      }
+    }
+  }
+
+  async #reconcileReferenceHolds(
+    state: PointerExpectation,
+    appliedDecisionIds: ReadonlySet<string>,
+  ): Promise<void> {
+    if (this.#references === null) return;
+    const desired = new Map<string, DeploymentHoldSpec>();
+    if (state.harnessVersionId !== null) {
+      const spec: DeploymentHoldSpec = {
+        holdId: `deployment:production:g${state.generation}:target`,
+        harnessVersionId: state.harnessVersionId,
+        holdKind: "production_target",
+        subjectId: `production:g${state.generation}`,
+      };
+      desired.set(spec.holdId, spec);
+    }
+    if (state.rollbackTargetHarnessVersionId !== null) {
+      const spec: DeploymentHoldSpec = {
+        holdId: `deployment:production:g${state.generation}:rollback`,
+        harnessVersionId: state.rollbackTargetHarnessVersionId,
+        holdKind: "rollback_target",
+        subjectId: `production:g${state.generation}`,
+      };
+      desired.set(spec.holdId, spec);
+    }
+    let active = await this.#references.activeHolds();
+    const activeIds = new Set(active.map((hold) => hold.holdId));
+    for (const spec of desired.values()) {
+      if (!activeIds.has(spec.holdId)) {
+        await this.#references.acquire({ ...spec, signer: this.#signer });
+      }
+    }
+    active = await this.#references.activeHolds();
+    for (const hold of active) {
+      const isPointerHold =
+        hold.holdKind === "production_target" ||
+        hold.holdKind === "rollback_target";
+      const isAppliedPending =
+        hold.holdKind === "pending_deployment" &&
+        appliedDecisionIds.has(hold.subjectId);
+      if (
+        (isPointerHold && !desired.has(hold.holdId)) ||
+        isAppliedPending
+      ) {
+        await this.#references.release({
+          holdId: hold.holdId,
+          harnessVersionId: hold.harnessVersionId,
+          holdKind: hold.holdKind,
+          subjectId: hold.subjectId,
+          signer: this.#signer,
+        });
+      }
+    }
   }
 }

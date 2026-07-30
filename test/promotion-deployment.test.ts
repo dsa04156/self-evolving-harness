@@ -9,16 +9,17 @@ import {
   AuditTrail,
   DeploymentAuthorizer,
   DeploymentRegistry,
-  DeterministicClock,
   DeterministicIdFactory,
   EvidenceReceiptStore,
   ExternalEvaluatorClient,
   HarnessComponentRegistry,
   HarnessQualificationStore,
+  HarnessReferenceLedger,
   PrincipalRegistry,
   PrincipalSigner,
   PromotionService,
   SchemaRegistry,
+  SystemClock,
   computeCandidateCostGate,
   type EvaluationBudgetUsage,
   type HarnessVersionManifest,
@@ -79,7 +80,7 @@ async function temporaryDirectory(t: test.TestContext): Promise<string> {
 test("approved harnesses deploy by exact CAS and rollback swaps the full tuple", async (t) => {
   const root = await temporaryDirectory(t);
   const schemas = await SchemaRegistry.load(path.resolve("schemas"));
-  const clock = new DeterministicClock();
+  const clock = new SystemClock();
   const ids = new DeterministicIdFactory();
   const principals = new PrincipalRegistry();
   const auditSigner = PrincipalSigner.generate({
@@ -132,6 +133,15 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
     clock,
     ids,
   });
+  const references = new HarnessReferenceLedger({
+    root,
+    protocolId,
+    schemas,
+    audit,
+    principals,
+    clock,
+    ids,
+  });
   const qualification = new HarnessQualificationStore({
     root,
     protocolId,
@@ -141,6 +151,7 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
     principals,
     clock,
     ids,
+    references,
   });
   const artifacts = new ArtifactStore(path.join(root, "artifacts"));
   const components = new HarnessComponentRegistry({
@@ -198,13 +209,25 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
   const evaluator = new ExternalEvaluatorClient({
     root,
     protocolId,
-    pythonRoot:
-      "/home/jinuk/.local/share/uv/python/cpython-3.13.14-linux-x86_64-gnu",
-    scriptPath: path.resolve("evaluator/external_evaluator.py"),
+    endpoint: {
+      socketPath: path.join(root, "ipc", "evaluator.sock"),
+      expectedEvaluatorUid: process.getuid!(),
+      expectedEvaluatorGid: process.getgid!(),
+      pythonExecutable:
+        "/home/jinuk/.local/share/uv/python/cpython-3.13.14-linux-x86_64-gnu/bin/python3.13",
+      relayScriptPath: path.resolve("evaluator/unix_peer_relay.py"),
+    },
+    evaluatorPrincipal: evaluatorSigner.exportPublic(),
+    emulatedLaunch: {
+      isolationClass: "isolation_emulated",
+      pythonRoot:
+        "/home/jinuk/.local/share/uv/python/cpython-3.13.14-linux-x86_64-gnu",
+      scriptPath: path.resolve("evaluator/external_evaluator.py"),
+      evaluatorSigner,
+    },
     schemas,
     audit,
     operationsSigner,
-    evaluatorSigner,
     principals,
     clock,
     ids,
@@ -348,7 +371,53 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
     signer: promoterSigner,
     clock,
     ids,
+    references,
   });
+  await references.acquire({
+    holdId: "deployment-pending:orphaned-decision:target",
+    harnessVersionId: candidateA.harnessVersionId,
+    holdKind: "pending_deployment",
+    subjectId: "orphaned-decision",
+    signer: promoterSigner,
+  });
+  assert.equal(await authorizer.recoverOrphanHolds(), 1);
+  const crashingDeployment = new DeploymentRegistry({
+    root,
+    protocolId,
+    deploymentPolicyHash,
+    schemas,
+    audit,
+    components,
+    promotions,
+    qualification,
+    principals,
+    signer: operationsSigner,
+    clock,
+    ids,
+    references,
+    crashAfterPointerAppend: true,
+  });
+
+  const empty = await crashingDeployment.current();
+  const initialize = await authorizer.authorize({
+    action: "initialize",
+    expectedBefore: empty,
+    targetHarnessVersionId: candidateA.harnessVersionId,
+  });
+  assert.equal(
+    (await references.activeHolds(candidateA.harnessVersionId))
+      .filter((hold) => hold.holdKind === "pending_deployment").length,
+    1,
+  );
+  await assert.rejects(
+    crashingDeployment.apply(initialize),
+    /Simulated process crash after durable deployment-pointer append/u,
+  );
+  assert.equal(
+    (await references.activeHolds(candidateA.harnessVersionId))
+      .filter((hold) => hold.holdKind === "pending_deployment").length,
+    1,
+  );
   const deployment = new DeploymentRegistry({
     root,
     protocolId,
@@ -362,20 +431,21 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
     signer: operationsSigner,
     clock,
     ids,
+    references,
   });
-
-  const empty = await deployment.current();
-  const initialize = await authorizer.authorize({
-    action: "initialize",
-    expectedBefore: empty,
-    targetHarnessVersionId: candidateA.harnessVersionId,
-  });
-  await deployment.apply(initialize);
+  await deployment.initialize();
   const currentA = await deployment.current();
   assert.equal(currentA.harnessVersionId, candidateA.harnessVersionId);
   assert.equal(
     currentA.targetQualificationDecisionId,
     approvalA.promotionDecisionId,
+  );
+  assert.deepEqual(
+    (await references.activeHolds()).map((hold) => [
+      hold.holdKind,
+      hold.harnessVersionId,
+    ]),
+    [["production_target", candidateA.harnessVersionId]],
   );
   await assert.rejects(
     authorizer.authorize({ action: "rollback", expectedBefore: currentA }),
@@ -397,6 +467,18 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
     deployment.apply(staleDeployB),
     /compare-and-swap expectation is stale/u,
   );
+  await assert.rejects(
+    deployment.apply(staleDeployB),
+    /compare-and-swap expectation is stale/u,
+  );
+  assert.equal(
+    (await references.activeHolds()).filter(
+      (hold) =>
+        hold.holdKind === "pending_deployment" &&
+        hold.subjectId === staleDeployB.deploymentDecisionId,
+    ).length,
+    0,
+  );
   const currentB = await deployment.current();
   assert.equal(currentB.harnessVersionId, candidateB.harnessVersionId);
   assert.equal(
@@ -406,6 +488,16 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
   assert.equal(
     currentB.rollbackTargetHarnessVersionId,
     candidateA.harnessVersionId,
+  );
+  assert.deepEqual(
+    (await references.activeHolds()).map((hold) => [
+      hold.holdKind,
+      hold.harnessVersionId,
+    ]),
+    [
+      ["rollback_target", candidateA.harnessVersionId],
+      ["production_target", candidateB.harnessVersionId],
+    ],
   );
 
   const rollbackA = await authorizer.authorize({
@@ -436,6 +528,7 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
   const stopped = await deployment.current();
   assert.equal(stopped.harnessVersionId, null);
   assert.equal(stopped.rollbackTargetHarnessVersionId, null);
+  assert.deepEqual(await references.activeHolds(), []);
 
   const lockDirectory = path.join(root, "deployment");
   await mkdir(lockDirectory, { recursive: true });
@@ -448,6 +541,7 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
   assert.equal(await deployment.recoverStaleLock(), false);
 
   await qualification.verifyAll();
+  await references.verifyAll();
   await receipts.verifyAll();
   await audit.verifyAll();
 });

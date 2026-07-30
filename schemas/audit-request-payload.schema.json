@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/audit-request-payload.schema.json",
+  "title": "Audit Service Request Payload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operation",
+        "requestId",
+        "subjectType",
+        "subjectId",
+        "subjectHash"
+      ],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "append_subject"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "subjectType": {"type": "string", "minLength": 1, "maxLength": 128},
+        "subjectId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "subjectHash": {"$ref": "./common.schema.json#/$defs/sha256"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operation",
+        "requestId",
+        "link",
+        "expected"
+      ],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "verify_link"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "link": {"$ref": "./common.schema.json#/$defs/auditLink"},
+        "expected": {"$ref": "#/$defs/subject"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "verify_all"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"}
+      }
+    }
+  ],
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subjectType", "subjectId", "subjectHash"],
+      "properties": {
+        "subjectType": {"type": "string", "minLength": 1, "maxLength": 128},
+        "subjectId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "subjectHash": {"$ref": "./common.schema.json#/$defs/sha256"}
+      }
+    }
+  }
+}

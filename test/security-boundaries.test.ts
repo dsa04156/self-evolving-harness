@@ -11,6 +11,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   AppendOnlyLog,
@@ -134,9 +135,11 @@ test("bubblewrap denies network and host paths and enforces time/output caps", a
   assert.equal(isolation.exitCode, 0);
   assert.equal(isolation.stdout, "denied\n");
 
-  const timedOut = await runner.runShell("sleep 5");
-  assert.equal(timedOut.timedOut, true);
-  assert.notEqual(timedOut.exitCode, 0);
+  await assert.rejects(
+    runner.runShell("sleep 5"),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "DEADLINE_EXCEEDED",
+  );
   await assert.rejects(
     runner.runShell("printf '%0200d' 0"),
     (error: unknown) =>
@@ -147,4 +150,50 @@ test("bubblewrap denies network and host paths and enforces time/output caps", a
     (error: unknown) =>
       error instanceof HarnessError && error.code === "PAYLOAD_TOO_LARGE",
   );
+});
+
+test("revocation kills and reaps a non-cooperative process before a delayed commit", async (t) => {
+  const root = await temporaryDirectory(t);
+  const workspaceRoot = path.join(root, "workspace");
+  await mkdir(workspaceRoot, { mode: 0o700 });
+  const runner = new BubblewrapProcessRunner(workspaceRoot, {
+    timeoutMillis: 5_000,
+    maxOutputBytes: 1024,
+    maxCommandBytes: 1024,
+    environment: {},
+  });
+  await runner.initialize();
+  const controller = new AbortController();
+  const execution = runner.runShell(
+    "trap '' TERM; (trap '' TERM; sleep 1; printf late > delayed.txt) & " +
+      "while :; do sleep 1; done",
+    controller.signal,
+  );
+  await delay(100);
+  controller.abort();
+  await assert.rejects(
+    execution,
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "DEADLINE_EXCEEDED",
+  );
+  assert.equal(runner.activeProcessCount, 0);
+  await delay(1_100);
+  await assert.rejects(readFile(path.join(workspaceRoot, "delayed.txt"), "utf8"), {
+    code: "ENOENT",
+  });
+
+  const guard = new WorkspacePathGuard(workspaceRoot);
+  await guard.initialize();
+  await assert.rejects(
+    guard.writeFile("after-revoke.txt", Buffer.from("forbidden"), {
+      overwrite: false,
+      maxBytes: 1024,
+      abortSignal: controller.signal,
+    }),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "DEADLINE_EXCEEDED",
+  );
+  await assert.rejects(readFile(path.join(workspaceRoot, "after-revoke.txt"), "utf8"), {
+    code: "ENOENT",
+  });
 });

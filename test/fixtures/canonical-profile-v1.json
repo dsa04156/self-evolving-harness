@@ -57,27 +57,58 @@
   "invalid": [
     {
       "id": "fraction",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"value\":1.5}"
     },
     {
+      "id": "fraction-exponent",
+      "errorCategory": "SCHEMA_INVALID",
+      "json": "{\"value\":1e-1}"
+    },
+    {
+      "id": "noncanonical-integer-exponent",
+      "errorCategory": "SCHEMA_INVALID",
+      "json": "{\"value\":1e3}"
+    },
+    {
       "id": "negative-zero",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"value\":-0}"
     },
     {
+      "id": "leading-zero",
+      "errorCategory": "SCHEMA_INVALID",
+      "json": "{\"value\":01}"
+    },
+    {
       "id": "unsafe-integer",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"value\":9007199254740992}"
     },
     {
       "id": "lone-surrogate",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"value\":\"\\ud800\"}"
     },
     {
+      "id": "lone-low-surrogate",
+      "errorCategory": "SCHEMA_INVALID",
+      "json": "{\"value\":\"\\udc00\"}"
+    },
+    {
       "id": "duplicate-key",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"a\":1,\"a\":2}"
     },
     {
       "id": "noncanonical-order",
+      "errorCategory": "SCHEMA_INVALID",
       "json": "{\"b\":2,\"a\":1}"
+    },
+    {
+      "id": "noncanonical-unicode-escape",
+      "errorCategory": "SCHEMA_INVALID",
+      "json": "{\"value\":\"\\u0061\"}"
     }
   ]
 }

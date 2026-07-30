@@ -23,6 +23,7 @@ export interface SandboxProcessResult {
 export class BubblewrapProcessRunner {
   readonly #workspaceRoot: string;
   readonly #policy: SandboxProcessPolicy;
+  readonly #activeProcessGroups = new Set<number>();
 
   public constructor(workspaceRoot: string, policy: SandboxProcessPolicy) {
     this.#workspaceRoot = path.resolve(workspaceRoot);
@@ -31,6 +32,10 @@ export class BubblewrapProcessRunner {
 
   public async initialize(): Promise<void> {
     await access("/usr/bin/bwrap", constants.X_OK);
+  }
+
+  public get activeProcessCount(): number {
+    return this.#activeProcessGroups.size;
   }
 
   public async runShell(command: string, abortSignal?: AbortSignal): Promise<SandboxProcessResult> {
@@ -56,6 +61,9 @@ export class BubblewrapProcessRunner {
   }
 
   async #run(command: readonly string[], abortSignal?: AbortSignal): Promise<SandboxProcessResult> {
+    if (abortSignal?.aborted === true) {
+      throw new HarnessError("DEADLINE_EXCEEDED", "Process authority was already revoked");
+    }
     const bwrapArgs = [
       "--unshare-all",
       "--die-with-parent",
@@ -128,6 +136,9 @@ export class BubblewrapProcessRunner {
       let outputBytes = 0;
       let timedOut = false;
       let settled = false;
+      let terminationError: HarnessError | null = null;
+      let killTimer: NodeJS.Timeout | null = null;
+      if (child.pid !== undefined) this.#activeProcessGroups.add(child.pid);
 
       const killGroup = (signal: NodeJS.Signals): void => {
         if (child.pid === undefined) return;
@@ -137,30 +148,48 @@ export class BubblewrapProcessRunner {
           if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
         }
       };
-      const rejectOnce = (error: unknown): void => {
+      const settleError = (error: unknown): void => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        if (killTimer !== null) clearTimeout(killTimer);
         abortSignal?.removeEventListener("abort", onAbort);
+        if (child.pid !== undefined) this.#activeProcessGroups.delete(child.pid);
         reject(error);
+      };
+      const revokeAndReap = (error: HarnessError, timeout: boolean): void => {
+        if (terminationError !== null || settled) return;
+        terminationError = error;
+        timedOut = timeout;
+        killGroup("SIGTERM");
+        killTimer = setTimeout(() => killGroup("SIGKILL"), 100);
+        killTimer.unref();
       };
       const capture = (target: Buffer[], chunk: Buffer): void => {
         outputBytes += chunk.byteLength;
         if (outputBytes > this.#policy.maxOutputBytes) {
-          killGroup("SIGKILL");
-          rejectOnce(new HarnessError("PAYLOAD_TOO_LARGE", "Process output limit exceeded"));
+          revokeAndReap(
+            new HarnessError("PAYLOAD_TOO_LARGE", "Process output limit exceeded"),
+            false,
+          );
           return;
         }
         target.push(chunk);
       };
       child.stdout.on("data", (chunk: Buffer) => capture(stdout, chunk));
       child.stderr.on("data", (chunk: Buffer) => capture(stderr, chunk));
-      child.on("error", rejectOnce);
+      child.on("error", settleError);
       child.on("close", (exitCode, signal) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        if (killTimer !== null) clearTimeout(killTimer);
         abortSignal?.removeEventListener("abort", onAbort);
+        if (child.pid !== undefined) this.#activeProcessGroups.delete(child.pid);
+        if (terminationError !== null) {
+          reject(terminationError);
+          return;
+        }
         resolve({
           exitCode,
           signal,
@@ -170,16 +199,20 @@ export class BubblewrapProcessRunner {
         });
       });
       const onAbort = (): void => {
-        killGroup("SIGKILL");
-        rejectOnce(new HarnessError("DEADLINE_EXCEEDED", "Process was cancelled"));
+        revokeAndReap(
+          new HarnessError("DEADLINE_EXCEEDED", "Process authority was revoked"),
+          false,
+        );
       };
       abortSignal?.addEventListener("abort", onAbort, { once: true });
       const timer = setTimeout(() => {
-        timedOut = true;
-        killGroup("SIGTERM");
-        setTimeout(() => killGroup("SIGKILL"), 250).unref();
+        revokeAndReap(
+          new HarnessError("DEADLINE_EXCEEDED", "Process deadline expired"),
+          true,
+        );
       }, this.#policy.timeoutMillis);
       timer.unref();
+      if (abortSignal?.aborted === true) onAbort();
     });
   }
 }

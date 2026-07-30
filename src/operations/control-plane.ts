@@ -1,4 +1,5 @@
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { type JsonValue } from "../core/canonical.js";
 import type { Clock, IdFactory } from "../core/determinism.js";
@@ -14,6 +15,7 @@ import type { EvidenceReceipt, EvidenceReceiptStore } from "../evidence/receipts
 import { AppendOnlyLog } from "../storage/append-only-log.js";
 import type { ArtifactStore } from "../storage/artifact-store.js";
 import type { PrincipalSigner } from "../trust/identity.js";
+import type { HarnessReferenceLedger } from "../evolution/reference-ledger.js";
 import type { SessionLifecycleStore } from "./session-lifecycle.js";
 
 export const OPERATION_RESPONSE_SCHEMA_ID = `${SCHEMA_BASE_URL}operation-response.schema.json`;
@@ -55,6 +57,18 @@ interface SessionDefinition {
 
 type SessionExecutor = (task: string, abortSignal: AbortSignal) => Promise<AgentRunResult>;
 
+export type TerminationCrashStage = "initiated" | "final_receipt" | "completed";
+
+export class SimulatedTerminationCrash extends Error {
+  public readonly stage: TerminationCrashStage;
+
+  public constructor(stage: TerminationCrashStage) {
+    super(`Simulated process crash after durable termination stage ${stage}`);
+    this.name = "SimulatedTerminationCrash";
+    this.stage = stage;
+  }
+}
+
 const NEXT_ACTIONS: Readonly<Record<SessionState, readonly NextAction[]>> = Object.freeze({
   created: ["observe", "terminate", "retire", "events", "artifacts"],
   initialized: ["submit", "observe", "terminate", "events", "artifacts"],
@@ -81,9 +95,13 @@ export class OperationsControlPlane {
   readonly #artifacts: ArtifactStore;
   readonly #signer: PrincipalSigner;
   readonly #clock: Clock;
+  readonly #references: HarnessReferenceLedger | null;
+  readonly #crashAfterTerminationStage: TerminationCrashStage | null;
   readonly #definitions: AppendOnlyLog<JsonValue>;
   readonly #sessions = new Map<string, SessionDefinition>();
   readonly #abortControllers = new Map<string, AbortController>();
+  readonly #activeExecutions = new Map<string, Promise<AgentRunResult>>();
+  readonly #terminationRequests = new Set<string>();
   readonly #stateQueues = new Map<string, Promise<void>>();
 
   public constructor(input: {
@@ -96,6 +114,8 @@ export class OperationsControlPlane {
     signer: PrincipalSigner;
     clock: Clock;
     ids: IdFactory;
+    references?: HarnessReferenceLedger;
+    crashAfterTerminationStage?: TerminationCrashStage;
   }) {
     assertCondition(
       input.signer.identity.role === "operations_owner",
@@ -109,6 +129,9 @@ export class OperationsControlPlane {
     this.#artifacts = input.artifacts;
     this.#signer = input.signer;
     this.#clock = input.clock;
+    this.#references = input.references ?? null;
+    this.#crashAfterTerminationStage =
+      input.crashAfterTerminationStage ?? null;
     this.#definitions = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "operations"),
       "sessions.definitions",
@@ -128,6 +151,25 @@ export class OperationsControlPlane {
       this.#sessions.set(definition.sessionId, definition);
     }
     await this.#lifecycle.verifyAll();
+    for (const definition of this.#sessions.values()) {
+      let state = await this.#lifecycle.state(definition.sessionId);
+      await this.#reconcileSessionHold(
+        definition,
+        state,
+      );
+      if (
+        state === "running" ||
+        state === "waiting" ||
+        state === "recovering" ||
+        state === "validating"
+      ) {
+        await this.#beginTermination(definition.sessionId, "process_crash");
+        state = "terminating";
+      }
+      if (state === "terminating") {
+        await this.#completeTermination(definition.sessionId);
+      }
+    }
   }
 
   public async start(sessionId: string, pins: SessionPins): Promise<OperationResponse> {
@@ -144,6 +186,7 @@ export class OperationsControlPlane {
         pins,
         createdAt: this.#clock.now().toISOString(),
       };
+      await this.#acquireSessionHold(definition);
       await this.#definitions.append(definition as unknown as JsonValue);
       this.#sessions.set(sessionId, definition);
       const createdReceipt = await this.#controlReceipt(
@@ -208,20 +251,24 @@ export class OperationsControlPlane {
       return { definition, runningReceipt, controller };
     });
     const { definition, runningReceipt, controller } = prepared;
+    const execution = executor(task, controller.signal);
+    this.#activeExecutions.set(sessionId, execution);
     let result: AgentRunResult;
     try {
-      result = await executor(task, controller.signal);
+      result = await execution;
     } catch (error) {
-      await this.#withStateLock(sessionId, () =>
-        this.#terminate(
-          sessionId,
-          "process_crash",
-          "session_checkpoint",
-        ),
-      );
+      if (!this.#terminationRequests.has(sessionId)) {
+        await this.#withStateLock(sessionId, () =>
+          this.#terminate(
+            sessionId,
+            "process_crash",
+          ),
+        );
+      }
       throw error;
     } finally {
       this.#abortControllers.delete(sessionId);
+      this.#activeExecutions.delete(sessionId);
     }
     const resultReceipt = await this.#receipts.create({
       receiptType:
@@ -242,9 +289,10 @@ export class OperationsControlPlane {
             ],
       signer: this.#signer,
     });
-    return this.#withStateLock(sessionId, async () => {
+    const submissionResponse = await this.#withStateLock(sessionId, async () => {
       const current = await this.#lifecycle.state(sessionId);
-      if (current === "terminating" || current === "terminated") {
+      if (current === "terminating") return null;
+      if (current === "terminated") {
         return this.#response("submit", sessionId, [
           runningReceipt,
           resultReceipt,
@@ -279,7 +327,6 @@ export class OperationsControlPlane {
         await this.#terminate(
           sessionId,
           result.terminationReason ?? "process_crash",
-          "session_completion",
         );
       }
       return this.#response("submit", sessionId, [
@@ -287,6 +334,9 @@ export class OperationsControlPlane {
         resultReceipt,
       ]);
     });
+    if (submissionResponse !== null) return submissionResponse;
+    await this.#waitForTerminated(sessionId);
+    return this.#response("submit", sessionId, [runningReceipt, resultReceipt]);
   }
 
   public async observe(sessionId: string): Promise<OperationResponse> {
@@ -298,14 +348,20 @@ export class OperationsControlPlane {
     this.#definition(sessionId);
     const controller = this.#abortControllers.get(sessionId);
     assertCondition(controller !== undefined, "INVALID_STATE_TRANSITION", "Session is not executing");
+    this.#terminationRequests.add(sessionId);
     controller.abort();
-    return this.#withStateLock(sessionId, async () => {
-      const receipts = await this.#terminate(
+    const initiating = await this.#withStateLock(sessionId, () =>
+      this.#beginTermination(
         sessionId,
         "user_cancellation",
-        "session_completion",
-      );
-      return this.#response("interrupt", sessionId, receipts);
+      ),
+    );
+    const active = this.#activeExecutions.get(sessionId);
+    if (active !== undefined) await Promise.allSettled([active]);
+    return this.#withStateLock(sessionId, async () => {
+      const final = await this.#completeTermination(sessionId);
+      this.#terminationRequests.delete(sessionId);
+      return this.#response("interrupt", sessionId, [...initiating, ...final]);
     });
   }
 
@@ -314,14 +370,20 @@ export class OperationsControlPlane {
     reason: TerminationReason = "host_enforced_shutdown",
   ): Promise<OperationResponse> {
     this.#definition(sessionId);
+    this.#terminationRequests.add(sessionId);
     this.#abortControllers.get(sessionId)?.abort();
-    return this.#withStateLock(sessionId, async () => {
-      const receipts = await this.#terminate(
+    const initiating = await this.#withStateLock(sessionId, () =>
+      this.#beginTermination(
         sessionId,
         reason,
-        "session_completion",
-      );
-      return this.#response("terminate", sessionId, receipts);
+      ),
+    );
+    const active = this.#activeExecutions.get(sessionId);
+    if (active !== undefined) await Promise.allSettled([active]);
+    return this.#withStateLock(sessionId, async () => {
+      const final = await this.#completeTermination(sessionId);
+      this.#terminationRequests.delete(sessionId);
+      return this.#response("terminate", sessionId, [...initiating, ...final]);
     });
   }
 
@@ -366,6 +428,7 @@ export class OperationsControlPlane {
         evidenceReceiptIds: [receipt.receiptId],
         signer: this.#signer,
       });
+      await this.#releaseSessionHold(definition);
       return this.#response("finalize", sessionId, [receipt]);
     });
   }
@@ -373,12 +436,21 @@ export class OperationsControlPlane {
   async #terminate(
     sessionId: string,
     reason: TerminationReason,
-    finalReceiptType: "session_checkpoint" | "session_completion",
+  ): Promise<EvidenceReceipt[]> {
+    const initiating = await this.#beginTermination(sessionId, reason);
+    const final = await this.#completeTermination(sessionId);
+    return [...initiating, ...final];
+  }
+
+  async #beginTermination(
+    sessionId: string,
+    reason: TerminationReason,
   ): Promise<EvidenceReceipt[]> {
     const definition = this.#definition(sessionId);
     const state = await this.#lifecycle.state(sessionId);
     if (state === "terminated") return [];
     assertCondition(state !== "retired", "INVALID_STATE_TRANSITION", "Retired session is terminal");
+    if (state === "terminating") return [];
     const initiating = await this.#controlReceipt("session_checkpoint", definition);
     await this.#lifecycle.beginTermination({
       sessionId,
@@ -386,20 +458,48 @@ export class OperationsControlPlane {
       evidenceReceiptIds: [initiating.receiptId],
       signer: this.#signer,
     });
-    const final = await this.#controlReceipt(finalReceiptType, definition);
+    this.#maybeCrashTermination("initiated");
+    return [initiating];
+  }
+
+  async #completeTermination(sessionId: string): Promise<EvidenceReceipt[]> {
+    const definition = this.#definition(sessionId);
+    const state = await this.#lifecycle.state(sessionId);
+    if (state === "terminated") return [];
+    assertCondition(
+      state === "terminating",
+      "INVALID_STATE_TRANSITION",
+      "Termination completion requires a durable initiating transition",
+    );
+    const initiating = (await this.#lifecycle.records(sessionId)).at(-1)!;
+    assertCondition(
+      initiating.terminationTransaction !== null,
+      "HASH_MISMATCH",
+      "Terminating state has no transaction descriptor",
+    );
+    const final = await this.#controlReceipt("session_completion", definition, {
+      receiptId:
+        `${initiating.terminationTransaction.terminationTransactionId}.final-receipt`,
+      createdAt: initiating.transitionedAt,
+    });
+    this.#maybeCrashTermination("final_receipt");
     await this.#lifecycle.completeTermination({
       sessionId,
       finalEvidenceReceiptId: final.receiptId,
       signer: this.#signer,
     });
-    return [initiating, final];
+    this.#maybeCrashTermination("completed");
+    await this.#releaseSessionHold(definition);
+    return [final];
   }
 
   async #controlReceipt(
     receiptType: "session_initialization" | "session_checkpoint" | "session_completion" | "artifact_retention",
     definition: SessionDefinition,
+    identity: { readonly receiptId: string; readonly createdAt: string } | null = null,
   ): Promise<EvidenceReceipt> {
     return this.#receipts.create({
+      ...(identity === null ? {} : identity),
       receiptType,
       subjectIds: [definition.sessionId],
       harnessVersionIds: [definition.pins.harnessVersionId],
@@ -433,6 +533,62 @@ export class OperationsControlPlane {
       if (this.#stateQueues.get(sessionId) === tail) {
         this.#stateQueues.delete(sessionId);
       }
+    }
+  }
+
+  async #waitForTerminated(sessionId: string): Promise<void> {
+    const deadline = Date.now() + 5_000;
+    while (Date.now() <= deadline) {
+      if ((await this.#lifecycle.state(sessionId)) === "terminated") return;
+      await delay(5);
+    }
+    throw new HarnessError(
+      "DEADLINE_EXCEEDED",
+      "Termination transaction did not reach its terminal state",
+    );
+  }
+
+  async #acquireSessionHold(definition: SessionDefinition): Promise<void> {
+    if (this.#references === null) return;
+    await this.#references.acquire({
+      holdId: `hold.session.${definition.sessionId}`,
+      harnessVersionId: definition.pins.harnessVersionId,
+      holdKind: "live_session",
+      subjectId: definition.sessionId,
+      signer: this.#signer,
+    });
+  }
+
+  async #releaseSessionHold(definition: SessionDefinition): Promise<void> {
+    if (this.#references === null) return;
+    const holdId = `hold.session.${definition.sessionId}`;
+    const active = (await this.#references.activeHolds()).some(
+      (hold) => hold.holdId === holdId,
+    );
+    if (!active) return;
+    await this.#references.release({
+      holdId,
+      harnessVersionId: definition.pins.harnessVersionId,
+      holdKind: "live_session",
+      subjectId: definition.sessionId,
+      signer: this.#signer,
+    });
+  }
+
+  async #reconcileSessionHold(
+    definition: SessionDefinition,
+    state: SessionState,
+  ): Promise<void> {
+    if (state === "retired" || state === "terminated") {
+      await this.#releaseSessionHold(definition);
+    } else {
+      await this.#acquireSessionHold(definition);
+    }
+  }
+
+  #maybeCrashTermination(stage: TerminationCrashStage): void {
+    if (this.#crashAfterTerminationStage === stage) {
+      throw new SimulatedTerminationCrash(stage);
     }
   }
 

@@ -19,6 +19,19 @@ export interface AuditLink {
   readonly previousRecordHash: string | null;
 }
 
+export interface AuditLedger {
+  appendSubject(input: {
+    subjectType: string;
+    subjectId: string;
+    subjectHash: string;
+  }): Promise<AuditLink>;
+  verifyLink(
+    link: AuditLink,
+    expected: { subjectType: string; subjectId: string; subjectHash: string },
+  ): Promise<void>;
+  verifyAll(): Promise<void>;
+}
+
 interface AuditEntry {
   readonly schemaVersion: 1;
   readonly entryId: string;
@@ -52,7 +65,7 @@ function asAuditEntry(value: JsonValue): AuditEntry {
   return value as unknown as AuditEntry;
 }
 
-export class AuditTrail {
+export class AuditTrail implements AuditLedger {
   readonly #protocolId: string;
   readonly #logId: string;
   readonly #log: AppendOnlyLog<JsonValue>;
@@ -60,6 +73,7 @@ export class AuditTrail {
   readonly #principals: PrincipalRegistry;
   readonly #clock: Clock;
   readonly #ids: IdFactory;
+  #queue: Promise<void> = Promise.resolve();
 
   public constructor(input: {
     root: string;
@@ -89,11 +103,45 @@ export class AuditTrail {
     subjectId: string;
     subjectHash: string;
   }): Promise<AuditLink> {
+    const operation = this.#queue.then(
+      () => this.#appendSubjectLocked(input),
+      () => this.#appendSubjectLocked(input),
+    );
+    this.#queue = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+    return operation;
+  }
+
+  async #appendSubjectLocked(input: {
+    subjectType: string;
+    subjectId: string;
+    subjectHash: string;
+  }): Promise<AuditLink> {
     assertCondition(
       /^sha256:[a-f0-9]{64}$/u.test(input.subjectHash),
       "SCHEMA_INVALID",
       "Bad subject hash",
     );
+    for (const record of await this.#log.readAll()) {
+      const entry = asAuditEntry(record.payload);
+      if (entry.subjectType !== input.subjectType || entry.subjectId !== input.subjectId) {
+        continue;
+      }
+      assertCondition(
+        entry.subjectHash === input.subjectHash,
+        "CONFLICT",
+        "Audit subject ID was reused with another hash",
+      );
+      return {
+        protocolId: this.#protocolId,
+        logId: this.#logId,
+        sequence: record.sequence,
+        recordHash: record.recordHash,
+        previousRecordHash: record.previousRecordHash,
+      };
+    }
     const identity = {
       schemaVersion: 1 as const,
       entryId: this.#ids.next("audit-entry"),

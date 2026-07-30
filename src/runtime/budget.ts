@@ -122,7 +122,8 @@ export class BudgetAccount {
   }
 
   public seal(): Readonly<BudgetUsage> {
-    this.assertTime();
+    if (this.#sealed) return this.snapshot();
+    this.#usage.wallClockMillis = this.#elapsedMillis();
     this.#sealed = true;
     return this.snapshot();
   }

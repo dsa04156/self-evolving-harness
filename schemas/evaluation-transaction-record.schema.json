@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evaluation-transaction-record.schema.json",
+  "title": "Restart-Safe Evaluation Transaction Stage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "transactionRecordId",
+    "protocolId",
+    "transactionId",
+    "requestId",
+    "evaluationResultId",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "stage",
+    "requestPayload",
+    "requestPayloadHash",
+    "coreHash",
+    "resultAuditLink",
+    "resultHash",
+    "failureCode",
+    "createdBy",
+    "recordedAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "transactionRecordId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "protocolId": {"$ref": "./common.schema.json#/$defs/protocolId"},
+    "transactionId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "evaluationResultId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "parentHarnessVersionId": {"$ref": "./common.schema.json#/$defs/harnessVersionId"},
+    "candidateHarnessVersionId": {"$ref": "./common.schema.json#/$defs/harnessVersionId"},
+    "stage": {
+      "type": "string",
+      "enum": [
+        "started",
+        "proposed",
+        "audit_linked",
+        "result_created",
+        "signature_verified",
+        "result_appended",
+        "accounting_sealed",
+        "completed",
+        "failed"
+      ]
+    },
+    "requestPayload": {"$ref": "./evaluator-request-payload.schema.json"},
+    "requestPayloadHash": {"$ref": "./common.schema.json#/$defs/sha256"},
+    "coreHash": {
+      "oneOf": [
+        {"$ref": "./common.schema.json#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "resultAuditLink": {
+      "oneOf": [
+        {"$ref": "./common.schema.json#/$defs/auditLink"},
+        {"type": "null"}
+      ]
+    },
+    "resultHash": {
+      "oneOf": [
+        {"$ref": "./common.schema.json#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "failureCode": {
+      "oneOf": [
+        {"type": "string", "minLength": 1, "maxLength": 160},
+        {"type": "null"}
+      ]
+    },
+    "createdBy": {"$ref": "./common.schema.json#/$defs/principalIdentity"},
+    "recordedAt": {"$ref": "./common.schema.json#/$defs/timestamp"},
+    "auditLink": {"$ref": "./common.schema.json#/$defs/auditLink"},
+    "attestation": {"$ref": "./common.schema.json#/$defs/attestation"}
+  }
+}

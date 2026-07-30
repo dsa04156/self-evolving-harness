@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/harness-reference-record.schema.json",
+  "title": "Append-Only Harness Retirement Reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "referenceRecordId",
+    "protocolId",
+    "holdId",
+    "harnessVersionId",
+    "holdKind",
+    "subjectId",
+    "action",
+    "createdBy",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "referenceRecordId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "protocolId": {"$ref": "./common.schema.json#/$defs/protocolId"},
+    "holdId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "harnessVersionId": {"$ref": "./common.schema.json#/$defs/harnessVersionId"},
+    "holdKind": {
+      "type": "string",
+      "enum": [
+        "production_target",
+        "rollback_target",
+        "live_session",
+        "live_descendant",
+        "pending_evaluation",
+        "pending_deployment"
+      ]
+    },
+    "subjectId": {"$ref": "./common.schema.json#/$defs/entityId"},
+    "action": {"type": "string", "enum": ["acquire", "release"]},
+    "createdBy": {"$ref": "./common.schema.json#/$defs/principalIdentity"},
+    "createdAt": {"$ref": "./common.schema.json#/$defs/timestamp"},
+    "auditLink": {"$ref": "./common.schema.json#/$defs/auditLink"},
+    "attestation": {"$ref": "./common.schema.json#/$defs/attestation"}
+  }
+}

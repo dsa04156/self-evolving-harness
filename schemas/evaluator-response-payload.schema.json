@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evaluator-response-payload.schema.json",
+  "title": "Evaluator Response Payload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "coreHash", "core"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "evaluation_proposed"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "coreHash": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "core": {"type": "object"}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operation", "requestId", "result"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operation": {"const": "evaluation_final"},
+        "requestId": {"$ref": "./common.schema.json#/$defs/entityId"},
+        "result": {"$ref": "./evaluation-result.schema.json"}
+      }
+    }
+  ]
+}

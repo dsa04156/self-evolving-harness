@@ -9,6 +9,18 @@ Response SHA-256:
 This checklist is the only authorized Gate 2R implementation scope. Items are ordered by contract
 dependency, not convenience.
 
+## Current correction status
+
+| Item | Status | Evidence state |
+|---|---|---|
+| component identity and capability preimage | implemented | deterministic registry tests pass |
+| cross-language canonical domain | implemented | TypeScript, evaluator Python, and audit Python consume one corpus with frozen rejection category |
+| OS principals, key custody, authenticated sockets | candidate implementation complete; execution pending | mandatory test currently fails closed until `uidmap` is installed; same-UID transport tests remain labelled emulation |
+| enforced cancellation and descendant reaping | implemented | non-cooperative delayed-write/process-group test passes |
+| retirement holds and restart-safe transactions | implemented | six hold kinds, deployment-pointer recovery, evaluator eight-stage recovery, and termination three-stage recovery pass |
+| exact evaluator filesystem input | implemented | dirty/ignored/link/substitution rejection, committed-object materialization, and evaluator-side descriptor/blob/mode/exact-object verification pass outside the pending OS run |
+| Gate 2R evidence and resubmission | pending | requires a zero-skip OS-boundary run, clean commit, replacement hashes, and same-tab Architect ruling |
+
 ## 1. Version component identity and capability preimage
 
 - Define `ComponentIntrinsicIdentity` and `ComponentManifestIdentity` as separate named hash domains.
