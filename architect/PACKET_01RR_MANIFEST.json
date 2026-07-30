@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packetId": "architect-gate1rr-draft-1",
   "createdAt": "2026-07-30T19:53:26+09:00",
-  "status": "ready_for_external_review",
+  "status": "reviewed_revise",
   "supersedesPacketSha256": "877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242",
   "respondsToDecisionSha256": "22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd",
   "correctionCommit": "f3c3cb88c00257700b8c58181c25aa0ed7ccb47e",
@@ -27,7 +27,7 @@
     "fixtureGraphSha256": "00a802e92ed1214d1ae29f81858b894e23fb9cf8cc81f786df7153c84778980c"
   },
   "externalActions": {
-    "architectTransmission": false,
+    "architectTransmission": true,
     "paidProviderCall": false,
     "benchmarkExecution": false,
     "gateOrFinalAccess": false,
@@ -36,9 +36,10 @@
   "review": {
     "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
     "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
-    "oracleSessionId": null,
-    "decision": null,
-    "responsePath": null,
-    "responseSha256": null
+    "oracleSessionId": "self-evolving-harness-gate1-packet-3",
+    "decision": "REVISE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-1rr.md",
+    "responseSha256": "d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303",
+    "harvest": "Oracle submitted once to the exact tab; its completion detector remained waiting after the answer completed. The latest assistant DOM was extracted read-only and verified byte-identical to the archived file plus one final LF."
   }
 }

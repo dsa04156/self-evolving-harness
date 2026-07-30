@@ -4,6 +4,7 @@
 |---:|---|---|---|---|
 | 1 | `architect/PACKET_01_RESEARCH_AND_ARCHITECTURE.md` | `dae5250f170c9b6370e6110c8fce92a3e64301910c293fb44dba24cb3eaf213a` | `responses/response-1.md` (`8a0c1be94f0962eaaf06610a0107e28f0047adb72ada87eebbc51b972afdedce`) | REVISE |
 | 1R | `architect/PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | `877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242` | `responses/response-1r.md` (`22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd`) | REVISE |
+| 1RR | `architect/PACKET_01RR_CONTRACT_CORRECTIONS.md` | `eee5ab4dad190fd6eb220c69895932de89935c59abfd6ae11c0ad8cebd48b500` | `responses/response-1rr.md` (`d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303`) | REVISE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -88,3 +89,27 @@ response path, interpreted decision, required revisions, and the commit containi
 - scope: only the ten Gate 1R contract corrections and replacement hashes; no diagrams
 - authorized transport: same exact project conversation and browser target only
 - status: prepared, not yet transmitted
+
+## Round 1RR — 2026-07-30
+
+- sent: `.codex/gpt-pro-architect/packets/packet-1rr.md`
+- transport: Oracle CLI 0.16.1, browser engine, requested `gpt-5-pro`
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-gate1-packet-3`
+- browser endpoint / target: `127.0.0.1:9222` / `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab, no new Chrome/window, no cookie copy, archive disabled
+- submission count: one
+- model evidence: requested/resolved `gpt-5-pro`; visible footer reported `Pro`; server-side identity remains
+  vendor-opaque
+- transport note: the answer completed in the target DOM, but Oracle's completion detector remained in
+  `waiting`; the stuck local harvester was cancelled without sending another message
+- raw response: `.codex/gpt-pro-architect/responses/response-1rr.md`
+- raw-response verification: archived bytes equal latest assistant `innerText` plus one final LF
+- response hash: `d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303`
+- architect decision: `REVISE`
+- accepted without remaining blocker: H3/B6-RAW, one-shot gate governance, exact candidate-cost formula,
+  corrected multi-cause graph, H4 disposition, lifecycle/deployment separation, and abnormal termination
+  shape
+- remaining authorized corrections: complete post-rollback pointer tuple, executable initialization
+  anchor predicate, and cross-record termination-transaction continuity
+- still prohibited: Gate 2 implementation and every provider/benchmark/gate/final/deployment execution
