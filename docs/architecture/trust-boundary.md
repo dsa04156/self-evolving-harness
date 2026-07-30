@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR contract approved; Gate 2 enforcement is partial and remains
-`isolation_emulated`
+Status: Gate 1RRR contract approved; Gate 2R correction implementation complete except for the
+mandatory zero-skip subordinate-UID evidence run
 
 ## Security objective
 
@@ -47,6 +47,13 @@ All messages are schema-validated, hash-bound, correlated, deadline-limited, pee
 signed. Mounts, secrets, network, CPU/memory/process/time/output, tool calls, model calls/tokens/cost, and
 feedback releases are principal scoped and host enforced.
 
+The Gate 2R path assigns operations, runtime, evaluator, promoter, and audit to distinct subordinate
+UID/GID pairs inside a rootless user namespace. Each process then receives its own PID, mount, IPC, UTS,
+best-effort cgroup, and no-network sandbox, zero effective capabilities, `NoNewPrivs`, a role-owned mode-0600 key,
+and only role-specific read-only code/config mounts. Normal audit/evaluator sockets are mode 0660 and
+group-scoped to operations; both endpoints also verify `SO_PEERCRED` before parsing a frame. The local
+same-UID transport suite remains explicitly labelled emulation.
+
 ## Manifest and state boundaries
 
 - component/harness identity contains immutable composition only;
@@ -63,13 +70,25 @@ feedback releases are principal scoped and host enforced.
 
 1. Trust supervisor verifies protocol, parent/candidate manifests, state snapshot, phase budget, and
    task-handle authorization.
-2. It starts a fresh evaluator container under the evaluator identity and read-only mounts.
-3. The evaluator resolves the opaque task inside its private vault and launches paired runtime sandboxes.
-4. Provider and tool use flows through metered brokers; neither candidate can modify starting state.
-5. The fixed verifier produces a signed outcome.
-6. Evaluator emits a bounded `EvaluationResult` and artifact hashes over the authenticated socket.
-7. Supervisor independently checks auth, schema, hashes, usage completeness, split/phase permission,
+2. The evaluator launch path rejects dirty, ignored, linked, special, or uncommitted objects. It materializes
+   committed Git blobs into a new read-only tree and records a canonical descriptor containing every
+   path, mode, Git object ID, size, content hash, commit, tree hash, and complete snapshot hash.
+3. It starts a fresh evaluator container under the evaluator identity and mounts that candidate tree
+   read-only, without the source worktree or Git metadata.
+4. Before accepting a request, the evaluator independently verifies the descriptor hash, exact
+   directory/file set, blob IDs, bytes, modes, link counts, and the request/result snapshot pin.
+5. The evaluator resolves the opaque task inside its private vault and launches paired runtime sandboxes.
+6. Provider and tool use flows through metered brokers; neither candidate can modify starting state.
+7. The fixed verifier produces a signed outcome.
+8. Evaluator emits a bounded `EvaluationResult` and artifact hashes over the authenticated socket.
+9. Supervisor independently checks auth, schema, hashes, usage completeness, split/phase permission,
    environment attestation, and audit continuity.
+
+The operations side persists evaluator transactions at
+`started → proposed → audit_linked → result_created → signature_verified → result_appended
+→ accounting_sealed → completed`. Recovery recreates a proposal from the immutable request, requires
+the same core/result hashes, reuses the idempotent remote-audit link, and emits exactly one final result.
+Pending parent/candidate references remain retirement holds until completion or recorded failure.
 
 Missing or conflicting evidence makes the run invalid, not a task failure and never a pass.
 

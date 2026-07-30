@@ -72,6 +72,13 @@ Path handling resolves symlinks and canonical ancestry before access, rechecks a
 permits, denies special files, and confines writes to explicit workspace roots. Bash receives a minimal
 environment, bounded process tree, output cap, timeout, and deny-by-default network policy.
 
+Interrupt, deadline, security termination, and budget exhaustion revoke one shared abort authority
+through the agent loop, tool executor, filesystem commit point, shell process group, descendants, and
+backend jobs. Shell groups receive `SIGTERM`, then bounded `SIGKILL`, and are reaped before the terminal
+receipt becomes authoritative. Atomic writes recheck authority immediately before rename/link; an
+aborted tool cannot persist its late result artifact. The deterministic adversarial case uses a
+non-cooperative process that attempts a delayed write after cancellation.
+
 ## Context and memory
 
 Context construction is deterministic for the same event stream, component graph, memory snapshot,

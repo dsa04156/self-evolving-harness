@@ -47,8 +47,11 @@ Thus “held-out candidate evaluation” means `D_gate`; it never implies access
    budgets, tool implementations, middleware, model identity, trace/audit code, or promotion logic.
 6. **Create candidate batch.** Materialize at most five mine-only candidate manifests. Lifecycle,
    provenance, and lineage are external records; the parent remains the production target.
-7. **Isolate.** Create a Git worktree for file lineage. Launch static validation and evaluation under a
-   separate OS/container principal with candidate mounts read-only during execution.
+7. **Isolate.** Create a detached Git worktree for lineage, require one exact clean committed state, and
+   reject untracked, ignored, symlinked, submodule, special, or hard-linked objects. Materialize the
+   verified Git blobs into a separate content-addressed read-only snapshot; the evaluator receives only
+   that snapshot and independently rechecks its complete descriptor. Launch evaluation under a separate
+   OS principal.
 8. **Statically validate.** Validate schemas, DAG, hashes, declared diff, import/capability policy,
    immutable closure, secret scan, and audit ancestry. Failure transitions to `rejected`.
 9. **Evaluate independently.** After the batch is sealed and proposer stopped, re-run parent/candidates
