@@ -216,7 +216,7 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
       queryMode: "lexical",
       maxRecords: 4,
       maxTokens: 256,
-      minimumScore: 0,
+      minimumScoreMicros: 0,
       tieBreak: "record_id_ascending",
     },
     initialMemory: [

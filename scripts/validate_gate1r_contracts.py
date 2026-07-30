@@ -861,7 +861,18 @@ def validate_markdown_links() -> int:
     count = 0
     pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
     for path in sorted(ROOT.rglob("*.md")):
-        if ".codex" in path.parts or "spikes" in path.parts:
+        if any(
+            excluded in path.parts
+            for excluded in (
+                ".codex",
+                ".seh",
+                ".venv",
+                "coverage",
+                "node_modules",
+                "output",
+                "spikes",
+            )
+        ):
             continue
         for target in pattern.findall(path.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "#", "/")):

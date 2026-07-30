@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "typeRegistryId": "ctr-sha256:4ea08a4fc41207afab1c571c43a3ca11bbdda3b9268ff556fccbac3a0d7edada",
-  "registryHash": "sha256:4ea08a4fc41207afab1c571c43a3ca11bbdda3b9268ff556fccbac3a0d7edada",
+  "typeRegistryId": "ctr-sha256:93d1ce4068c4b12a2a35a51d673fbd64b6b1dfba6d024b9ae8b937010852403c",
+  "registryHash": "sha256:93d1ce4068c4b12a2a35a51d673fbd64b6b1dfba6d024b9ae8b937010852403c",
   "identity": {
-    "canonicalizationProfile": "seh-jcs-v1",
+    "canonicalizationProfile": "seh-c14n-int-v1",
     "registryVersion": "1.0.0",
     "entries": [
       {
@@ -78,7 +78,7 @@
         "mutableClass": "mutable",
         "mvpMutationEnabled": true,
         "allowedPayloadLanguages": ["seh.memory-retrieval-policy.v1"],
-        "payloadContractHash": "sha256:d34ab78a3c859822bb1e4ec8aaa79e025adee64dce89e0a11031adb0e78b4ac7",
+        "payloadContractHash": "sha256:56741dec179a818511742150fb4662975d4ffe24e5763ed69d04e1bc25da4b60",
         "allowedDependencyTypeEntryIds": [],
         "allowedCapabilityIds": ["memory.read.accepted-lessons", "memory.read.project-facts", "memory.read.rejected-mutations", "memory.read.session-summaries", "memory.read.user-preferences"],
         "candidateMayContainExecutableBytes": false

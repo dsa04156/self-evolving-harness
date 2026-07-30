@@ -42,7 +42,7 @@ test("runtime snapshot identity changes for every behavior-bearing state family"
   });
   await store.initialize();
   const base: RuntimeStateSnapshotIdentity = {
-    canonicalizationProfile: "seh-jcs-v1",
+    canonicalizationProfile: "seh-c14n-int-v1",
     protocolId,
     harnessVersionId,
     memory: { mode: "fresh_empty", manifest: null },

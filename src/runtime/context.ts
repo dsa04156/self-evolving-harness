@@ -120,7 +120,7 @@ export class ContextBuilder {
         memory.record.recordId,
         `<memory authority="${memory.record.authority}">\n${memory.record.content}\n</memory>`,
         "system",
-        memory.score,
+        memory.scoreMicros,
       );
     }
     for (const skill of input.skills) {

@@ -64,7 +64,7 @@
           "componentManifestId",
           "typeEntryId",
           "resolvedComponentType",
-          "score",
+          "scoreMicros",
           "hypothesizedMechanism",
           "sourceEventIds",
           "sourceReceiptIds"
@@ -97,10 +97,10 @@
               "ToolDescription"
             ]
           },
-          "score": {
-            "type": "number",
+          "scoreMicros": {
+            "type": "integer",
             "minimum": 0,
-            "maximum": 1
+            "maximum": 1000000
           },
           "hypothesizedMechanism": {
             "type": "string",

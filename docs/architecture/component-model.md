@@ -1,6 +1,6 @@
 # Versioned Harness Component Model
 
-Status: Gate 1RRR correction candidate
+Status: Gate 2R component-identity correction
 
 ## Authority split
 
@@ -28,13 +28,23 @@ harness ID.
 
 The immutable `ComponentManifest` has:
 
-- `componentManifestId`: `cm-sha256:` digest of its canonical `identity`;
+- `componentIntrinsicId`: `ci-sha256:` digest of the canonical identity fields excluding
+  `componentIntrinsicId` and `behaviorClosure`;
+- `componentManifestId`: `cm-sha256:` digest of the complete final `identity`, including the intrinsic
+  ID and closure;
 - `componentId`: stable family identifier;
 - `semanticVersion`: review label, included in identity;
 - `typeRegistryRef`: exact registry and entry IDs;
-- `payload`: allowed language, internal content-addressed artifact, and recomputed capability digest;
+- `payload`: allowed language, internal content-addressed artifact, canonical sorted `capabilityIds`
+  preimage, and its recomputed capability digest;
 - `dependencies`: exact component-manifest references;
-- `behaviorClosure`: recomputed transitive digest, counts, and canonical byte total.
+- `behaviorClosure`: recomputed transitive digest over intrinsic component nodes, counts, and canonical
+  byte total.
+
+The closure contains the component's own `componentIntrinsicId` plus every dependency intrinsic ID; it
+never contains the final ID of the component whose closure is being calculated. This makes the
+two-stage identity acyclic and independently recomputable. The final manifest and its payload are
+self-contained for capability validation; registry-side sidecars are not authoritative preimages.
 
 It deliberately does not accept `componentType`, `mutableClass`, provenance, evaluation history, or a
 deployment pointer from a proposer. A trusted resolved view joins the manifest to the pinned type

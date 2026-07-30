@@ -34,7 +34,7 @@
       ],
       "properties": {
         "canonicalizationProfile": {
-          "const": "seh-jcs-v1"
+          "const": "seh-c14n-int-v1"
         },
         "semanticVersion": {
           "$ref": "./common.schema.json#/$defs/semanticVersion"

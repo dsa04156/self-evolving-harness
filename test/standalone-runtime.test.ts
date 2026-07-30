@@ -162,7 +162,7 @@ test("standalone factory replays an identical event chain in independent roots",
         queryMode: "lexical",
         maxRecords: 2,
         maxTokens: 128,
-        minimumScore: 0,
+        minimumScoreMicros: 0,
         tieBreak: "record_id_ascending",
       },
       initialMemory: [

@@ -7,11 +7,14 @@ import test from "node:test";
 import {
   ArtifactStore,
   BoundedMutationEngine,
+  HarnessError,
   DeterministicClock,
   DeterministicIdFactory,
   HarnessComponentRegistry,
   PrincipalSigner,
   SchemaRegistry,
+  contentId,
+  sha256,
 } from "../src/index.js";
 
 const runtimeContractHash = `sha256:${"a".repeat(64)}`;
@@ -70,6 +73,131 @@ test("versioned component graph permits bounded mutable changes and exposes immu
     payload: permissionPolicy("fixed-v1"),
     capabilityIds: ["permission.authorize"],
   });
+  const {
+    behaviorClosure: _promptClosure,
+    componentIntrinsicId: promptIntrinsicId,
+    ...promptIntrinsicIdentity
+  } = promptV1.identity;
+  assert.equal(
+    promptIntrinsicId,
+    contentId("ci-sha256", promptIntrinsicIdentity),
+  );
+  assert.equal(
+    promptV1.componentManifestId,
+    contentId("cm-sha256", promptV1.identity),
+  );
+  assert.deepEqual(promptV1.identity.payload.capabilityIds, [
+    "prompt.instruct.primary",
+  ]);
+  assert.equal(
+    promptV1.identity.payload.capabilityDigest,
+    sha256({ capabilityIds: ["prompt.instruct.primary"] }),
+  );
+
+  const reidentify = (manifest: typeof promptV1): void => {
+    const {
+      behaviorClosure: _closure,
+      componentIntrinsicId: _intrinsicId,
+      ...intrinsic
+    } = manifest.identity;
+    (manifest.identity as { componentIntrinsicId: string }).componentIntrinsicId =
+      contentId("ci-sha256", intrinsic);
+    (manifest as { componentManifestId: string }).componentManifestId =
+      contentId("cm-sha256", manifest.identity);
+  };
+  const badDigest = structuredClone(promptV1);
+  (badDigest.identity.payload as { capabilityDigest: string }).capabilityDigest =
+    `sha256:${"0".repeat(64)}`;
+  reidentify(badDigest);
+  await assert.rejects(
+    registry.validateDetachedComponent(badDigest, prompt("Act carefully.")),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "HASH_MISMATCH",
+  );
+
+  const absentCapabilityPreimage = structuredClone(promptV1) as unknown as {
+    identity: { payload: { capabilityIds?: string[] } };
+  };
+  delete absentCapabilityPreimage.identity.payload.capabilityIds;
+  await assert.rejects(
+    registry.validateDetachedComponent(
+      absentCapabilityPreimage as unknown as typeof promptV1,
+      prompt("Act carefully."),
+    ),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "SCHEMA_INVALID",
+  );
+
+  const duplicateCapability = structuredClone(promptV1);
+  (
+    duplicateCapability.identity.payload as unknown as { capabilityIds: string[] }
+  ).capabilityIds = [
+    "prompt.instruct.primary",
+    "prompt.instruct.primary",
+  ];
+  await assert.rejects(
+    registry.validateDetachedComponent(
+      duplicateCapability,
+      prompt("Act carefully."),
+    ),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "SCHEMA_INVALID",
+  );
+
+  const unsortedCapability = structuredClone(promptV1);
+  (
+    unsortedCapability.identity.payload as unknown as { capabilityIds: string[] }
+  ).capabilityIds = [
+    "prompt.instruct.primary",
+    "permission.authorize",
+  ];
+  (
+    unsortedCapability.identity.payload as { capabilityDigest: string }
+  ).capabilityDigest = sha256({
+    capabilityIds: unsortedCapability.identity.payload.capabilityIds,
+  });
+  reidentify(unsortedCapability);
+  await assert.rejects(
+    registry.validateDetachedComponent(
+      unsortedCapability,
+      prompt("Act carefully."),
+    ),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "HASH_MISMATCH",
+  );
+
+  const forbiddenCapability = structuredClone(promptV1);
+  (
+    forbiddenCapability.identity.payload as unknown as {
+      capabilityIds: string[];
+    }
+  ).capabilityIds = [
+    "permission.authorize",
+  ];
+  (
+    forbiddenCapability.identity.payload as { capabilityDigest: string }
+  ).capabilityDigest = sha256({
+    capabilityIds: ["permission.authorize"],
+  });
+  reidentify(forbiddenCapability);
+  await assert.rejects(
+    registry.validateDetachedComponent(
+      forbiddenCapability,
+      prompt("Act carefully."),
+    ),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "AUTHORIZATION_DENIED",
+  );
+
+  const exposedCopy = registry.getComponent(promptV1.componentManifestId);
+  (
+    exposedCopy.identity.payload as unknown as { capabilityIds: string[] }
+  ).capabilityIds = [];
+  assert.deepEqual(
+    registry.getComponent(promptV1.componentManifestId).identity.payload
+      .capabilityIds,
+    ["prompt.instruct.primary"],
+  );
   const parent = await registry.createHarness({
     semanticVersion: "1.0.0",
     requiredRuntimeContractHash: runtimeContractHash,
@@ -178,7 +306,7 @@ test("versioned component graph permits bounded mutable changes and exposes immu
     predictionMetadata: {
       sourceEventIds: ["event-source-001"],
       sourceReceiptIds: [],
-      confidence: 0.8,
+      confidenceMicros: 800_000,
       alternativeExplanations: ["The verifier could be overly strict."],
       producerIdentity: proposer.identity,
       method: "deterministic-test-attribution",

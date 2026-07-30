@@ -39,13 +39,16 @@ export function assertIJson(value: unknown, location = "$"): asserts value is Js
   if (typeof value === "number") {
     assertCondition(Number.isFinite(value), "SCHEMA_INVALID", `${location} is not finite`);
     assertCondition(!Object.is(value, -0), "SCHEMA_INVALID", `${location} is negative zero`);
-    if (Number.isInteger(value)) {
-      assertCondition(
-        Math.abs(value) <= MAX_SAFE_IJSON_INTEGER,
-        "SCHEMA_INVALID",
-        `${location} exceeds the I-JSON integer range`,
-      );
-    }
+    assertCondition(
+      Number.isInteger(value),
+      "SCHEMA_INVALID",
+      `${location} is outside the integer-only canonical profile`,
+    );
+    assertCondition(
+      Math.abs(value) <= MAX_SAFE_IJSON_INTEGER,
+      "SCHEMA_INVALID",
+      `${location} exceeds the I-JSON integer range`,
+    );
     return;
   }
   if (Array.isArray(value)) {
@@ -101,7 +104,13 @@ export function sha256Text(value: string): `sha256:${string}` {
 }
 
 export function contentId(
-  prefix: "cm-sha256" | "hv-sha256" | "protocol-sha256" | "ctr-sha256" | "rss-sha256",
+  prefix:
+    | "ci-sha256"
+    | "cm-sha256"
+    | "hv-sha256"
+    | "protocol-sha256"
+    | "ctr-sha256"
+    | "rss-sha256",
   identity: unknown,
 ): string {
   return `${prefix}:${sha256Bytes(canonicalBytes(identity))}`;
@@ -300,4 +309,14 @@ class StrictJsonParser {
 
 export function parseStrictJson(source: string): JsonValue {
   return new StrictJsonParser(source).parse();
+}
+
+export function parseCanonicalJson(source: string): JsonValue {
+  const value = parseStrictJson(source);
+  assertCondition(
+    canonicalize(value) === source,
+    "SCHEMA_INVALID",
+    "Input is not canonical JSON",
+  );
+  return value;
 }

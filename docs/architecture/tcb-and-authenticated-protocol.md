@@ -76,7 +76,8 @@ The receiver verifies, in order:
 9. all artifact hashes, sizes, media types, and capability references resolve;
 10. the requested operation fits the sender capability and host-side resource budget.
 
-The signature covers JCS bytes of the envelope with `attestation.signature` omitted. Private keys are
+The signature covers `seh-c14n-int-v1` bytes of the envelope with `attestation.signature` omitted.
+Private keys are
 principal-scoped, non-exported where practical, absent from child environments, and never carried in
 messages.
 

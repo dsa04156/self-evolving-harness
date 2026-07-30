@@ -68,8 +68,8 @@ export interface ExternalEvaluationInput {
   readonly manifestPins: Readonly<Record<string, string>>;
   readonly taskPairs: readonly DeterministicTaskPair[];
   readonly totalUsage: EvaluationBudgetUsage;
-  readonly pairedCi95LowerPercentagePoints: number;
-  readonly pairedCi95UpperPercentagePoints: number;
+  readonly pairedCi95LowerPercentagePointMicros: number;
+  readonly pairedCi95UpperPercentagePointMicros: number;
   readonly sourceEvidenceReceiptIds: readonly string[];
   readonly violations?: readonly {
     readonly kind:
@@ -93,13 +93,13 @@ export interface EvaluationResult {
   readonly candidateHarnessVersionId: string;
   readonly aggregate: {
     readonly taskCount: number;
-    readonly parentPassRate: number;
-    readonly candidatePassRate: number;
-    readonly deltaPercentagePoints: number;
+    readonly parentPassRateMicros: number;
+    readonly candidatePassRateMicros: number;
+    readonly deltaPercentagePointMicros: number;
     readonly passToFailCount: number;
     readonly failToPassCount: number;
-    readonly pairedCi95LowerPercentagePoints: number;
-    readonly pairedCi95UpperPercentagePoints: number;
+    readonly pairedCi95LowerPercentagePointMicros: number;
+    readonly pairedCi95UpperPercentagePointMicros: number;
   };
   readonly totalUsage: EvaluationBudgetUsage;
   readonly gateChecks: readonly {
@@ -363,8 +363,10 @@ export class ExternalEvaluatorClient {
       manifestPins: input.manifestPins,
       taskPairs: input.taskPairs,
       totalUsage: input.totalUsage,
-      pairedCi95LowerPercentagePoints: input.pairedCi95LowerPercentagePoints,
-      pairedCi95UpperPercentagePoints: input.pairedCi95UpperPercentagePoints,
+      pairedCi95LowerPercentagePointMicros:
+        input.pairedCi95LowerPercentagePointMicros,
+      pairedCi95UpperPercentagePointMicros:
+        input.pairedCi95UpperPercentagePointMicros,
       sourceEvidenceReceiptIds: [...input.sourceEvidenceReceiptIds],
       violations: [...(input.violations ?? [])],
       createdAt: this.#clock.now().toISOString(),

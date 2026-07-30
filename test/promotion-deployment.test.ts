@@ -301,8 +301,8 @@ test("approved harnesses deploy by exact CAS and rollback swaps the full tuple",
         },
       ],
       totalUsage: usage,
-      pairedCi95LowerPercentagePoints: 0,
-      pairedCi95UpperPercentagePoints: 100,
+      pairedCi95LowerPercentagePointMicros: 0,
+      pairedCi95UpperPercentagePointMicros: 100_000_000,
       sourceEvidenceReceiptIds: [evaluating.receiptId],
     });
     const canary = await lifecycleReceipt("gate_release");

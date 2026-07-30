@@ -39,7 +39,7 @@
       ],
       "properties": {
         "canonicalizationProfile": {
-          "const": "seh-jcs-v1"
+          "const": "seh-c14n-int-v1"
         },
         "protocolId": {
           "$ref": "./common.schema.json#/$defs/protocolId"

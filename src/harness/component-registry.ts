@@ -56,7 +56,7 @@ interface ComponentTypeRegistry {
   readonly typeRegistryId: string;
   readonly registryHash: string;
   readonly identity: {
-    readonly canonicalizationProfile: "seh-jcs-v1";
+    readonly canonicalizationProfile: "seh-c14n-int-v1";
     readonly registryVersion: string;
     readonly entries: readonly TypeRegistryEntry[];
   };
@@ -65,7 +65,6 @@ interface ComponentTypeRegistry {
 interface StoredComponent {
   readonly kind: "component";
   readonly manifest: ComponentManifest;
-  readonly capabilityIds: readonly string[];
   readonly payload: JsonValue;
 }
 
@@ -82,7 +81,7 @@ interface ClosureEntry {
 }
 
 interface ClosureDocument {
-  readonly profile: "seh-jcs-v1";
+  readonly profile: "seh-c14n-int-v1";
   readonly components: readonly ClosureEntry[];
   readonly artifacts: readonly ArtifactReference[];
 }
@@ -126,7 +125,11 @@ function componentReference(manifest: ComponentManifest): ComponentReference {
 }
 
 function intrinsicComponentIdentity(manifest: ComponentManifest): JsonValue {
-  const { behaviorClosure: _closure, ...intrinsic } = manifest.identity;
+  const {
+    behaviorClosure: _closure,
+    componentIntrinsicId: _componentIntrinsicId,
+    ...intrinsic
+  } = manifest.identity;
   return intrinsic as unknown as JsonValue;
 }
 
@@ -134,6 +137,10 @@ function sortedUnique(values: readonly string[], label: string): string[] {
   const sorted = [...values].sort();
   assertCondition(new Set(sorted).size === sorted.length, "SCHEMA_INVALID", `Duplicate ${label}`);
   return sorted;
+}
+
+function cloneValue<T>(value: T): T {
+  return structuredClone(value);
 }
 
 export interface HarnessDiff {
@@ -230,7 +237,7 @@ export class HarnessComponentRegistry {
     if (stored === undefined) {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing component ${componentManifestId}`);
     }
-    return stored.manifest;
+    return cloneValue(stored.manifest);
   }
 
   public referenceFor(componentManifestId: string): ComponentReference {
@@ -242,7 +249,7 @@ export class HarnessComponentRegistry {
     if (stored === undefined) {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing component ${componentManifestId}`);
     }
-    return stored.capabilityIds;
+    return stored.manifest.identity.payload.capabilityIds;
   }
 
   public dependencyIdsFor(componentManifestId: string): readonly string[] {
@@ -257,7 +264,7 @@ export class HarnessComponentRegistry {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing component ${componentManifestId}`);
     }
     await this.#artifacts.verify(stored.manifest.identity.payload.artifact);
-    return stored.payload;
+    return cloneValue(stored.payload);
   }
 
   public getHarness(harnessVersionId: string): HarnessVersionManifest {
@@ -265,7 +272,18 @@ export class HarnessComponentRegistry {
     if (stored === undefined) {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing harness ${harnessVersionId}`);
     }
-    return stored.manifest;
+    return cloneValue(stored.manifest);
+  }
+
+  public async validateDetachedComponent(
+    manifest: ComponentManifest,
+    payload: JsonValue,
+  ): Promise<void> {
+    await this.#validateStoredComponent({
+      kind: "component",
+      manifest: cloneValue(manifest),
+      payload: cloneValue(payload),
+    });
   }
 
   public async createComponent(input: {
@@ -316,7 +334,7 @@ export class HarnessComponentRegistry {
       };
     });
     const intrinsic = {
-      canonicalizationProfile: "seh-jcs-v1" as const,
+      canonicalizationProfile: "seh-c14n-int-v1" as const,
       componentId: input.componentId,
       semanticVersion: input.semanticVersion,
       typeRegistryRef: {
@@ -327,15 +345,18 @@ export class HarnessComponentRegistry {
       payload: {
         language: input.payloadLanguage,
         artifact,
+        capabilityIds,
         capabilityDigest: sha256({ capabilityIds }),
       },
       dependencies,
     };
+    const componentIntrinsicId = contentId("ci-sha256", intrinsic);
     const provisional = {
-      schemaVersion: 2 as const,
+      schemaVersion: 3 as const,
       componentManifestId: "cm-sha256:".padEnd(74, "0"),
       identity: {
         ...intrinsic,
+        componentIntrinsicId,
         behaviorClosure: {
           closureHash: "sha256:".padEnd(71, "0"),
           componentCount: 1,
@@ -347,6 +368,7 @@ export class HarnessComponentRegistry {
     const closure = this.#componentClosure(provisional, artifact);
     const identity: ComponentManifest["identity"] = {
       ...intrinsic,
+      componentIntrinsicId,
       behaviorClosure: {
         closureHash: sha256(closure.document),
         componentCount: closure.document.components.length,
@@ -355,23 +377,22 @@ export class HarnessComponentRegistry {
       },
     };
     const manifest: ComponentManifest = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       componentManifestId: contentId("cm-sha256", identity),
       identity,
     };
     this.#schemas.validate(COMPONENT_SCHEMA, manifest as unknown as JsonValue);
     const stored: StoredComponent = {
       kind: "component",
-      manifest,
-      capabilityIds,
-      payload: input.payload,
+      manifest: cloneValue(manifest),
+      payload: cloneValue(input.payload),
     };
     await this.#validateStoredComponent(stored);
     const existing = this.#components.get(manifest.componentManifestId);
-    if (existing !== undefined) return existing.manifest;
+    if (existing !== undefined) return cloneValue(existing.manifest);
     await this.#componentLog.append(stored as unknown as JsonValue);
     this.#components.set(manifest.componentManifestId, stored);
-    return manifest;
+    return cloneValue(manifest);
   }
 
   public async createHarness(input: {
@@ -403,7 +424,7 @@ export class HarnessComponentRegistry {
       componentBindings.map((binding) => this.getComponent(binding.component.componentManifestId)),
     );
     const identity: HarnessVersionManifest["identity"] = {
-      canonicalizationProfile: "seh-jcs-v1",
+      canonicalizationProfile: "seh-c14n-int-v1",
       semanticVersion: input.semanticVersion,
       requiredRuntimeContractHash: input.requiredRuntimeContractHash,
       typeRegistryId: this.typeRegistryId,
@@ -424,11 +445,11 @@ export class HarnessComponentRegistry {
     };
     this.#validateHarnessManifest(manifest);
     const existing = this.#harnesses.get(manifest.harnessVersionId);
-    if (existing !== undefined) return existing.manifest;
-    const stored: StoredHarness = { kind: "harness", manifest };
+    if (existing !== undefined) return cloneValue(existing.manifest);
+    const stored: StoredHarness = { kind: "harness", manifest: cloneValue(manifest) };
     await this.#harnessLog.append(stored as unknown as JsonValue);
     this.#harnesses.set(manifest.harnessVersionId, stored);
-    return manifest;
+    return cloneValue(manifest);
   }
 
   public diffHarnesses(parentId: string, candidateId: string): HarnessDiff {
@@ -483,6 +504,12 @@ export class HarnessComponentRegistry {
       "HASH_MISMATCH",
       "Component manifest identity mismatch",
     );
+    assertCondition(
+      manifest.identity.componentIntrinsicId ===
+        contentId("ci-sha256", intrinsicComponentIdentity(manifest)),
+      "HASH_MISMATCH",
+      "Component intrinsic identity mismatch",
+    );
     const type = this.typeEntry(manifest.identity.typeRegistryRef.typeEntryId);
     assertCondition(
       manifest.identity.typeRegistryRef.typeRegistryId === this.typeRegistryId,
@@ -498,13 +525,19 @@ export class HarnessComponentRegistry {
     assertCondition(payloadSchema !== undefined, "SCHEMA_INVALID", "Unknown payload contract");
     this.#schemas.validate(payloadSchema, stored.payload);
     assertCondition(
-      manifest.identity.payload.capabilityDigest ===
-        sha256({ capabilityIds: sortedUnique(stored.capabilityIds, "capability IDs") }),
+      JSON.stringify(manifest.identity.payload.capabilityIds) ===
+        JSON.stringify(
+          sortedUnique(manifest.identity.payload.capabilityIds, "capability IDs"),
+        ) &&
+        manifest.identity.payload.capabilityDigest ===
+          sha256({ capabilityIds: manifest.identity.payload.capabilityIds }),
       "HASH_MISMATCH",
-      "Capability digest mismatch",
+      "Capability preimage ordering or digest mismatch",
     );
     assertCondition(
-      stored.capabilityIds.every((capability) => type.allowedCapabilityIds.includes(capability)),
+      manifest.identity.payload.capabilityIds.every((capability) =>
+        type.allowedCapabilityIds.includes(capability),
+      ),
       "AUTHORIZATION_DENIED",
       "Stored component has a forbidden capability",
     );
@@ -620,23 +653,14 @@ export class HarnessComponentRegistry {
     roots.forEach(visit);
     const components: ClosureEntry[] = [...manifests.values()]
       .map((manifest) => ({
-        // The full manifest ID contains behaviorClosure. Both the closure node ID and
-        // identity hash therefore use identity-minus-behaviorClosure; using the final
-        // manifest ID here would create an unsatisfiable fixed-point hash cycle.
-        componentIntrinsicId: contentId(
-          "cm-sha256",
-          intrinsicComponentIdentity(manifest),
-        ),
+        componentIntrinsicId: manifest.identity.componentIntrinsicId,
         identityHash: sha256(intrinsicComponentIdentity(manifest)),
         payloadHash: manifest.identity.payload.artifact.contentHash,
         dependencyIntrinsicIds: manifest.identity.dependencies
-          .map((dependency) =>
-            contentId(
-              "cm-sha256",
-              intrinsicComponentIdentity(
-                this.getComponent(dependency.component.componentManifestId),
-              ),
-            ),
+          .map(
+            (dependency) =>
+              this.getComponent(dependency.component.componentManifestId).identity
+                .componentIntrinsicId,
           )
           .sort(),
       }))
@@ -651,7 +675,7 @@ export class HarnessComponentRegistry {
       )
       .sort((left, right) => left.contentHash.localeCompare(right.contentHash));
     const document: ClosureDocument = {
-      profile: "seh-jcs-v1",
+      profile: "seh-c14n-int-v1",
       components,
       artifacts,
     };

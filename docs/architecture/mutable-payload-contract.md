@@ -1,10 +1,11 @@
 # MVP Mutable Payload Contract
 
-Status: Gate 1R design contract
+Status: Gate 2R canonical-profile correction
 
-The MVP mutation surface is data, not code. Every candidate-controlled byte must be an RFC 8785
-canonical JSON payload conforming to one pinned schema, except text fields inside that JSON, which also
-follow the text normalization contract.
+The MVP mutation surface is data, not code. Every candidate-controlled byte must use the
+`seh-c14n-int-v1` canonical JSON profile and conform to one pinned schema, except text fields inside
+that JSON, which also follow the text normalization contract. Fractional quantities are represented by
+named fixed-scale integers.
 
 ## Allowed languages
 
@@ -48,8 +49,10 @@ authority claims in mutable text.
 ## Capability model
 
 The type registry gives each component type a maximum capability set. The validator derives the
-effective set from the parsed payload and its bound immutable resources. It then hashes the sorted set
-into `capabilityDigest`.
+effective set from the parsed payload and its bound immutable resources. The immutable component
+manifest carries that exact sorted set as `payload.capabilityIds` and hashes
+`{"capabilityIds": [...]}` into `capabilityDigest`. Missing, duplicate, unsorted, digest-mismatched, or
+registry-exceeding sets are rejected; no registry-log side entry can supply the preimage.
 
 For protocol v1:
 

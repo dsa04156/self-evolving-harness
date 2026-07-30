@@ -249,7 +249,7 @@ test("weakness mining preserves facts separately from signed attribution inferen
   assert.equal(pattern.recordedObservations.taskCount, 2);
   assert.equal(pattern.recordedObservations.failureCount, 2);
   assert.equal(pattern.recordedObservations.verifierOutcomeEventIds.length, 2);
-  assert.equal(pattern.mechanismInference.metadata.confidence, 0.5);
+  assert.equal(pattern.mechanismInference.metadata.confidenceMicros, 500_000);
   assert.match(
     pattern.mechanismInference.summary,
     /component causality remains a hypothesis/u,
@@ -274,12 +274,12 @@ test("weakness mining preserves facts separately from signed attribution inferen
     candidates: [
       {
         componentManifestId: systemPrompt.componentManifestId,
-        score: 0.9,
+        scoreMicros: 900_000,
         hypothesizedMechanism:
           "The active system prompt omits a mandatory verification instruction.",
       },
     ],
-    confidence: 0.8,
+    confidenceMicros: 800_000,
     alternativeExplanations: [
       "The workflow may have suppressed the verification phase.",
     ],
@@ -299,11 +299,11 @@ test("weakness mining preserves facts separately from signed attribution inferen
       candidates: [
         {
           componentManifestId: permission.componentManifestId,
-          score: 0.9,
+          scoreMicros: 900_000,
           hypothesizedMechanism: "Attempt to blame immutable permissions.",
         },
       ],
-      confidence: 0.4,
+      confidenceMicros: 400_000,
       alternativeExplanations: ["The prompt is more likely."],
       method: "forbidden-immutable-attributor",
     }),

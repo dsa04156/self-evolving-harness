@@ -25,7 +25,7 @@ const REQUIRED_INHERITANCE_FIELDS = [
 ] as const;
 
 export interface RuntimeStateSnapshotIdentity {
-  readonly canonicalizationProfile: "seh-jcs-v1";
+  readonly canonicalizationProfile: "seh-c14n-int-v1";
   readonly protocolId: string;
   readonly harnessVersionId: string;
   readonly memory: {

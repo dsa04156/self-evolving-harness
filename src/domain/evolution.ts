@@ -19,7 +19,7 @@ export interface FailurePatternView {
 export interface AttributionCandidate {
   readonly componentId: string;
   readonly componentType: ComponentType;
-  readonly confidence: number;
+  readonly confidenceMicros: number;
   readonly mechanism: string;
   readonly alternativeExplanation: string;
 }

@@ -26,36 +26,47 @@ OPERATIONS_PUBLIC_KEY_PATH = "/run/keys/operations-public.pem"
 
 def canonical(value: Any) -> bytes:
     validate_i_json(value)
-    return json.dumps(
-        normalize_numbers(value),
-        ensure_ascii=False,
-        allow_nan=False,
-        separators=(",", ":"),
-        sort_keys=True,
-    ).encode("utf-8")
+    return canonical_text(value).encode("utf-8")
 
 
-def normalize_numbers(value: Any) -> Any:
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
+def canonical_text(value: Any) -> str:
+    if value is None:
+        return "null"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False, allow_nan=False)
     if isinstance(value, list):
-        return [normalize_numbers(item) for item in value]
+        return "[" + ",".join(canonical_text(item) for item in value) + "]"
     if isinstance(value, dict):
-        return {key: normalize_numbers(item) for key, item in value.items()}
-    return value
+        keys = sorted(value, key=lambda key: key.encode("utf-16-be"))
+        return (
+            "{"
+            + ",".join(
+                canonical_text(key) + ":" + canonical_text(value[key]) for key in keys
+            )
+            + "}"
+        )
+    raise ValueError("value is outside the canonical JSON profile")
 
 
 def validate_i_json(value: Any, location: str = "$") -> None:
-    if value is None or isinstance(value, (bool, str)):
+    if value is None or isinstance(value, bool):
+        return
+    if isinstance(value, str):
+        if any(0xD800 <= ord(character) <= 0xDFFF for character in value):
+            raise ValueError(f"{location} contains a lone surrogate")
         return
     if isinstance(value, int):
         if abs(value) > 9_007_199_254_740_991:
             raise ValueError(f"{location} exceeds I-JSON integer range")
         return
     if isinstance(value, float):
-        if value != value or value in (float("inf"), float("-inf")) or value == 0.0 and str(value).startswith("-"):
-            raise ValueError(f"{location} contains a forbidden float")
-        return
+        raise ValueError(f"{location} is outside the integer-only canonical profile")
     if isinstance(value, list):
         for index, item in enumerate(value):
             validate_i_json(item, f"{location}[{index}]")
@@ -152,9 +163,7 @@ def read_frame() -> dict[str, Any] | None:
     body = sys.stdin.buffer.read(length)
     if len(body) != length:
         raise ValueError("truncated frame body")
-    value = json.loads(body.decode("utf-8"), object_pairs_hook=reject_duplicate_keys)
-    if canonical(value) != body:
-        raise ValueError("frame is not canonical JSON")
+    value = parse_canonical_json(body)
     if not isinstance(value, dict):
         raise ValueError("frame body must be an object")
     return value
@@ -167,6 +176,32 @@ def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             raise ValueError(f"duplicate JSON key {key}")
         result[key] = value
     return result
+
+
+def parse_strict_integer(token: str) -> int:
+    if token == "-0":
+        raise ValueError("negative zero is forbidden")
+    value = int(token)
+    if abs(value) > 9_007_199_254_740_991:
+        raise ValueError("integer exceeds I-JSON range")
+    return value
+
+
+def reject_fraction(token: str) -> int:
+    raise ValueError(f"fractional number is forbidden: {token}")
+
+
+def parse_canonical_json(body: bytes) -> Any:
+    value = json.loads(
+        body.decode("utf-8"),
+        object_pairs_hook=reject_duplicate_keys,
+        parse_int=parse_strict_integer,
+        parse_float=reject_fraction,
+        parse_constant=reject_fraction,
+    )
+    if canonical(value) != body:
+        raise ValueError("input is not canonical JSON")
+    return value
 
 
 def write_frame(value: dict[str, Any]) -> None:
@@ -240,6 +275,14 @@ def empty_usage() -> dict[str, int]:
     }
 
 
+def rounded_ratio(numerator: int, denominator: int) -> int:
+    if denominator <= 0:
+        raise ValueError("ratio denominator must be positive")
+    sign = -1 if numerator < 0 else 1
+    quotient, remainder = divmod(abs(numerator), denominator)
+    return sign * (quotient + (1 if 2 * remainder >= denominator else 0))
+
+
 def build_evaluation_core(message: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
     if message.get("datasetRole") != "deterministic" or message.get("phase") != "deterministic":
         raise ValueError("external evaluator prototype permits deterministic data only")
@@ -258,7 +301,7 @@ def build_evaluation_core(message: dict[str, Any], config: dict[str, Any]) -> di
     total_usage = empty_usage()
     total_usage.update(message["totalUsage"])
     return {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "evaluationResultId": message["evaluationResultId"],
         "protocolId": message["protocolId"],
         "track": "contract",
@@ -276,13 +319,21 @@ def build_evaluation_core(message: dict[str, Any], config: dict[str, Any]) -> di
         "aggregate": {
             "taskCount": task_count,
             "rolloutSeedCount": len(message["rolloutSeeds"]),
-            "parentPassRate": parent_passes / task_count,
-            "candidatePassRate": candidate_passes / task_count,
-            "deltaPercentagePoints": 100 * (candidate_passes - parent_passes) / task_count,
+            "parentPassRateMicros": rounded_ratio(parent_passes * 1_000_000, task_count),
+            "candidatePassRateMicros": rounded_ratio(
+                candidate_passes * 1_000_000, task_count
+            ),
+            "deltaPercentagePointMicros": rounded_ratio(
+                (candidate_passes - parent_passes) * 100_000_000, task_count
+            ),
             "passToFailCount": pass_to_fail,
             "failToPassCount": fail_to_pass,
-            "pairedCi95LowerPercentagePoints": message["pairedCi95LowerPercentagePoints"],
-            "pairedCi95UpperPercentagePoints": message["pairedCi95UpperPercentagePoints"],
+            "pairedCi95LowerPercentagePointMicros": message[
+                "pairedCi95LowerPercentagePointMicros"
+            ],
+            "pairedCi95UpperPercentagePointMicros": message[
+                "pairedCi95UpperPercentagePointMicros"
+            ],
             "taskIsPrimaryUnit": True,
         },
         "attributionMetrics": None,
@@ -316,12 +367,56 @@ def build_evaluation_core(message: dict[str, Any], config: dict[str, Any]) -> di
     }
 
 
+def canonical_corpus_main(corpus_path: str) -> int:
+    with open(corpus_path, "rb") as corpus_file:
+        corpus = json.loads(
+            corpus_file.read().decode("utf-8"),
+            object_pairs_hook=reject_duplicate_keys,
+            parse_int=parse_strict_integer,
+            parse_float=reject_fraction,
+            parse_constant=reject_fraction,
+        )
+    if corpus.get("profile") != "seh-c14n-int-v1":
+        raise ValueError("canonical corpus profile mismatch")
+    valid_results: list[dict[str, Any]] = []
+    for vector in corpus.get("valid", []):
+        value = vector["value"]
+        valid_results.append(
+            {
+                "id": vector["id"],
+                "canonical": canonical(value).decode("utf-8"),
+                "sha256": sha256(value),
+            }
+        )
+    invalid_results: list[dict[str, Any]] = []
+    for vector in corpus.get("invalid", []):
+        rejected = False
+        try:
+            parse_canonical_json(vector["json"].encode("utf-8"))
+        except (UnicodeError, ValueError, json.JSONDecodeError):
+            rejected = True
+        invalid_results.append({"id": vector["id"], "rejected": rejected})
+    sys.stdout.buffer.write(
+        canonical(
+            {
+                "profile": "seh-c14n-int-v1",
+                "valid": valid_results,
+                "invalid": invalid_results,
+            }
+        )
+    )
+    sys.stdout.buffer.write(b"\n")
+    return 0
+
+
 def main() -> int:
+    if len(sys.argv) == 3 and sys.argv[1] == "--canonical-corpus":
+        return canonical_corpus_main(sys.argv[2])
+    if len(sys.argv) != 1:
+        raise ValueError("unsupported evaluator arguments")
     with open(CONFIG_PATH, "rb") as config_file:
         config_bytes = config_file.read()
-    config = json.loads(config_bytes.decode("utf-8"), object_pairs_hook=reject_duplicate_keys)
-    if canonical(config) != config_bytes:
-        raise ValueError("evaluator config is not canonical")
+    config = parse_canonical_json(config_bytes)
     expected_sequence = 0
     seen_nonces: set[str] = set()
     pending: dict[str, dict[str, Any]] = {}

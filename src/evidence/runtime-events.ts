@@ -12,7 +12,7 @@ export const RUNTIME_EVENT_SCHEMA_ID = `${SCHEMA_BASE_URL}runtime-event.schema.j
 export interface InferenceMetadata {
   readonly sourceEventIds: readonly string[];
   readonly sourceReceiptIds: readonly string[];
-  readonly confidence: number;
+  readonly confidenceMicros: number;
   readonly alternativeExplanations: readonly string[];
   readonly producerIdentity: PrincipalIdentity;
   readonly method?: string;

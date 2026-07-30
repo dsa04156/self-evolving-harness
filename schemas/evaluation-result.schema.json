@@ -36,7 +36,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "evaluationResultId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -189,13 +189,13 @@
       "required": [
         "taskCount",
         "rolloutSeedCount",
-        "parentPassRate",
-        "candidatePassRate",
-        "deltaPercentagePoints",
+        "parentPassRateMicros",
+        "candidatePassRateMicros",
+        "deltaPercentagePointMicros",
         "passToFailCount",
         "failToPassCount",
-        "pairedCi95LowerPercentagePoints",
-        "pairedCi95UpperPercentagePoints",
+        "pairedCi95LowerPercentagePointMicros",
+        "pairedCi95UpperPercentagePointMicros",
         "taskIsPrimaryUnit"
       ],
       "properties": {
@@ -207,20 +207,20 @@
           "type": "integer",
           "minimum": 1
         },
-        "parentPassRate": {
-          "type": "number",
+        "parentPassRateMicros": {
+          "type": "integer",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1000000
         },
-        "candidatePassRate": {
-          "type": "number",
+        "candidatePassRateMicros": {
+          "type": "integer",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1000000
         },
-        "deltaPercentagePoints": {
-          "type": "number",
-          "minimum": -100,
-          "maximum": 100
+        "deltaPercentagePointMicros": {
+          "type": "integer",
+          "minimum": -100000000,
+          "maximum": 100000000
         },
         "passToFailCount": {
           "type": "integer",
@@ -230,15 +230,15 @@
           "type": "integer",
           "minimum": 0
         },
-        "pairedCi95LowerPercentagePoints": {
-          "type": "number",
-          "minimum": -100,
-          "maximum": 100
+        "pairedCi95LowerPercentagePointMicros": {
+          "type": "integer",
+          "minimum": -100000000,
+          "maximum": 100000000
         },
-        "pairedCi95UpperPercentagePoints": {
-          "type": "number",
-          "minimum": -100,
-          "maximum": 100
+        "pairedCi95UpperPercentagePointMicros": {
+          "type": "integer",
+          "minimum": -100000000,
+          "maximum": 100000000
         },
         "taskIsPrimaryUnit": {
           "const": true
@@ -252,40 +252,40 @@
           "additionalProperties": false,
           "required": [
             "singleFaultTaskCount",
-            "singleFaultTop1Accuracy",
-            "singleFaultTop3Accuracy",
+            "singleFaultTop1AccuracyMicros",
+            "singleFaultTop3AccuracyMicros",
             "multiCauseTaskCount",
-            "multiCauseRecallAt2",
-            "multiCauseExactSetAt2"
+            "multiCauseRecallAt2Micros",
+            "multiCauseExactSetAt2Micros"
           ],
           "properties": {
             "singleFaultTaskCount": {
               "type": "integer",
               "minimum": 0
             },
-            "singleFaultTop1Accuracy": {
-              "type": "number",
+            "singleFaultTop1AccuracyMicros": {
+              "type": "integer",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1000000
             },
-            "singleFaultTop3Accuracy": {
-              "type": "number",
+            "singleFaultTop3AccuracyMicros": {
+              "type": "integer",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1000000
             },
             "multiCauseTaskCount": {
               "type": "integer",
               "minimum": 0
             },
-            "multiCauseRecallAt2": {
-              "type": "number",
+            "multiCauseRecallAt2Micros": {
+              "type": "integer",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1000000
             },
-            "multiCauseExactSetAt2": {
-              "type": "number",
+            "multiCauseExactSetAt2Micros": {
+              "type": "integer",
               "minimum": 0,
-              "maximum": 1
+              "maximum": 1000000
             }
           }
         },
@@ -361,8 +361,12 @@
           "passed": {
             "type": "boolean"
           },
-          "observedValue": {},
-          "threshold": {},
+          "observedValue": {
+            "$ref": "./common.schema.json#/$defs/canonicalJsonValue"
+          },
+          "threshold": {
+            "$ref": "./common.schema.json#/$defs/canonicalJsonValue"
+          },
           "evidenceReceiptIds": {
             "type": "array",
             "minItems": 1,

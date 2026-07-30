@@ -42,10 +42,11 @@ export interface ComponentReference {
 }
 
 export interface ComponentManifest {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: 3;
   readonly componentManifestId: string;
   readonly identity: {
-    readonly canonicalizationProfile: "seh-jcs-v1";
+    readonly canonicalizationProfile: "seh-c14n-int-v1";
+    readonly componentIntrinsicId: string;
     readonly componentId: string;
     readonly semanticVersion: string;
     readonly typeRegistryRef: {
@@ -56,6 +57,7 @@ export interface ComponentManifest {
     readonly payload: {
       readonly language: string;
       readonly artifact: ArtifactReference;
+      readonly capabilityIds: readonly string[];
       readonly capabilityDigest: string;
     };
     readonly dependencies: readonly {
@@ -76,7 +78,7 @@ export interface HarnessVersionManifest {
   readonly harnessVersionId: string;
   readonly manifestHash: string;
   readonly identity: {
-    readonly canonicalizationProfile: "seh-jcs-v1";
+    readonly canonicalizationProfile: "seh-c14n-int-v1";
     readonly semanticVersion: string;
     readonly requiredRuntimeContractHash: string;
     readonly typeRegistryId: string;

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/harness-component.schema.json",
-  "title": "Immutable ComponentManifest",
-  "description": "The componentManifestId is SHA-256 over RFC 8785 canonical bytes of identity only. Lifecycle, provenance, evaluation, and activation records are external.",
+  "title": "Immutable ComponentManifest v3",
+  "description": "componentIntrinsicId hashes identity without componentIntrinsicId or behaviorClosure. componentManifestId hashes the complete identity. Lifecycle, provenance, evaluation, and activation records are external.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,7 +12,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "componentManifestId": {
       "$ref": "./common.schema.json#/$defs/componentManifestId"
@@ -22,6 +22,7 @@
       "additionalProperties": false,
       "required": [
         "canonicalizationProfile",
+        "componentIntrinsicId",
         "componentId",
         "semanticVersion",
         "typeRegistryRef",
@@ -31,7 +32,10 @@
       ],
       "properties": {
         "canonicalizationProfile": {
-          "const": "seh-jcs-v1"
+          "const": "seh-c14n-int-v1"
+        },
+        "componentIntrinsicId": {
+          "$ref": "./common.schema.json#/$defs/componentIntrinsicId"
         },
         "componentId": {
           "$ref": "./common.schema.json#/$defs/entityId"
@@ -65,6 +69,7 @@
           "required": [
             "language",
             "artifact",
+            "capabilityIds",
             "capabilityDigest"
           ],
           "properties": {
@@ -85,6 +90,14 @@
             },
             "artifact": {
               "$ref": "./common.schema.json#/$defs/artifactRef"
+            },
+            "capabilityIds": {
+              "type": "array",
+              "maxItems": 128,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              }
             },
             "capabilityDigest": {
               "$ref": "./common.schema.json#/$defs/sha256"

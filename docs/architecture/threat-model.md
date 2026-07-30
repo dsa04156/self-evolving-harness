@@ -48,7 +48,7 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 
 | Threat | Machine control | Required adversarial evidence | Residual risk |
 |---|---|---|---|
-| Lifecycle/evaluation append changes a content ID | immutable manifest identity excludes all external records; recompute JCS digest | append records and prove component/harness IDs unchanged | canonicalizer bug |
+| Lifecycle/evaluation append changes a content ID | immutable manifest identity excludes all external records; recompute `seh-c14n-int-v1` digest | append records and prove component/harness IDs unchanged | canonicalizer bug |
 | Candidate self-declares mutable class/type/provenance | protocol-pinned type registry; trusted registry writes provenance | spoofed type/mutability/provenance rejected | compromised protocol author |
 | Skill/workflow smuggles code, imports, hook, download, archive, encoded payload, or external file | closed JSON DSL, no-network parser, file/object restrictions, string/AST scan | corpus covering every forbidden construct and nested/obfuscated variants | novel semantic prompt attack without extra authority |
 | Small reference edit replaces large/multiple behavior | full transitive closure expansion, artifact rehash, changed-family and size-vector accounting | reference-swap fixture charged/rejected | semantic magnitude is imperfect |

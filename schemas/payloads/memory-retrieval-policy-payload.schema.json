@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/payloads/memory-retrieval-policy-payload.schema.json",
-  "title": "SEH Memory Retrieval Policy Payload v1",
+  "title": "SEH Memory Retrieval Policy Payload v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,12 +11,12 @@
     "queryMode",
     "maxRecords",
     "maxTokens",
-    "minimumScore",
+    "minimumScoreMicros",
     "tieBreak"
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "language": {
       "const": "seh.memory-retrieval-policy.v1"
@@ -45,10 +45,10 @@
         "fixed_hybrid"
       ]
     },
-    "hybridLexicalWeight": {
-      "type": "number",
+    "hybridLexicalWeightMicros": {
+      "type": "integer",
       "minimum": 0,
-      "maximum": 1
+      "maximum": 1000000
     },
     "maxRecords": {
       "type": "integer",
@@ -60,10 +60,10 @@
       "minimum": 0,
       "maximum": 65536
     },
-    "minimumScore": {
-      "type": "number",
+    "minimumScoreMicros": {
+      "type": "integer",
       "minimum": 0,
-      "maximum": 1
+      "maximum": 1000000
     },
     "tieBreak": {
       "type": "string",
@@ -87,13 +87,13 @@
       },
       "then": {
         "required": [
-          "hybridLexicalWeight"
+          "hybridLexicalWeightMicros"
         ]
       },
       "else": {
         "not": {
           "required": [
-            "hybridLexicalWeight"
+            "hybridLexicalWeightMicros"
           ]
         }
       }

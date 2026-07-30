@@ -127,12 +127,12 @@ test("Python 3.13 evaluator is isolated, authenticated and returns schema-valid 
       },
     ],
     totalUsage: usage,
-    pairedCi95LowerPercentagePoints: 0,
-    pairedCi95UpperPercentagePoints: 100,
+    pairedCi95LowerPercentagePointMicros: 0,
+    pairedCi95UpperPercentagePointMicros: 100_000_000,
     sourceEvidenceReceiptIds: ["receipt-source-001"],
   });
-  assert.equal(result.aggregate.parentPassRate, 0.5);
-  assert.equal(result.aggregate.candidatePassRate, 1);
+  assert.equal(result.aggregate.parentPassRateMicros, 500_000);
+  assert.equal(result.aggregate.candidatePassRateMicros, 1_000_000);
   assert.equal(result.aggregate.passToFailCount, 0);
   assert.equal(result.aggregate.failToPassCount, 1);
   assert.equal(result.gateChecks[0]?.passed, true);

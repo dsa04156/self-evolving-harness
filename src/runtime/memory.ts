@@ -30,16 +30,16 @@ export interface MemoryRecord {
 export interface MemoryRetrievalPolicy {
   readonly readableNamespaces: readonly MemoryNamespace[];
   readonly queryMode: "recency" | "lexical" | "fixed_hybrid";
-  readonly hybridLexicalWeight?: number;
+  readonly hybridLexicalWeightMicros?: number;
   readonly maxRecords: number;
   readonly maxTokens: number;
-  readonly minimumScore: number;
+  readonly minimumScoreMicros: number;
   readonly tieBreak: "record_id_ascending" | "created_at_then_record_id";
 }
 
 export interface RankedMemory {
   readonly record: MemoryRecord;
-  readonly score: number;
+  readonly scoreMicros: number;
   readonly estimatedTokens: number;
 }
 
@@ -64,14 +64,14 @@ function terms(value: string): Set<string> {
   );
 }
 
-function lexicalScore(query: Set<string>, content: string): number {
+function lexicalScoreMicros(query: Set<string>, content: string): number {
   if (query.size === 0) return 0;
   const candidate = terms(content);
   let overlap = 0;
   for (const term of query) {
     if (candidate.has(term)) overlap += 1;
   }
-  return overlap / query.size;
+  return Math.floor((overlap * 1_000_000) / query.size);
 }
 
 function asMemoryRecord(value: JsonValue): MemoryRecord {
@@ -160,15 +160,15 @@ export class FilesystemMemory {
     );
     if (policy.queryMode === "fixed_hybrid") {
       assertCondition(
-        policy.hybridLexicalWeight !== undefined &&
-          policy.hybridLexicalWeight >= 0 &&
-          policy.hybridLexicalWeight <= 1,
+        policy.hybridLexicalWeightMicros !== undefined &&
+          policy.hybridLexicalWeightMicros >= 0 &&
+          policy.hybridLexicalWeightMicros <= 1_000_000,
         "SCHEMA_INVALID",
         "Hybrid retrieval requires a fixed lexical weight",
       );
     } else {
       assertCondition(
-        policy.hybridLexicalWeight === undefined,
+        policy.hybridLexicalWeightMicros === undefined,
         "SCHEMA_INVALID",
         "Lexical weight is valid only in fixed_hybrid mode",
       );
@@ -176,19 +176,26 @@ export class FilesystemMemory {
     const records = await this.list(policy.readableNamespaces);
     const queryTerms = terms(query);
     const ranked = records.map((record, index) => {
-      const lexical = lexicalScore(queryTerms, record.content);
-      const recency = records.length === 0 ? 0 : (index + 1) / records.length;
-      let score: number;
-      if (policy.queryMode === "lexical") score = lexical;
-      else if (policy.queryMode === "recency") score = recency;
+      const lexicalMicros = lexicalScoreMicros(queryTerms, record.content);
+      const recencyMicros =
+        records.length === 0 ? 0 : Math.floor(((index + 1) * 1_000_000) / records.length);
+      let scoreMicros: number;
+      if (policy.queryMode === "lexical") scoreMicros = lexicalMicros;
+      else if (policy.queryMode === "recency") scoreMicros = recencyMicros;
       else {
-        const weight = policy.hybridLexicalWeight!;
-        score = weight * lexical + (1 - weight) * recency;
+        const weightMicros = policy.hybridLexicalWeightMicros!;
+        scoreMicros = Math.floor(
+          (weightMicros * lexicalMicros +
+            (1_000_000 - weightMicros) * recencyMicros) /
+            1_000_000,
+        );
       }
-      return { record, score, estimatedTokens: estimateTokens(record.content) };
+      return { record, scoreMicros, estimatedTokens: estimateTokens(record.content) };
     });
     ranked.sort((left, right) => {
-      if (left.score !== right.score) return right.score - left.score;
+      if (left.scoreMicros !== right.scoreMicros) {
+        return right.scoreMicros - left.scoreMicros;
+      }
       if (policy.tieBreak === "created_at_then_record_id") {
         const time = left.record.createdAt.localeCompare(right.record.createdAt);
         if (time !== 0) return time;
@@ -200,7 +207,7 @@ export class FilesystemMemory {
     const rejected: MemoryRetrievalResult["rejected"][number][] = [];
     let tokens = 0;
     for (const item of ranked) {
-      if (item.score < policy.minimumScore) {
+      if (item.scoreMicros < policy.minimumScoreMicros) {
         rejected.push({ recordId: item.record.recordId, reason: "below_minimum_score" });
       } else if (selected.length >= policy.maxRecords) {
         rejected.push({ recordId: item.record.recordId, reason: "record_limit" });

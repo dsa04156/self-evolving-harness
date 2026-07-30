@@ -1,7 +1,7 @@
 # Canonicalization and Hashing Contract
 
-Status: Gate 1R design contract
-Profile identifier: `seh-jcs-v1`
+Status: Gate 2R versioned correction
+Profile identifier: `seh-c14n-int-v1`
 
 This contract removes ambiguity from component, harness, artifact, protocol, and audit identities. Git
 commits, worktree paths, file timestamps, database row IDs, lifecycle state, evaluation results, and
@@ -10,9 +10,16 @@ activation pointers never contribute to a content identity.
 ## Primitive rules
 
 - Digest: SHA-256, rendered as lowercase hexadecimal with the object-specific prefix.
-- JSON: RFC 8785 JSON Canonicalization Scheme (JCS), encoded as UTF-8 without BOM.
-- Accepted JSON is I-JSON: duplicate object keys, invalid Unicode scalar values, `NaN`, infinities,
-  negative zero, and integers outside `[-9007199254740991, 9007199254740991]` are rejected before JCS.
+- JSON: the project-owned `seh-c14n-int-v1` profile, encoded as UTF-8 without BOM. It is deliberately
+  narrower than RFC 8785 and does not claim support for the RFC 8785 number domain.
+- The only admitted JSON numbers are integers in
+  `[-9007199254740991, 9007199254740991]`. Fractions, exponent forms that decode to fractions, `NaN`,
+  infinities, negative zero, and out-of-range integers are rejected before hashing or signing.
+- Object keys are sorted by their UTF-16 code-unit sequence. Strings use JSON escaping without ASCII
+  forcing; lone surrogates and invalid Unicode scalar values are rejected.
+- Ratios, probabilities, confidence, and percentage-point quantities use named fixed-scale integer
+  fields such as `confidenceMicros`, `parentPassRateMicros`, and
+  `pairedCi95LowerPercentagePointMicros`.
 - Schema validation occurs before hashing. Unknown properties are rejected by all identity schemas.
 - A claimed ID is compared in constant time with the recomputed digest.
 - Lists whose semantics are sets are sorted before hashing and rejected if the submitted order differs
@@ -63,35 +70,51 @@ For a byte artifact:
 artifact hash = "sha256:" + hex(SHA256(canonical artifact bytes))
 ```
 
-For a file set, the artifact bytes are the JCS bytes of its canonical file-set manifest; every member is
+For a file set, the artifact bytes are the canonical bytes of its file-set manifest; every member is
 itself addressed by a byte-artifact hash.
 
 ## Component identity
 
-`ComponentManifest.componentManifestId` is derived from the `identity` object only:
+Component identity has two explicit hash domains. First, define:
 
 ```text
-component digest = SHA256(JCS(component.identity))
-componentManifestId = "cm-sha256:" + hex(component digest)
-manifestHash = "sha256:" + hex(component digest)
+ComponentIntrinsicIdentity =
+  component.identity without componentIntrinsicId and behaviorClosure
+
+componentIntrinsicId =
+  "ci-sha256:" + hex(SHA256(C14N(ComponentIntrinsicIdentity)))
 ```
 
-The trusted validator resolves `typeRegistryRef`, validates the payload language and capabilities against
-that registry entry, verifies the payload artifact, resolves all dependencies, and recomputes the
-component closure before accepting the claimed ID.
+`componentIntrinsicId` is included in the final identity and is the node ID used inside the behavior
+closure. The closure includes the root component itself and every transitive dependency. After the
+closure is fixed:
+
+```text
+ComponentManifestIdentity = component.identity
+
+componentManifestId =
+  "cm-sha256:" + hex(SHA256(C14N(ComponentManifestIdentity)))
+
+manifestHash =
+  "sha256:" + the same final digest
+```
+
+The final ID never appears in its own closure, so no fixed-point hash is required. The trusted validator
+recomputes both IDs, resolves `typeRegistryRef`, validates the payload language, verifies the
+manifest-resident canonical capability preimage, verifies the payload artifact, resolves all
+dependencies, and recomputes the component closure before accepting either claimed ID.
 
 The component closure document is:
 
 ```json
 {
-  "profile": "seh-jcs-v1",
-  "rootPayload": {"contentHash": "sha256:…", "sizeBytes": 0},
+  "profile": "seh-c14n-int-v1",
   "components": [
     {
-      "componentManifestId": "cm-sha256:…",
+      "componentIntrinsicId": "ci-sha256:…",
       "identityHash": "sha256:…",
       "payloadHash": "sha256:…",
-      "dependencyIds": ["cm-sha256:…"]
+      "dependencyIntrinsicIds": ["ci-sha256:…"]
     }
   ],
   "artifacts": [
@@ -100,17 +123,18 @@ The component closure document is:
 }
 ```
 
-Components are deduplicated and sorted by `componentManifestId`; dependency IDs and artifacts are sorted
-by digest. Cycles, missing objects, duplicate stable `componentId` definitions, type mismatches, and
-undeclared artifacts are rejected. `behaviorClosure.closureHash` is SHA-256 of this closure document's
-JCS bytes. Counts and byte totals are recomputed, not trusted.
+Components are deduplicated by final manifest ID and closure nodes are sorted by
+`componentIntrinsicId`; dependency intrinsic IDs and artifacts are sorted by digest. Cycles, missing
+objects, duplicate stable `componentId` definitions, type mismatches, and undeclared artifacts are
+rejected. `behaviorClosure.closureHash` is SHA-256 of this closure document's canonical bytes. Counts
+and byte totals are recomputed, not trusted.
 
 ## Harness identity
 
 `HarnessVersionManifest.harnessVersionId` is derived from its `identity` object only:
 
 ```text
-harness digest = SHA256(JCS(harness.identity))
+harness digest = SHA256(C14N(harness.identity))
 harnessVersionId = "hv-sha256:" + hex(harness digest)
 manifestHash = "sha256:" + hex(harness digest)
 ```
@@ -126,10 +150,10 @@ reference this ID and cannot change it.
 The type registry and protocol manifest use the same envelope rule:
 
 ```text
-registry digest = SHA256(JCS(typeRegistry.identity))
+registry digest = SHA256(C14N(typeRegistry.identity))
 typeRegistryId = "ctr-sha256:" + hex(registry digest)
 
-protocol digest = SHA256(JCS(protocol.identity))
+protocol digest = SHA256(C14N(protocol.identity))
 protocolId = "protocol-sha256:" + hex(protocol digest)
 ```
 
@@ -157,7 +181,7 @@ the complete size vector and never treats that ceiling as causal control.
 
 ## Audit records
 
-Audit `recordHash` is SHA-256 of JCS bytes of the record with the signature value omitted but with
+Audit `recordHash` is SHA-256 of canonical bytes of the record with the signature value omitted but with
 `previousRecordHash`, `protocolId`, `logId`, and sequence included. The record is then signed. A hash
 chain is tamper-evident only under the trust assumptions in `trust-boundary.md`; it is not called
 tamper-proof or immutable storage.
@@ -166,8 +190,12 @@ tamper-proof or immutable storage.
 
 Before Gate 2, deterministic tests must cover:
 
-- different JSON key orders yielding one digest;
-- duplicate keys, non-NFC text, CRLF, BOM, invalid numbers, and invalid UTF-8 rejection;
+- TypeScript and Python producing byte-identical output for the shared canonical corpus;
+- UTF-16 key order, escaping, nested values, and safe-integer bounds;
+- duplicate keys, fractions, exponent fractions, negative zero, unsafe integers, lone surrogates,
+  noncanonical key order, non-NFC text, CRLF, BOM, and invalid UTF-8 rejection;
+- independent recomputation of component intrinsic ID, closure, final manifest ID, and capability
+  preimage digest;
 - set-order rejection and behavior-order preservation;
 - symlink/hardlink/path traversal/case-fold collision rejection;
 - artifact size/hash mismatch and time-of-check/time-of-use substitution;

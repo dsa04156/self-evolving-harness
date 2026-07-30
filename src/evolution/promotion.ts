@@ -223,13 +223,16 @@ export class PromotionService {
         },
         {
           gateId: "gate.no-point-regression",
-          passed: result.aggregate.candidatePassRate >= result.aggregate.parentPassRate,
+          passed:
+            result.aggregate.candidatePassRateMicros >=
+            result.aggregate.parentPassRateMicros,
           sourceResultId: result.evaluationResultId,
           sourceDatasetRole: datasetRole,
         },
         {
           gateId: "gate.ci-lower-minus-two",
-          passed: result.aggregate.pairedCi95LowerPercentagePoints >= -2,
+          passed:
+            result.aggregate.pairedCi95LowerPercentagePointMicros >= -2_000_000,
           sourceResultId: result.evaluationResultId,
           sourceDatasetRole: datasetRole,
         },

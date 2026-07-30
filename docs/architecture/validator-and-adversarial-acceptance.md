@@ -10,7 +10,7 @@ authenticated-process tests, and OS-boundary adversarial evidence.
 
 The trusted validator performs these stages in order and emits one signed receipt:
 
-1. byte/UTF-8/JSON/I-JSON/JCS and payload-size validation;
+1. byte/UTF-8/JSON/`seh-c14n-int-v1` and payload-size validation;
 2. JSON Schema validation against the protocol-pinned schema set;
 3. claimed artifact, component, harness, registry, protocol, snapshot, and record hash recomputation;
 4. canonical order, unique stable IDs/slots, DAG/cycle, reference type, and full closure validation;

@@ -96,7 +96,7 @@ export interface AttributionResult {
     readonly componentManifestId: string;
     readonly typeEntryId: string;
     readonly resolvedComponentType: MutableAttributionType;
-    readonly score: number;
+    readonly scoreMicros: number;
     readonly hypothesizedMechanism: string;
     readonly sourceEventIds: readonly string[];
     readonly sourceReceiptIds: readonly string[];
@@ -231,7 +231,7 @@ export class WeaknessMiningService {
       const metadata: InferenceMetadata = {
         sourceEventIds,
         sourceReceiptIds,
-        confidence: 0.5,
+        confidenceMicros: 500_000,
         alternativeExplanations: [
           "The same surface failure may be produced by more than one harness component.",
         ],
@@ -472,10 +472,10 @@ export class AttributionService {
     useClass: AttributionResult["useClass"];
     candidates: readonly {
       readonly componentManifestId: string;
-      readonly score: number;
+      readonly scoreMicros: number;
       readonly hypothesizedMechanism: string;
     }[];
-    confidence: number;
+    confidenceMicros: number;
     alternativeExplanations: readonly string[];
     method: string;
   }): Promise<AttributionResult> {
@@ -502,7 +502,7 @@ export class AttributionService {
       ),
     );
     const seen = new Set<string>();
-    let previousScore = 1;
+    let previousScoreMicros = 1_000_000;
     const rankedCandidates = input.candidates.map((candidate, index) => {
       assertCondition(
         !seen.has(candidate.componentManifestId),
@@ -516,13 +516,13 @@ export class AttributionService {
         "Attribution candidate is not bound by the harness",
       );
       assertCondition(
-        candidate.score >= 0 &&
-          candidate.score <= 1 &&
-          candidate.score <= previousScore,
+        candidate.scoreMicros >= 0 &&
+          candidate.scoreMicros <= 1_000_000 &&
+          candidate.scoreMicros <= previousScoreMicros,
         "SCHEMA_INVALID",
-        "Attribution scores must be descending probabilities",
+        "Attribution scores must be descending probability micros",
       );
-      previousScore = candidate.score;
+      previousScoreMicros = candidate.scoreMicros;
       const component = this.#components.getComponent(candidate.componentManifestId);
       const type = this.#components.typeEntry(
         component.identity.typeRegistryRef.typeEntryId,
@@ -540,7 +540,7 @@ export class AttributionService {
         componentManifestId: component.componentManifestId,
         typeEntryId: component.identity.typeRegistryRef.typeEntryId,
         resolvedComponentType: type.componentType as MutableAttributionType,
-        score: candidate.score,
+        scoreMicros: candidate.scoreMicros,
         hypothesizedMechanism: candidate.hypothesizedMechanism,
         sourceEventIds: [...pattern.recordedObservations.sourceEventIds],
         sourceReceiptIds: [...pattern.sourceReceiptIds],
@@ -549,7 +549,7 @@ export class AttributionService {
     const metadata: InferenceMetadata = {
       sourceEventIds: [...pattern.recordedObservations.sourceEventIds],
       sourceReceiptIds: [...pattern.sourceReceiptIds],
-      confidence: input.confidence,
+      confidenceMicros: input.confidenceMicros,
       alternativeExplanations: [...input.alternativeExplanations],
       producerIdentity: this.#signer.identity,
       method: input.method,

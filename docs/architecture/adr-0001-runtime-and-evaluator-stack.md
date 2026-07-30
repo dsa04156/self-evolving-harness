@@ -23,7 +23,8 @@ contract mapping.
 - Exact patch versions, container/base-image digests, lockfiles, build flags, canonicalizer, schema
   validator, and executable hashes: frozen before implementation evidence is accepted and pinned by the
   protocol manifest.
-- Persisted contracts: JSON Schema Draft 2020-12 and RFC 8785 JCS.
+- Persisted contracts: JSON Schema Draft 2020-12 and the mechanically restricted
+  `seh-c14n-int-v1` profile.
 - Inter-principal protocol: authenticated 4-byte length-prefixed canonical JSON frames over Unix sockets,
   following `wire-envelope.schema.json`; no unauthenticated JSON Lines or mixed stdout protocol.
 - Large values: immutable content-addressed artifacts by hash/size/media type, never host paths or mutable
@@ -106,7 +107,8 @@ frames on a dedicated socket are used instead.
 
 - Two locked language environments and independent parsers/validators are required.
 - OS/container configuration and principal keys are implementation deliverables, not deployment notes.
-- Cross-language golden vectors must produce byte-identical JCS, hashes, signatures, and errors.
+- Cross-language golden vectors must produce byte-identical canonical bytes, hashes, signatures, and
+  errors.
 - Provider models without immutable weight identity receive a lower reproducibility tier and explicit
   drift disclosure.
 - Any toolchain, evaluator, policy, schema, protocol, or environment change creates a new protocol ID;
