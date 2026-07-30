@@ -55,3 +55,12 @@ any paid-provider request.
   byte-identical five-field termination descriptor with direct initiator reference.
 - No Gate 2 implementation, provider call, benchmark/gate/final access, deployment, or empirical claim
   is authorized before the Gate 1RRR decision.
+
+## Durable Gate 1RRR decision
+
+- External decision: `APPROVE`; blocking findings: none.
+- The complete pointer tuple, null initialization anchor, deterministic rollback swap, and immutable
+  termination transaction are accepted as the `draft-1` Gate 1 contracts.
+- Gate 2 bounded local implementation and deterministic verification may begin.
+- Paid-provider calls, benchmark evolution, gate/final/temporal/withheld-public access, live deployment,
+  push/release, and publication/performance/security claims remain prohibited.
