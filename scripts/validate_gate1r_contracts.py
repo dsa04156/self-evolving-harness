@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static Gate 1R contract precheck.
+"""Static Gate 1RR contract precheck.
 
 This is design-artifact validation, not runtime/evaluator implementation evidence.
 """
@@ -198,6 +198,38 @@ def validate_splits() -> None:
     )
     assert len(terminal_ids) == len(set(terminal_ids)), "Terminal-Bench split overlap"
 
+    graph_path = ROOT / "benchmarks/harness-fault-bench/multicause-graph.json"
+    graph = load_json(graph_path)
+    graph_schema = load_json(
+        SCHEMA_ROOT / "benchmarks/harness-fault-multicause-graph.schema.json"
+    )
+    Draft202012Validator(graph_schema).validate(graph)
+    edges = graph["edges"]
+    assert [edge["caseId"] for edge in edges] == sorted(
+        edge["caseId"] for edge in edges
+    )
+    assert [edge["caseId"] for edge in edges] == hfb["sealedTestMultiCause"]
+    unordered_pairs = {
+        tuple(sorted((edge["familyA"], edge["familyB"]))) for edge in edges
+    }
+    assert len(unordered_pairs) == 14, "duplicate multi-cause family edge"
+    for family in graph["combinedFamilies"]:
+        overall = sum(
+            family in (edge["familyA"], edge["familyB"]) for edge in edges
+        )
+        assert overall == 4, f"{family}: expected overall degree 4"
+        for difficulty in ("medium", "high"):
+            degree = sum(
+                edge["difficulty"] == difficulty
+                and family in (edge["familyA"], edge["familyB"])
+                for edge in edges
+            )
+            assert degree == 2, (
+                f"{family}/{difficulty}: expected stratum degree 2"
+            )
+    assert sum(edge["difficulty"] == "medium" for edge in edges) == 7
+    assert sum(edge["difficulty"] == "high" for edge in edges) == 7
+
 
 def validate_yaml() -> None:
     for path in sorted((ROOT / "configs").glob("*.yaml")):
@@ -210,12 +242,52 @@ def validate_yaml() -> None:
     assert budget["trackA"]["kSolverAttemptSlotsPerTask"] == 5
     assert budget["trackB"]["kCandidateManifestsPerMethod"] == 5
     assert budget["trackB"]["adaptiveReplacementCandidates"] == 0
+    h3 = budget["h3RepresentationExperiment"]
+    assert h3["treatment"] == "B6"
+    assert h3["control"] == "B6-RAW"
+    assert h3["onlyDifference"] == "evidence_representation"
+    assert h3["gateAccess"] is False and h3["finalAccess"] is False
+    assert h3["candidateSlotsPerArm"] == 5
+    cost = budget["candidateCostGate"]
+    assert cost["formulaVersion"] == "seh-candidate-cost-v1"
+    assert cost["successSmoothingAlpha"] == 0.5
+    assert cost["successSmoothingDenominatorAddend"] == 1
+    assert cost["tokenSmoothingTokens"] == 1
+    assert cost["normalMaximumRatio"] == 1.10
+    assert (
+        cost["highCostException"][
+            "minimumSmoothedSuccessPerTokenRatioImprovement"
+        ]
+        == 1.05
+    )
+    h4 = budget["h4TransferExperiment"]
+    assert h4["status"] == "exploratory"
+    assert h4["secondModelEvolutionCalls"] == 0
+    assert h4["modelSpecificRetuning"] is False
     feedback = yaml.safe_load(
         (ROOT / "configs/gate-feedback-policy.yaml").read_text(encoding="utf-8")
     )
+    assert feedback["protocolLifetime"]["accessMode"] == "one_shot_per_protocol"
+    assert feedback["protocolLifetime"]["maximumGateUnlocks"] == 1
+    assert feedback["protocolLifetime"]["nonAdaptiveReplicationAllowed"] is False
     assert feedback["candidateBatch"]["maximumCandidatesPerMethod"] == 5
     assert feedback["gateEvaluation"]["maximumBatchesPerMethod"] == 1
     assert feedback["candidateBatch"]["adaptiveReplacementCandidates"] == 0
+    assert set(
+        feedback["internalSelectionPacket"][
+            "readableUntilConfirmatoryFinalizationBy"
+        ]
+    ) == {"promoter", "audit_store"}
+    assert (
+        feedback["feedbackAccounting"][
+            "adaptiveFeedbackEventsConsumedByCandidateGenerator"
+        ]
+        == 0
+    )
+    assert (
+        feedback["feedbackAccounting"]["maximumDecisionEvidenceEventsPerMethod"]
+        == 6
+    )
 
 
 def validate_spike_quarantine() -> None:
@@ -260,6 +332,188 @@ def validate_manifest_separation() -> None:
         assert forbidden not in harness_names
     deployment = load_json(SCHEMA_ROOT / "deployment-pointer-record.schema.json")
     assert "component" not in deployment["properties"], "per-component activation field"
+    assert deployment["properties"]["channelId"]["const"] == "production"
+    assert set(deployment["properties"]["operation"]["enum"]) == {
+        "initialize",
+        "deploy",
+        "rollback",
+        "decommission",
+    }
+    for field in (
+        "rollbackTargetHarnessVersionId",
+        "rollbackTargetManifestHash",
+        "rollbackTargetQualificationDecisionId",
+    ):
+        assert field in deployment["required"]
+    initialization_rule = deployment["allOf"][1]
+    assert initialization_rule["then"]["properties"]["expectedBefore"][
+        "properties"
+    ]["generation"]["const"] == -1
+    assert initialization_rule["then"]["properties"]["after"]["properties"][
+        "generation"
+    ]["const"] == 0
+    assert initialization_rule["then"]["properties"]["priorTargetDisposition"][
+        "const"
+    ] == "none"
+    assert initialization_rule["else"]["properties"][
+        "priorTargetDisposition"
+    ]["const"] == "retained_approved"
+
+    protocol = load_json(SCHEMA_ROOT / "protocol-manifest.schema.json")
+    assert protocol["properties"]["schemaVersion"]["const"] == 2
+    protocol_pins = set(
+        protocol["properties"]["identity"]["properties"]["pins"]["required"]
+    )
+    assert {
+        "methodArmManifestSet",
+        "candidateSelectionRule",
+        "gateReportTemplateSet",
+        "analysisProgram",
+    } <= protocol_pins
+
+
+def validate_lifecycle_contracts() -> None:
+    harness = load_json(SCHEMA_ROOT / "harness-lifecycle-record.schema.json")
+    harness_states = set(harness["properties"]["toState"]["enum"])
+    assert "approved" in harness_states
+    assert "active" not in harness_states
+    assert "rolled_back" not in harness_states
+    harness_pairs: dict[str | None, set[str]] = {}
+    for branch in harness["oneOf"]:
+        pair = branch["properties"]
+        source_schema = pair["fromState"]
+        source = None if source_schema.get("type") == "null" else source_schema.get("const")
+        target_schema = pair["toState"]
+        targets = set(
+            target_schema["enum"]
+            if "enum" in target_schema
+            else [target_schema["const"]]
+        )
+        harness_pairs[source] = targets
+    assert harness_pairs == {
+        None: {"draft"},
+        "draft": {"candidate", "rejected"},
+        "candidate": {"statically_validated", "rejected"},
+        "statically_validated": {"evaluating", "rejected"},
+        "evaluating": {"canary", "rejected"},
+        "canary": {"approved", "rejected"},
+        "approved": {"retired"},
+        "rejected": {"retired"},
+    }
+
+    promotion = load_json(SCHEMA_ROOT / "promotion-decision.schema.json")
+    assert set(promotion["properties"]["action"]["enum"]) == {
+        "approve",
+        "reject",
+    }
+    for forbidden in ("channelId", "expectedDeployment", "rollbackTargetHarnessVersionId"):
+        assert forbidden not in promotion["properties"]
+
+    deployment_decision = load_json(SCHEMA_ROOT / "deployment-decision.schema.json")
+    assert deployment_decision["properties"]["channelId"]["const"] == "production"
+    for field in (
+        "rollbackTargetHarnessVersionId",
+        "rollbackTargetManifestHash",
+        "rollbackTargetQualificationDecisionId",
+    ):
+        assert field in deployment_decision["required"]
+    decision_initialization_rule = deployment_decision["allOf"][1]
+    assert decision_initialization_rule["then"]["properties"]["expectedBefore"][
+        "properties"
+    ]["generation"]["const"] == -1
+    assert decision_initialization_rule["then"]["properties"]["target"][
+        "properties"
+    ]["generation"]["const"] == 0
+
+    session = load_json(SCHEMA_ROOT / "session-lifecycle-record.schema.json")
+    session_states = set(session["properties"]["toState"]["enum"])
+    assert {"terminating", "terminated"} <= session_states
+    reasons = set(
+        session["properties"]["terminationReason"]["oneOf"][1]["enum"]
+    )
+    assert reasons == {
+        "initialization_failure",
+        "user_cancellation",
+        "budget_exhaustion",
+        "deadline_expiry",
+        "verifier_failure",
+        "security_violation",
+        "process_crash",
+        "unrecoverable_recovery",
+        "host_enforced_shutdown",
+    }
+    session_pairs: dict[str | None, set[str]] = {}
+    for branch in session["oneOf"]:
+        pair = branch["properties"]
+        source_schema = pair["fromState"]
+        source = None if source_schema.get("type") == "null" else source_schema.get("const")
+        target_schema = pair["toState"]
+        targets = set(
+            target_schema["enum"]
+            if "enum" in target_schema
+            else [target_schema["const"]]
+        )
+        session_pairs[source] = targets
+    assert session_pairs == {
+        None: {"created"},
+        "created": {"initialized", "retired", "terminating"},
+        "initialized": {"running", "blocked", "terminating"},
+        "running": {
+            "waiting",
+            "validating",
+            "blocked",
+            "recovering",
+            "terminating",
+        },
+        "waiting": {"running", "blocked", "recovering", "terminating"},
+        "blocked": {"recovering", "terminating"},
+        "recovering": {"initialized", "running", "blocked", "terminating"},
+        "validating": {"completed", "running", "blocked", "terminating"},
+        "completed": {"retired", "terminating"},
+        "terminating": {"terminated"},
+    }
+    operations = load_json(SCHEMA_ROOT / "operation-response.schema.json")
+    assert "terminate" in operations["properties"]["operation"]["enum"]
+    assert {"terminating", "terminated"} <= set(
+        operations["properties"]["state"]["enum"]
+    )
+
+
+def validate_cost_formula() -> None:
+    cost_schema = load_json(SCHEMA_ROOT / "candidate-cost-gate.schema.json")
+    assert cost_schema["properties"]["formulaVersion"]["const"] == (
+        "seh-candidate-cost-v1"
+    )
+    assert {
+        "gateTaskSetHash",
+        "candidateCostTerm",
+        "parentCostTerm",
+        "normalThresholdLeft",
+        "normalThresholdRight",
+        "highCostEfficiencyLeft",
+        "highCostEfficiencyRight",
+    } <= set(cost_schema["required"])
+    assert not {
+        "costRatio",
+        "efficiencyRatio",
+        "candidateSmoothedPassRate",
+        "parentSmoothedPassRate",
+    } & set(cost_schema["properties"])
+    ledger = (
+        ROOT / "docs/evaluation/phase-budget-ledger.md"
+    ).read_text(encoding="utf-8")
+    required_formula_fragments = (
+        "10 * (U_candidate + n) <= 11 * (U_parent + n)",
+        "10 * (U_candidate + n) > 11 * (U_parent + n)",
+        "P_candidate - P_parent >= 1",
+        "fail_to_pass_count - pass_to_fail_count >= 1",
+        "20 * (2*P_candidate + 1) * (U_parent + n)",
+        ">= 21 * (2*P_parent + 1) * (U_candidate + n)",
+        "Missing usage never",
+        "Validator and promoter independently recompute",
+    )
+    for fragment in required_formula_fragments:
+        assert fragment in ledger, f"missing cost formula fragment: {fragment}"
 
 
 def validate_required_artifacts() -> None:
@@ -277,7 +531,9 @@ def validate_required_artifacts() -> None:
         "docs/evaluation/temporal-holdout-governance.md",
         "docs/evaluation/claim-matrix.md",
         "benchmarks/harness-fault-bench/FIXTURE_SPEC.md",
+        "benchmarks/harness-fault-bench/multicause-graph.json",
         "architect/GATE_01R_REVISION_CHECKLIST.md",
+        "architect/GATE_01RR_REVISION_CHECKLIST.md",
     ]
     for relative in required:
         assert (ROOT / relative).exists(), f"missing required artifact: {relative}"
@@ -309,6 +565,8 @@ def main() -> int:
     validate_yaml()
     validate_spike_quarantine()
     validate_manifest_separation()
+    validate_lifecycle_contracts()
+    validate_cost_formula()
     validate_required_artifacts()
     links = validate_markdown_links()
     print(
@@ -316,6 +574,10 @@ def main() -> int:
         f"schemas={len(schema_paths)}",
         "type_registry=valid",
         "splits=28/14/14/14+45/10/34",
+        "multicause_graph=14_edges_degree4",
+        "lifecycle=qualified_deployed_terminated",
+        "gate=one_shot",
+        "h3=B6_vs_B6-RAW",
         "spike=quarantined",
         f"markdown_links={links}",
     )

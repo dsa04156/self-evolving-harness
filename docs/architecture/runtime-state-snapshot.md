@@ -63,14 +63,14 @@ A child receives a signed delegation envelope containing:
 - a bounded child token/tool/time allocation debited from the parent;
 - read/write artifact capabilities scoped to its task.
 
-The child cannot consult the deployment channel, select the newly active harness, widen data access,
+The child cannot consult the deployment channel, select a newly deployed harness, widen data access,
 change provider/model, create a new budget, or spawn an unbounded descendant. Backend jobs obey the same
 rules. Results with missing or mismatched inheritance fields are rejected before entering parent context.
 
 ## Active-version changes
 
-Deployment activation affects only sessions initialized afterward. Existing sessions, descendants, jobs,
-recovery attempts, and evaluator pairs remain pinned even if the active channel changes. This invariant
+Production deployment changes affect only sessions initialized afterward. Existing sessions, descendants,
+jobs, recovery attempts, and evaluator pairs remain pinned even if the production target changes. This invariant
 prevents behavior changes under an unchanged session trace and prevents candidate evaluation from
 silently rebinding to itself or a newer version.
 

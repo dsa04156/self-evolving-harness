@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "graphId": "hfb-v0-multicause-graph-1.0.1",
+  "protocolVersion": "draft-1",
+  "combinedFamilies": [
+    "ContextPolicy",
+    "MemoryRetrievalPolicy",
+    "RoutingPolicyOrSubagentPrompt",
+    "Skill",
+    "SystemPrompt",
+    "ToolDescription",
+    "WorkflowPolicy"
+  ],
+  "edgeCount": 14,
+  "overallDegreePerFamily": 4,
+  "difficultyStrata": {
+    "medium": {
+      "edgeCount": 7,
+      "degreePerFamily": 2
+    },
+    "high": {
+      "edgeCount": 7,
+      "degreePerFamily": 2
+    }
+  },
+  "edges": [
+    {
+      "caseId": "hfb-v0-multicause-01",
+      "difficulty": "medium",
+      "familyA": "SystemPrompt",
+      "componentTypeA": "SystemPrompt",
+      "mechanismA": "SP_OMIT_OUTPUT_CONTRACT",
+      "familyB": "MemoryRetrievalPolicy",
+      "componentTypeB": "MemoryRetrievalPolicy",
+      "mechanismB": "MRP_OMIT_PROJECT_FACTS"
+    },
+    {
+      "caseId": "hfb-v0-multicause-02",
+      "difficulty": "high",
+      "familyA": "SystemPrompt",
+      "componentTypeA": "SystemPrompt",
+      "mechanismA": "SP_INVERT_TOOL_ORDER",
+      "familyB": "Skill",
+      "componentTypeB": "Skill",
+      "mechanismB": "SK_OMIT_REQUIRED_STEP"
+    },
+    {
+      "caseId": "hfb-v0-multicause-03",
+      "difficulty": "high",
+      "familyA": "SystemPrompt",
+      "componentTypeA": "SystemPrompt",
+      "mechanismA": "SP_OMIT_FAILURE_HANDLING",
+      "familyB": "WorkflowPolicy",
+      "componentTypeB": "WorkflowPolicy",
+      "mechanismB": "WF_SKIP_CONTEXT_CONSTRUCTION"
+    },
+    {
+      "caseId": "hfb-v0-multicause-04",
+      "difficulty": "medium",
+      "familyA": "SystemPrompt",
+      "componentTypeA": "SystemPrompt",
+      "mechanismA": "SP_PREMATURE_COMPLETION",
+      "familyB": "RoutingPolicyOrSubagentPrompt",
+      "componentTypeB": "SubagentPrompt",
+      "mechanismB": "SA_OMIT_ARTIFACT_REQUIREMENT"
+    },
+    {
+      "caseId": "hfb-v0-multicause-05",
+      "difficulty": "medium",
+      "familyA": "ContextPolicy",
+      "componentTypeA": "ContextPolicy",
+      "mechanismA": "CP_EXCLUDE_LATEST_TOOL_RESULT",
+      "familyB": "Skill",
+      "componentTypeB": "Skill",
+      "mechanismB": "SK_SWAP_EXISTING_STEPS"
+    },
+    {
+      "caseId": "hfb-v0-multicause-06",
+      "difficulty": "high",
+      "familyA": "ContextPolicy",
+      "componentTypeA": "ContextPolicy",
+      "mechanismA": "CP_TRUNCATE_TASK_REQUIREMENT",
+      "familyB": "WorkflowPolicy",
+      "componentTypeB": "WorkflowPolicy",
+      "mechanismB": "WF_TOOL_FAILURE_TO_COMPLETE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-07",
+      "difficulty": "high",
+      "familyA": "ContextPolicy",
+      "componentTypeA": "ContextPolicy",
+      "mechanismA": "CP_SELECT_STALE_SESSION_EVENT",
+      "familyB": "RoutingPolicyOrSubagentPrompt",
+      "componentTypeB": "RoutingPolicy",
+      "mechanismB": "RT_WRONG_LOW_RULE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-08",
+      "difficulty": "medium",
+      "familyA": "ContextPolicy",
+      "componentTypeA": "ContextPolicy",
+      "mechanismA": "CP_OMIT_TOOL_CATALOG",
+      "familyB": "ToolDescription",
+      "componentTypeB": "ToolDescription",
+      "mechanismB": "TD_WRONG_READ_PARAMETER_PROSE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-09",
+      "difficulty": "medium",
+      "familyA": "MemoryRetrievalPolicy",
+      "componentTypeA": "MemoryRetrievalPolicy",
+      "mechanismA": "MRP_SCORE_TOO_HIGH",
+      "familyB": "WorkflowPolicy",
+      "componentTypeB": "WorkflowPolicy",
+      "mechanismB": "WF_VERIFY_FAILURE_TO_COMPLETE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-10",
+      "difficulty": "high",
+      "familyA": "MemoryRetrievalPolicy",
+      "componentTypeA": "MemoryRetrievalPolicy",
+      "mechanismA": "MRP_ZERO_RECORD_LIMIT",
+      "familyB": "RoutingPolicyOrSubagentPrompt",
+      "componentTypeB": "SubagentPrompt",
+      "mechanismB": "SA_INVERT_SUCCESS_CONDITION"
+    },
+    {
+      "caseId": "hfb-v0-multicause-11",
+      "difficulty": "high",
+      "familyA": "MemoryRetrievalPolicy",
+      "componentTypeA": "MemoryRetrievalPolicy",
+      "mechanismA": "MRP_RECENCY_SELECTS_DECOY",
+      "familyB": "ToolDescription",
+      "componentTypeB": "ToolDescription",
+      "mechanismB": "TD_INVERT_EDIT_MODE_PROSE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-12",
+      "difficulty": "medium",
+      "familyA": "Skill",
+      "componentTypeA": "Skill",
+      "mechanismA": "SK_WRONG_COMPLETION_CHECK",
+      "familyB": "RoutingPolicyOrSubagentPrompt",
+      "componentTypeB": "RoutingPolicy",
+      "mechanismB": "RT_WRONG_HIGH_RULE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-13",
+      "difficulty": "high",
+      "familyA": "Skill",
+      "componentTypeA": "Skill",
+      "mechanismA": "SK_WRONG_EXISTING_TOOL_GUIDANCE",
+      "familyB": "ToolDescription",
+      "componentTypeB": "ToolDescription",
+      "mechanismB": "TD_WRONG_RESULT_FIELD_PROSE"
+    },
+    {
+      "caseId": "hfb-v0-multicause-14",
+      "difficulty": "medium",
+      "familyA": "WorkflowPolicy",
+      "componentTypeA": "WorkflowPolicy",
+      "mechanismA": "WF_JOB_RESULT_WRONG_STATE",
+      "familyB": "ToolDescription",
+      "componentTypeB": "ToolDescription",
+      "mechanismB": "TD_GIT_DIFF_SCOPE_PROSE"
+    }
+  ]
+}

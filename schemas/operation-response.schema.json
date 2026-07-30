@@ -23,6 +23,7 @@
         "submit",
         "observe",
         "interrupt",
+        "terminate",
         "resume",
         "recover",
         "validate",
@@ -46,7 +47,9 @@
         "recovering",
         "validating",
         "completed",
-        "retired"
+        "retired",
+        "terminating",
+        "terminated"
       ]
     },
     "evidence": {
@@ -77,6 +80,7 @@
           "submit",
           "observe",
           "interrupt",
+          "terminate",
           "resume",
           "recover",
           "validate",
@@ -89,4 +93,3 @@
     }
   }
 }
-

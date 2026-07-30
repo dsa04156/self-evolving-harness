@@ -1,6 +1,6 @@
 # Task Execution Loop
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
 ## Contract
 
@@ -34,6 +34,12 @@ improvement.
    `recovering`; missing authority/input moves to `blocked`.
 9. **Retire.** Finalization verifies receipts/artifacts, releases the lease, and transitions the session
    to `retired`.
+
+At any nonterminal state, initialization failure, cancellation, budget exhaustion, deadline expiry,
+verifier failure, security violation, crash, unrecoverable recovery, or host shutdown instead enters
+`terminating`. The operations owner revokes descendant leases/capabilities, stops process groups and
+backend jobs, seals accounting/evidence, and enters terminal `terminated`. Resume is forbidden; a retry
+requires a new session.
 
 ## Event and item discipline
 
@@ -82,9 +88,9 @@ benchmark instructions.
 - The parent’s harness, protocol, runtime-state snapshot, model, split permission, principal delegation,
   shared budget account, and permission ceiling are inherited.
 - Delegation cannot increase authority.
-- A child or job cannot read the active deployment channel or rebind after promotion.
+- A child or job cannot read the production deployment channel or rebind after a later deployment.
 - Background jobs require a durable owner, heartbeat/lease, bounded process identity, status artifact,
-  cancellation path, and orphan recovery.
+  cancellation path, orphan recovery, and mandatory reap during session termination.
 - A parent may wait, resume, or fail based on explicit child terminal events; chat text is not a
   synchronization primitive.
 

@@ -1,6 +1,6 @@
 # Matched-Budget Contract
 
-Status: Gate 1R structural contract; enumerated numeric fields remain `PILOT_PENDING`
+Status: Gate 1RR structural contract; enumerated numeric fields remain `PILOT_PENDING`
 
 ## Two meanings of K
 
@@ -8,6 +8,8 @@ Status: Gate 1R structural contract; enumerated numeric fields remain `PILOT_PEN
   one equal hard cap vector for B1–B6. B0 deliberately uses one direct slot.
 - `K_B = 5`: maximum non-adaptive candidate manifests per evolutionary method in Track B. Each candidate
   receives at most one gate evaluation; no replacement is generated from gate feedback.
+- H3 separately pairs five B6 and five B6-RAW candidate slots on mine/dedicated pilot only; it has no
+  gate or final access.
 
 The five fixed slot/proposal seeds are `1729`, `271828`, `314159`, `161803`, and `57721`. Final rollout
 seed count is separate and selected by the preregistered mine/pilot-only precision rule in the

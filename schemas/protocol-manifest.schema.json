@@ -13,7 +13,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "protocolId": {
       "$ref": "./common.schema.json#/$defs/protocolId"
@@ -82,6 +82,10 @@
             "dataAccessPolicy",
             "gateFeedbackPolicy",
             "baselineMatrix",
+            "methodArmManifestSet",
+            "candidateSelectionRule",
+            "gateReportTemplateSet",
+            "analysisProgram",
             "statisticalPlan",
             "fixtureSpecification"
           ],
@@ -110,6 +114,10 @@
             "dataAccessPolicy": {"$ref": "./common.schema.json#/$defs/sha256"},
             "gateFeedbackPolicy": {"$ref": "./common.schema.json#/$defs/sha256"},
             "baselineMatrix": {"$ref": "./common.schema.json#/$defs/sha256"},
+            "methodArmManifestSet": {"$ref": "./common.schema.json#/$defs/sha256"},
+            "candidateSelectionRule": {"$ref": "./common.schema.json#/$defs/sha256"},
+            "gateReportTemplateSet": {"$ref": "./common.schema.json#/$defs/sha256"},
+            "analysisProgram": {"$ref": "./common.schema.json#/$defs/sha256"},
             "statisticalPlan": {"$ref": "./common.schema.json#/$defs/sha256"},
             "fixtureSpecification": {"$ref": "./common.schema.json#/$defs/sha256"}
           }

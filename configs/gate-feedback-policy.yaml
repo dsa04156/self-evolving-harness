@@ -1,6 +1,17 @@
-schemaVersion: 1
+schemaVersion: 2
 protocolVersion: draft-1
-status: gate1r_frozen_candidate
+status: gate1rr_frozen_candidate
+
+protocolLifetime:
+  accessMode: one_shot_per_protocol
+  maximumGateUnlocks: 1
+  nonAdaptiveReplicationAllowed: false
+  methodArmManifestSetHash: FREEZE_BEFORE_FIRST_GATE_ACCESS
+  selectionRuleHash: FREEZE_BEFORE_FIRST_GATE_ACCESS
+  reportTemplateSetHash: FREEZE_BEFORE_FIRST_GATE_ACCESS
+  analysisProgramHash: FREEZE_BEFORE_FIRST_GATE_ACCESS
+  laterConfirmatoryProtocolRequiresFreshGateSplit: true
+  sameGateBecomesExploratoryAfterAuthorizedHumanRelease: true
 
 candidateBatch:
   generationSource: mine_only
@@ -20,6 +31,7 @@ gateEvaluation:
   taskOrderCommitmentBeforeRun: true
   proposerRunningDuringGate: false
   proposerWriteCapabilityRevokedBeforeGate: true
+  proposerProviderCapabilityRevokedBeforeGate: true
 
 selection:
   actor: promoter
@@ -32,11 +44,18 @@ selection:
     - lowest_harness_version_id_lexicographic
   selectedArtifactsPerMethod: 1
 
-releasedPacket:
-  releaseTime: after_selection_and_candidate_write_revocation
-  recipients:
-    - evolution_reporter
+internalSelectionPacket:
+  creationTime: during_single_gate_transaction_after_candidate_evaluations
+  readableUntilConfirmatoryFinalizationBy:
+    - promoter
     - audit_store
+  prohibitedUntilConfirmatoryFinalization:
+    - proposer
+    - runtime_developer
+    - protocol_author
+    - benchmark_author
+    - model_selection_personnel
+    - evolution_reporter
   proposerMayConsumeForNewCandidate: false
   maximumPacketsPerMethod: 1
   fields:
@@ -58,13 +77,28 @@ releasedPacket:
     - verifier_diagnostics
     - ground_truth_labels
 
+postConfirmatoryRelease:
+  allowedOnlyAfter:
+    - all_final_evaluations_irrevocably_finalized
+    - audit_heads_published
+    - protocol_closed_to_candidate_or_method_changes
+  releaseMakesGateExploratoryForSubsequentWork: true
+  newConfirmatoryWorkRequiresFreshGateSplit: true
+
 feedbackAccounting:
-  oneEvaluationResultPerCandidateCountsAsOneFeedbackEvent: true
-  selectionPacketCountsAsOneFeedbackEvent: true
-  failedAndCancelledReleasesCount: true
-  maximumFeedbackEventsPerMethod: 6
+  adaptiveFeedbackEventsConsumedByCandidateGenerator: 0
+  evaluationResultsChargedToMethodBudgetPerCandidate: 1
+  selectionPacketChargedToMethodBudget: 1
+  failedAndCancelledEvaluationRecordsCharged: true
+  maximumDecisionEvidenceEventsPerMethod: 6
+  auditRetentionRecordsAreAdaptiveFeedback: false
+  auditRetentionRecordsStillRequired: true
+  recordEveryAccessRecipientFieldAndReleaseTime: true
 
 violation:
+  additionalGateUnlockInvalidatesProtocolRun: true
   additionalGateQueryInvalidatesProtocolRun: true
   proposerAccessInvalidatesProtocolRun: true
+  preFinalDeveloperOrProtocolAuthorAccessInvalidatesProtocolRun: true
   taskLevelLeakInvalidatesProtocolRun: true
+  reuseAfterHumanReleaseInvalidatesConfirmatoryStatus: true

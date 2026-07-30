@@ -1,85 +1,144 @@
-# Session and Harness-Version State Machines
+# Session, Harness Qualification, and Deployment State
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
-The machines are deliberately separate. A transition in one never implies a transition in the other.
+The session lifecycle, harness qualification lifecycle, and channel deployment history are independent.
+A transition in one never implies a transition in another.
 
 ## Session lifecycle
 
-States:
+Normal path:
 
 ```text
-created → initialized → running → waiting → blocked → recovering
-                                      ↘ validating → completed → retired
+created → initialized → running ↔ waiting
+                         ↓
+                     validating → completed → retired
 ```
 
-The line above is mnemonic, not a claim that every state has only one outgoing edge. The complete
-transition table is authoritative:
-
-| From | Allowed to | Required evidence |
-|---|---|---|
-| `created` | `initialized`, `retired` | resolved harness/immutable manifests, or retirement reason |
-| `initialized` | `running`, `blocked`, `retired` | owner lease + task, missing input/authority, or reason |
-| `running` | `waiting`, `validating`, `blocked`, `recovering`, `retired` | job wait, terminal candidate, block, fault, or interrupt |
-| `waiting` | `running`, `blocked`, `recovering`, `retired` | child/job event, timeout/authority, lost owner, or interrupt |
-| `blocked` | `recovering`, `retired` | recovery authorization/input, or final block reason |
-| `recovering` | `initialized`, `running`, `blocked`, `retired` | replay/checkpoint validation and deterministic classification |
-| `validating` | `completed`, `running`, `blocked`, `retired` | verifier outcome, bounded retry, unavailable verifier, or interrupt |
-| `completed` | `retired` | completion receipt and artifact retention decision |
-| `retired` | none | terminal |
-
-Invariants:
-
-- `harnessVersionId` is assigned on `created → initialized` and never changes.
-- `runtimeStateSnapshotId`, protocol ID, model identity, split permissions, and budget account are also
-  pinned at initialization and inherited by every child/job.
-- A retry is `validating → running` or an inner-loop iteration, not a new session/harness.
-- Resume is a legal transition from `waiting` or recovery path, never direct mutation of state.
-- Replay derives the same terminal state and event-chain head for the same inputs.
-- A retired session cannot be reopened; continuation creates a new session.
-
-## HarnessVersion lifecycle projection
-
-`HarnessVersionManifest` contains no lifecycle field. The current state is a deterministic projection of
-signed, append-only `HarnessLifecycleRecord` objects for one manifest ID and protocol. A missing,
-duplicated, out-of-order, cross-protocol, or illegal transition invalidates the projection.
+Recoverable interruption:
 
 ```text
-draft → candidate → statically_validated → evaluating → canary → active → retired
-                     ↘ rejected              ↘ rejected   ↘ rejected
-                                                            active → rolled_back → retired
+initialized/running/waiting/validating → blocked or recovering
+blocked → recovering → initialized/running/blocked
+```
+
+Fail-closed abnormal path:
+
+```text
+any nonterminal state → terminating → terminated
 ```
 
 | From | Allowed to | Required evidence |
 |---|---|---|
-| `draft` | `candidate`, `rejected` | complete manifest + proposal, or construction rejection |
+| `created` | `initialized`, `retired`, `terminating` | resolved pins, unused-session retirement, or abnormal reason |
+| `initialized` | `running`, `blocked`, `terminating` | owner lease + task, missing authority/input, or abnormal reason |
+| `running` | `waiting`, `validating`, `blocked`, `recovering`, `terminating` | job wait, terminal candidate, block, recoverable fault, or abnormal reason |
+| `waiting` | `running`, `blocked`, `recovering`, `terminating` | child/job event, recoverable timeout, or abnormal reason |
+| `blocked` | `recovering`, `terminating` | recovery authorization/input or unrecoverable reason |
+| `recovering` | `initialized`, `running`, `blocked`, `terminating` | replay/checkpoint result or unrecoverable reason |
+| `validating` | `completed`, `running`, `blocked`, `terminating` | verifier outcome, bounded retry, recoverable block, or abnormal reason |
+| `completed` | `retired`, `terminating` | normal retention decision or a post-completion invalidating incident |
+| `terminating` | `terminated` | completed mandatory termination transaction |
+| `retired` | none | normal terminal state |
+| `terminated` | none | abnormal terminal state |
+
+The mandatory termination reason is exactly one of:
+
+- `initialization_failure`;
+- `user_cancellation`;
+- `budget_exhaustion`;
+- `deadline_expiry`;
+- `verifier_failure`;
+- `security_violation`;
+- `process_crash`;
+- `unrecoverable_recovery`; or
+- `host_enforced_shutdown`.
+
+`terminating → terminated` is valid only when the supervisor has revoked all descendant leases and
+capabilities, stopped and reaped backend jobs/process groups, sealed provider/tool/feedback accounting,
+and appended a final evidence receipt. If the initiating process crashes, the operations owner resumes
+the termination transaction; it may not return the session to another state.
+
+Session invariants:
+
+- harness, runtime-state snapshot, protocol, model, split permission, and budget are pinned at
+  initialization and inherited by every descendant;
+- retry is `validating → running` or an inner-loop iteration, never a new harness;
+- a `retired` or `terminated` session cannot resume;
+- retry after abnormal termination creates a new session with a new session ID and explicit causal link;
+- identical inputs, fake provider/tool outputs, seed, and snapshot yield the same event-chain head;
+- an out-of-band container kill without a matching termination record invalidates the session result.
+
+## Harness qualification lifecycle
+
+`HarnessVersionManifest` contains no state. Qualification is projected from signed append-only
+`HarnessLifecycleRecord` objects:
+
+```text
+draft → candidate → statically_validated → evaluating → canary → approved
+  ↘ rejected    ↘ rejected              ↘ rejected   ↘ rejected
+
+approved → retired
+rejected → retired
+```
+
+| From | Allowed to | Required evidence |
+|---|---|---|
+| `draft` | `candidate`, `rejected` | complete manifest/proposal or construction rejection |
 | `candidate` | `statically_validated`, `rejected` | static-validation receipt or reason |
-| `statically_validated` | `evaluating`, `rejected` | evaluator admission or gate failure |
-| `evaluating` | `canary`, `rejected` | matched-budget gate results for the exact manifest/snapshot + gate decision |
-| `canary` | `active`, `rejected` | offline replay or isolated synthetic canary + promotion decision |
-| `active` | `retired`, `rolled_back` | replacement/retirement or rollback decision |
-| `rolled_back` | `retired` | exact target-hash restoration receipt |
-| `rejected` | `retired` | archival receipt |
-| `retired` | none | terminal |
+| `statically_validated` | `evaluating`, `rejected` | evaluator admission or pre-evaluation failure |
+| `evaluating` | `canary`, `rejected` | matched gate result for the exact manifest/snapshot or rejection |
+| `canary` | `approved`, `rejected` | offline/synthetic canary and signed qualification decision |
+| `approved` | `retired` | retirement eligibility scan and signed retirement decision |
+| `rejected` | `retired` | archival eligibility scan |
+| `retired` | none | qualification-terminal; content/evidence retained |
 
-Invariants:
+`active` and `rolled_back` are not harness states. `approved` means eligible for a new session or
+deployment subject to policy; it does not mean deployed anywhere.
 
-- lifecycle records are append-only; state is a projection;
-- no transition skips candidate evaluation;
-- only one version is active per registry/channel;
-- every active version has a resolvable rollback target in its external lineage/decision records;
-- activation points to one evaluated whole-harness manifest, never independently selected components;
-- promotion is a `DeploymentPointerRecord` compare-and-swap against the evaluated parent harness,
-  channel generation, and prior pointer-record hash;
-- rejected/rolled-back versions and their evidence are never deleted;
-- prompt reinjection, session restart, memory update, retry, and recovery cannot emit a harness transition.
-- sealed HFB final, temporal holdout, and withheld-public-test outcomes cannot cause a promotion,
-  rollback-policy update, threshold change, or candidate selection.
+A version can enter `retired` only when it is:
 
-## Concurrency
+- not the production channel target;
+- not the registered rollback target;
+- not pinned by any live session or descendant;
+- not part of a pending evaluation, decision, or deployment transaction; and
+- not under an audit/legal retention hold that requires deployment eligibility.
 
-Promotion and rollback serialize on the registry activation lock. Candidate evaluation does not hold the
-lock. If the channel generation, pointer-record hash, or active whole-harness ID differs from the
-candidate's evaluated parent at promotion time, the candidate is stale and must be re-evaluated or
-rejected; it cannot be rebased implicitly. The CAS appends one new pointer record; no component registry
-row is updated.
+Retirement means ineligible for new sessions and deployments, not deletion. Content, evidence, and
+historical records remain resolvable for audit. Historical records about the version do not by
+themselves keep it deployable.
+
+## Protocol-v1 deployment state
+
+Protocol v1 permits exactly one channel named `production`. Its state is only the latest valid
+`DeploymentPointerRecord`; no manifest or lifecycle projection stores deployment state.
+
+| Operation | CAS precondition | Result |
+|---|---|---|
+| `initialize` | generation `-1`, null target/hash | generation `0` points to an approved target and records a distinct approved rollback anchor |
+| `deploy` | exact current generation, target, and pointer-record hash | next generation points to an approved exact manifest; prior target remains approved and becomes rollback target |
+| `rollback` | exact current generation, target, and pointer-record hash | next generation points to the recorded approved rollback target; displaced target remains approved |
+| `decommission` | exact current generation, target, and pointer-record hash | next generation has a null target; no harness lifecycle transition is implied |
+
+Every operation requires a signed `DeploymentDecision`, exact target and rollback-target manifest
+hashes, protocol match, separate approved qualification-decision references for both retained targets,
+and complete audit linkage. Rollback is a channel-scoped CAS event, not a global state. Replacing or
+rolling back a pointer never retires either harness.
+
+Initialization uses two separately identified, composition-equivalent manifests: an approved bootstrap
+target and an approved rollback anchor. Both follow the qualification path; initialization has no
+state-skipping exception.
+
+Concurrent operations serialize at the deployment registry. A stale generation, prior hash, target,
+qualification decision, or protocol fails closed. There is no implicit rebase and no per-component
+activation.
+
+## Cross-lifecycle prohibitions
+
+- retry, reflection, recovery, memory update, session restart, termination, and resume emit no harness
+  qualification or deployment record;
+- approval emits no deployment record;
+- deployment or rollback emits no harness qualification record;
+- a new channel target does not change already initialized sessions or descendants;
+- final-role results cannot approve, deploy, roll back, retire, or alter decision policy;
+- rejected/retired versions and every deployment event remain retained.

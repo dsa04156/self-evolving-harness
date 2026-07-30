@@ -1,9 +1,9 @@
 # Gate 1R Local Validation Record
 
-Date: 2026-07-30  
-Scope: revised research, architecture, trust, and evaluation contracts only  
-Prior external decision: `REVISE`  
-External model/provider execution during revision: none  
+Date: 2026-07-30
+Scope: revised research, architecture, trust, and evaluation contracts only
+Prior external decision: `REVISE`
+External model/provider execution during revision: none
 Gate, final-role, temporal-holdout, or withheld-public-test execution: none
 
 ## Result

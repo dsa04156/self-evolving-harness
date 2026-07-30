@@ -14,6 +14,10 @@ Headline arms remain B0 through B6:
 - B5 free-form mutable-bundle rewrite, with mandatory B5-SM;
 - B6 attribution-guided bounded mutation, with mandatory B6-ABL.
 
+The secondary H3 representation experiment adds `B6-RAW`, paired with a dedicated B6 instance and
+differing only in raw versus layered evidence representation. It does not enter H1/H2 or final
+performance comparisons.
+
 No result from B3 is called reusable harness evolution. No result from B5-U alone is used to attribute an
 effect to component attribution. B0 is a low-development-cost anchor, not an equal-development-budget
 claim.

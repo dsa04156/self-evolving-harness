@@ -1,6 +1,6 @@
 # Preregistered Research Hypotheses
 
-Status: Gate 1R design contract; no performance result exists  
+Status: Gate 1RR design contract; no performance result exists
 Protocol: `draft-1`
 
 ## H1 — Attribution-guided bounded mutation reduces regression
@@ -44,14 +44,20 @@ artifact changes after selection, or an interval including zero do not support H
 
 ## H3 — Layered evidence reduces total inference cost
 
-From the same raw trace corpus, the layered pipeline
+The dedicated B6 treatment and `B6-RAW` control start from the same source event IDs and deterministic
+failure-cluster assignments. They use the same model/parameters, proposal seeds/count, mutation grammar,
+attribution workflow, solver work, static checks, mine/dedicated-pilot selector, budgets, and failure
+handling. They differ only in evidence representation.
+
+The B6 layered pipeline
 
 ```text
 raw trace → per-task report → cross-task failure pattern → mutation evidence packet
 ```
 
-uses at least 20% less **total system charged inference** than direct raw-trace proposal while preserving
-mine/dedicated-pilot attribution and candidate quality.
+uses at least 20% less **total system charged inference** than B6-RAW while preserving paired
+mine/dedicated-pilot quality. B6-RAW receives canonical raw events/receipts grouped by the same frozen
+cluster IDs. Neither arm accesses `D_gate` or a final role for H3.
 
 Primary cost includes summarizer, miner, attribution, proposer, judge, subagent, background, and any
 differing solver calls. Provider cost and proposer-context tokens are reported, but proposer-only tokens
@@ -59,22 +65,31 @@ cannot establish H3.
 
 Support requires:
 
-- cost-ratio interval upper bound below 0.80;
-- attribution and candidate-quality lower bounds above the task-resolution/pilot-validated margins in the
-  statistical plan;
+- `total_system_charged_tokens(B6) / total_system_charged_tokens(B6-RAW)` interval upper bound below
+  0.80;
+- paired HarnessFaultBench top-1 attribution and selected-candidate targeted-repair pass-rate lower bounds
+  above the task-resolution/pilot-validated margins;
 - zero immutable/safety/permission/data/audit violations;
 - source-event drill-down remains intact.
 
-If pilot power is inadequate, H3 becomes exploratory rather than widening a margin.
+The selector and invalid/missing candidate rule are fixed in `baseline-matrix.md`. If pilot power is
+inadequate, H3 becomes exploratory rather than widening a margin.
 
 ## H4 — Cross-model transfer (stretch)
 
-A B6 artifact frozen before transfer evaluation performs better than the same second model under B0,
-without re-evolution, model-specific prompt changes, or method selection after transfer results.
+A B6 artifact frozen after model-1 mine/gate selection performs better on a second model than that same
+second model under B0, without re-evolution, model-specific prompt changes, candidate reselection, or
+task-specific mutation.
 
-The second provider/model identity and rollout contract are frozen at Gate 3. H4 is exploratory unless a
-separate powered protocol is approved. Failure or inconclusiveness removes transfer wording but does not
-invalidate the architectural claim.
+Protocol v1 retains H4 as exploratory. At Gate 3, before the first Track B candidate is generated and
+before any gate/final/transfer result is observed, the protocol must freeze the second provider, exact
+exposed model identity/revision, parameters, service tier, environment, final task commitments, rollout
+seeds, and per-task token/tool/time budget. Model-2 B0 and frozen-B6 each receive one matched pass per
+task/seed. Model-1 evolution cost and model-2 inference cost are reported separately; model 2 receives
+zero evolution calls.
+
+If that complete second-model contract is unavailable at Gate 3, H4 is withdrawn from protocol v1 before
+results. Failure or inconclusiveness removes transfer wording but does not invalidate the architecture.
 
 ## Hierarchy
 

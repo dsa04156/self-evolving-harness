@@ -33,10 +33,14 @@ self-improvement.
 - trace compression loses source-event drill-down;
 - failed/cancelled/cached/reasoning/background calls are missing; or
 - raw/layered arms receive different data or feedback.
+- B6 and B6-RAW differ in model, source-event/cluster commitment, seeds, grammar, attribution workflow,
+  solver work, selector, budget, or failure handling;
+- an invalid/missing candidate is replaced or omitted instead of charged with quality zero.
 
 ## H4 is unsupported when
 
 - the second model was selected after seeing results;
+- the second model was not fully frozen at Gate 3 before the first Track B candidate;
 - any model-specific retuning/re-evolution occurs;
 - point estimate is nonpositive or interval includes zero; or
 - the target provider/model contract drifts incompatibly.

@@ -1,6 +1,6 @@
 # Immutable Trust Plane
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
 ## Security objective
 
@@ -21,7 +21,8 @@ The `ProtocolManifest` pins:
 - benchmark material, split, fixture specification, and data-access policy;
 - permission, safety, network, budget, model, trace, audit, and promotion policies;
 - principal/capability matrix, public keys, and authenticated wire protocol;
-- environment image, toolchain, baseline matrix, gate-feedback policy, and statistical plan.
+- environment image, toolchain, baseline matrix, gate-feedback policy, method-arm manifest set,
+  candidate-selection rule, gate-report template set, analysis program, and statistical plan.
 
 Changing any pinned byte produces a new protocol ID. A superseding protocol may rerun exploratory work,
 but its records cannot be combined with prior confirmatory evidence.
@@ -48,8 +49,10 @@ feedback releases are principal scoped and host enforced.
 ## Manifest and state boundaries
 
 - component/harness identity contains immutable composition only;
-- provenance, lifecycle, evaluation, promotion, and activation are external signed records;
-- a channel activates one evaluated whole-harness ID atomically;
+- provenance, qualification, evaluation, deployment decisions, and channel pointers are external signed
+  records;
+- qualification ends at `approved`; protocol v1 deployment exists only as the one `production` channel
+  pointer;
 - runtime sessions additionally pin an exact runtime-state snapshot;
 - descendants inherit harness, protocol, snapshot, model, split permission, principal delegation, and
   budget account and cannot rebind;
@@ -72,8 +75,10 @@ Missing or conflicting evidence makes the run invalid, not a task failure and ne
 ## Dataset boundary
 
 - Mine details may reach the proposer under the frozen evidence policy.
-- Gate details remain evaluator-only. A one-shot, predeclared aggregate selection packet may be released;
-  every field is a charged feedback event.
+- Gate details and aggregate selection evidence remain evaluator/promoter/audit-only until all
+  confirmatory final work is irrevocably complete. Protocol v1 consumes the gate capability once.
+- Any later human gate release makes that split exploratory for subsequent work and requires a fresh gate
+  for another confirmatory protocol.
 - Sealed HarnessFaultBench tests, temporal holdout, and withheld public Terminal-Bench test do not
   participate in proposal, selection, promotion, threshold tuning, rollback policy, or post hoc repair.
 - Public Terminal-Bench is described as withheld during the experiment, not unknowable to model
@@ -95,6 +100,7 @@ feasibility is claimed.
 
 The operation is invalid if any protocol ID, manifest/closure/artifact hash, signature, peer identity,
 schema, sequence/nonce, dataset capability, runtime-state snapshot, environment attestation, budget
-ledger, evaluator result, promotion input, rollback target, or audit link is missing or mismatched.
+ledger, evaluator result, qualification decision, deployment decision, rollback target, termination
+receipt, or audit link is missing or mismatched.
 Defaults are not inferred and candidate-produced inference cannot satisfy a deterministic or promotion
 gate.

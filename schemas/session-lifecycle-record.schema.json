@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/session-lifecycle-record.schema.json",
+  "title": "Append-Only SessionLifecycleRecord",
+  "description": "Records normal transitions and the auditable fail-closed termination path for one session.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "protocolId",
+    "sessionId",
+    "harnessVersionId",
+    "runtimeStateSnapshotId",
+    "fromState",
+    "toState",
+    "terminationReason",
+    "termination",
+    "evidenceReceiptIds",
+    "transitionedBy",
+    "transitionedAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "sessionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "runtimeStateSnapshotId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "fromState": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        null,
+        "created",
+        "initialized",
+        "running",
+        "waiting",
+        "blocked",
+        "recovering",
+        "validating",
+        "completed",
+        "retired",
+        "terminating",
+        "terminated"
+      ]
+    },
+    "toState": {
+      "type": "string",
+      "enum": [
+        "created",
+        "initialized",
+        "running",
+        "waiting",
+        "blocked",
+        "recovering",
+        "validating",
+        "completed",
+        "retired",
+        "terminating",
+        "terminated"
+      ]
+    },
+    "terminationReason": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "initialization_failure",
+            "user_cancellation",
+            "budget_exhaustion",
+            "deadline_expiry",
+            "verifier_failure",
+            "security_violation",
+            "process_crash",
+            "unrecoverable_recovery",
+            "host_enforced_shutdown"
+          ]
+        }
+      ]
+    },
+    "termination": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "descendantLeasesRevoked",
+            "capabilitiesRevoked",
+            "backendJobsStopped",
+            "accountingSealed",
+            "finalEvidenceReceiptId"
+          ],
+          "properties": {
+            "descendantLeasesRevoked": {
+              "const": true
+            },
+            "capabilitiesRevoked": {
+              "const": true
+            },
+            "backendJobsStopped": {
+              "const": true
+            },
+            "accountingSealed": {
+              "const": true
+            },
+            "finalEvidenceReceiptId": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        }
+      ]
+    },
+    "evidenceReceiptIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "transitionedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "transitionedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "toState": {
+            "enum": [
+              "terminating",
+              "terminated"
+            ]
+          }
+        },
+        "required": [
+          "toState"
+        ]
+      },
+      "then": {
+        "properties": {
+          "terminationReason": {
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "terminationReason": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "toState": {
+            "const": "terminated"
+          }
+        },
+        "required": [
+          "toState"
+        ]
+      },
+      "then": {
+        "properties": {
+          "fromState": {
+            "const": "terminating"
+          },
+          "termination": {
+            "type": "object"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "termination": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "fromState": {"type": "null"},
+        "toState": {"const": "created"}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "created"},
+        "toState": {"enum": ["initialized", "retired", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "initialized"},
+        "toState": {"enum": ["running", "blocked", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "running"},
+        "toState": {"enum": ["waiting", "validating", "blocked", "recovering", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "waiting"},
+        "toState": {"enum": ["running", "blocked", "recovering", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "blocked"},
+        "toState": {"enum": ["recovering", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "recovering"},
+        "toState": {"enum": ["initialized", "running", "blocked", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "validating"},
+        "toState": {"enum": ["completed", "running", "blocked", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "completed"},
+        "toState": {"enum": ["retired", "terminating"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "terminating"},
+        "toState": {"const": "terminated"}
+      }
+    }
+  ]
+}

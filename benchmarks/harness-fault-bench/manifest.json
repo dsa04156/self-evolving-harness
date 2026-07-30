@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "benchmarkId": "harness-fault-bench-v0",
-  "status": "fixture-contract-frozen-candidate-pending-gate1r-fixtures-not-implemented",
+  "status": "fixture-contract-frozen-candidate-pending-gate1rr-fixtures-not-implemented",
   "protocolVersion": "draft-1",
   "frozenAt": "2026-07-30",
   "purpose": "Deterministic ground-truth attribution of injected harness component defects.",

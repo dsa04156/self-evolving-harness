@@ -1,7 +1,7 @@
 # Scope: Standalone Self-Evolving Coding-Agent Harness
 
-Status: **pre-implementation Gate 1R research contract**  
-Protocol version: `draft-1`  
+Status: **pre-implementation Gate 1RR research contract**
+Protocol version: `draft-1`
 Date frozen: 2026-07-30
 
 ## System boundary
@@ -41,11 +41,12 @@ multiple traces
 → new candidate HarnessVersion
 → static validation
 → mine evidence and one non-adaptive gate evaluation
-→ promote, reject, or rollback
+→ approve or reject qualification
+→ separately deploy or roll back the production pointer
 ```
 
 The outer loop produces a new content-addressed `HarnessVersion` before candidate evaluation.
-It cannot rewrite the active harness in place.
+It cannot rewrite the production target in place. Approval alone does not deploy anything.
 
 ## MVP mutable surface
 
@@ -81,8 +82,8 @@ An operation may be called harness evolution only when all conditions hold:
 2. It records changed components, source evidence, attribution, proposer identity, and provenance in
    external signed records.
 3. It evaluates the candidate independently from its parent.
-4. It records a promotion, rejection, or rollback decision and any whole-harness deployment CAS in a
-   tamper-evident append-only audit chain.
+4. It records an approval or rejection; deployment and rollback are separate whole-harness production
+   pointer decisions and CAS records in a tamper-evident append-only audit chain.
 5. It preserves the parent version and supports content-hash comparison and restoration.
 
 An improved score in a single run is not evidence of general self-improvement.
@@ -91,4 +92,4 @@ An improved score in a single run is not evidence of general self-improvement.
 
 The pre-contract Python files are hash-pinned under `spikes/python-contract-spike/` with an explicit
 non-authoritative notice. They are outside package, test, import, runtime, and evidence paths. No approved
-implementation may import or copy them without a fresh contract mapping after Gate 1R approval.
+implementation may import or copy them without a fresh contract mapping after Gate 1 approval.

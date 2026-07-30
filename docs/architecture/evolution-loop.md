@@ -1,6 +1,6 @@
 # Harness Evolution Loop
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
 ## Contract
 
@@ -12,7 +12,8 @@ multiple execution traces
 → bounded mutation
 → new HarnessVersion
 → isolated validation/evaluation
-→ promote, reject, or rollback
+→ approve or reject qualification
+→ separately deploy or roll back the production pointer
 ```
 
 The evolution loop consumes completed execution evidence; it does not hijack a running session. Its unit
@@ -23,7 +24,7 @@ of change is a new `HarnessVersion`.
 - `D_mine` may be used for weakness mining, attribution, and proposal generation.
 - `D_gate` is held out from proposal generation and is used once by the evaluator for non-adaptive
   candidate selection. The complete candidate batch is sealed and proposer write/provider capability is
-  revoked first.
+  revoked first. Gate evidence remains promoter/audit-only until every final evaluation is complete.
 - Final roles comprise genuinely sealed HarnessFaultBench fixtures where governance permits that label,
   a **withheld public** Terminal-Bench test, and a separately governed temporal holdout. None can promote,
   repair, tune, roll back, or select a candidate.
@@ -45,7 +46,7 @@ Thus “held-out candidate evaluation” means `D_gate`; it never implies access
    memory, and write a proposal. The proposer cannot modify optimizer code, policy, evaluator, data,
    budgets, tool implementations, middleware, model identity, trace/audit code, or promotion logic.
 6. **Create candidate batch.** Materialize at most five mine-only candidate manifests. Lifecycle,
-   provenance, and lineage are external records; the parent remains active.
+   provenance, and lineage are external records; the parent remains the production target.
 7. **Isolate.** Create a Git worktree for file lineage. Launch static validation and evaluation under a
    separate OS/container principal with candidate mounts read-only during execution.
 8. **Statically validate.** Validate schemas, DAG, hashes, declared diff, import/capability policy,
@@ -53,11 +54,15 @@ Thus “held-out candidate evaluation” means `D_gate`; it never implies access
 9. **Evaluate independently.** After the batch is sealed and proposer stopped, re-run parent/candidates
    from byte-identical fresh snapshots with common model/task/order/environment/verifier/caps/seeds.
 10. **Select once.** Evaluate every candidate at most once in one gate batch. The promoter applies the
-    frozen rule; no result can generate a replacement candidate.
+    frozen rule; no result can generate a replacement candidate. The gate capability is consumed for the
+    protocol, and no developer/protocol-author report is released before final closure.
 11. **Canary.** The selected candidate may run only offline replay or isolated synthetic canary tasks.
     No live user/repository or final task is a canary.
-12. **Decide.** Sign promote/reject and request a whole-harness CAS over expected parent, generation, and
-    prior pointer hash. Append lifecycle/deployment/audit records; preserve every candidate and failure.
+12. **Qualify.** Sign approve/reject for the exact candidate. Approval changes only the qualification
+    projection.
+13. **Deploy separately.** If deployment is authorized, sign a `DeploymentDecision` and request a
+    production-channel CAS over expected target, generation, and prior pointer hash. Preserve every
+    candidate and failure.
 
 ## Gate contract
 
@@ -103,18 +108,18 @@ Each proposal/evaluation decision links:
 - static-validation results;
 - per-task paired outcomes and complete usage ledger;
 - evaluator and promotion-policy identities;
-- promotion/rejection/rollback reason codes.
+- qualification and deployment/rollback reason codes.
 
 ## Rollback
 
-Rollback is a lifecycle decision, not an undo command. The promoter:
+Rollback is a production-channel event, not a harness qualification state or file undo. The promoter:
 
-1. verifies the active version and recorded rollback pointer;
-2. re-resolves and hashes the target and exact external lineage/decision;
-3. appends one whole-harness deployment CAS record;
-4. marks the failed version `rolled_back`;
-5. records trigger evidence and before/after IDs;
-6. starts new sessions only on the restored version.
+1. verifies the current pointer and approved recorded rollback target;
+2. re-resolves and hashes both exact manifests and decisions;
+3. signs a rollback `DeploymentDecision`;
+4. appends one whole-harness CAS record;
+5. records trigger evidence and before/after IDs without retiring either version;
+6. starts new sessions only on the restored production target.
 
 Historical sessions, components, proposals, evaluations, and audit events remain intact.
 

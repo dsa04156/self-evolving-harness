@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/harness-lifecycle-record.schema.json",
-  "title": "Append-Only HarnessLifecycleRecord",
-  "description": "Lifecycle state is a projection over these immutable records and is never embedded in HarnessVersionManifest.",
+  "title": "Append-Only Harness Qualification Lifecycle Record",
+  "description": "Qualification is projected from immutable records. Deployment is represented only by channel-scoped DeploymentPointerRecord objects.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -20,7 +20,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "recordId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -43,10 +43,9 @@
         "statically_validated",
         "evaluating",
         "canary",
-        "active",
-        "retired",
+        "approved",
         "rejected",
-        "rolled_back"
+        "retired"
       ]
     },
     "toState": {
@@ -57,10 +56,9 @@
         "statically_validated",
         "evaluating",
         "canary",
-        "active",
-        "retired",
+        "approved",
         "rejected",
-        "rolled_back"
+        "retired"
       ]
     },
     "evidenceReceiptIds": {
@@ -83,5 +81,55 @@
     "attestation": {
       "$ref": "./common.schema.json#/$defs/attestation"
     }
-  }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "fromState": {"type": "null"},
+        "toState": {"const": "draft"}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "draft"},
+        "toState": {"enum": ["candidate", "rejected"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "candidate"},
+        "toState": {"enum": ["statically_validated", "rejected"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "statically_validated"},
+        "toState": {"enum": ["evaluating", "rejected"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "evaluating"},
+        "toState": {"enum": ["canary", "rejected"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "canary"},
+        "toState": {"enum": ["approved", "rejected"]}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "approved"},
+        "toState": {"const": "retired"}
+      }
+    },
+    {
+      "properties": {
+        "fromState": {"const": "rejected"},
+        "toState": {"const": "retired"}
+      }
+    }
+  ]
 }

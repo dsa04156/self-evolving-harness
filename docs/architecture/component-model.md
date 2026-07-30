@@ -1,6 +1,6 @@
 # Versioned Harness Component Model
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
 ## Authority split
 
@@ -13,14 +13,15 @@ single mutable envelope is both identity and history.
 | `HarnessVersionManifest` | complete slot-to-component composition and expanded behavior closure | no | harness registry after validation |
 | `ComponentTypeRegistry` | component type, mutable class, allowed payload grammar, dependency types, maximum capabilities | no within protocol | protocol author |
 | `ComponentProvenanceRecord` | parent, source evidence, mutation proposal, trusted producer | append new records only | registry/control plane |
-| `HarnessLineageRecord` | parent harness, rollback target, mutation and attribution references | append new records only | evolution control plane |
-| `HarnessLifecycleRecord` | one legal state transition and supporting receipts | append new records only | lifecycle controller |
+| `HarnessLineageRecord` | parent harness, mutation and attribution references | append new records only | evolution control plane |
+| `HarnessLifecycleRecord` | one legal qualification transition and supporting receipts | append new records only | lifecycle controller |
 | `EvaluationResult` | evaluator outcome for a manifest under one protocol and state snapshot | append new records only | evaluator |
-| `PromotionDecision` | promote/reject/rollback decision and gate evidence | append new records only | promoter |
+| `PromotionDecision` | approve/reject qualification decision and gate evidence | append new records only | promoter |
+| `DeploymentDecision` | authorize one production-channel initialize/deploy/rollback/decommission CAS | append new records only | promoter |
 | `DeploymentPointerRecord` | atomic channel CAS from one whole harness to another | append new records only | trusted deployment registry |
 
-`evaluationHistory`, `stateHistory`, and `activeVersion` are query projections over these records. They
-are not fields in a content-addressed manifest. Appending history therefore cannot change a component or
+Evaluation history, qualification state, and channel deployment are query projections over different
+record streams. They are not manifest fields. Appending either history cannot change a component or
 harness ID.
 
 ## Component identity and resolved view
@@ -35,9 +36,9 @@ The immutable `ComponentManifest` has:
 - `dependencies`: exact component-manifest references;
 - `behaviorClosure`: recomputed transitive digest, counts, and canonical byte total.
 
-It deliberately does not accept `componentType`, `mutableClass`, provenance, evaluation history, or an
-active pointer from a proposer. A trusted resolved view joins the manifest to the pinned type registry
-and may display those derived fields for users.
+It deliberately does not accept `componentType`, `mutableClass`, provenance, evaluation history, or a
+deployment pointer from a proposer. A trusted resolved view joins the manifest to the pinned type
+registry and may display those derived fields for users.
 
 ## Authoritative type registry
 
@@ -71,7 +72,7 @@ rejected before a candidate manifest is created.
 - unique, canonically ordered slot bindings to exact component manifests;
 - the expanded behavior-closure hash, counts, and canonical bytes.
 
-Parentage, mutation reason, attribution, evaluator results, lifecycle, rollback target, and activation
+Parentage, mutation reason, attribution, evaluator results, qualification, rollback target, and deployment
 are external records. The exact hashing and closure rules are in
 `canonicalization-and-hashing.md`.
 
@@ -79,7 +80,7 @@ are external records. The exact hashing and closure rules are in
 
 A candidate transaction is all-or-nothing:
 
-1. pin the expected parent harness and active channel generation;
+1. pin the expected parent harness and current production-channel generation;
 2. materialize candidate payload bytes into a no-network staging sandbox;
 3. validate canonical bytes and the registry-authorized payload grammar;
 4. resolve and recompute every artifact, component, and transitive dependency;
@@ -114,34 +115,42 @@ Changing one manifest reference while replacing multiple dependency manifests co
 component changes. Replacing a small reference with a large artifact is charged over the expanded
 closure. Git line counts and compressed patch sizes are non-authoritative.
 
-## Atomic activation
+## Qualification and deployment
 
-There is no per-component active pointer. A channel has one `DeploymentPointerRecord` whose target is one
-evaluated `HarnessVersionManifest`.
+Qualification ends at `approved`. A signed `PromotionDecision` may move the exact canary composition to
+`approved` or `rejected`; it cannot alter a channel pointer.
 
-Promotion requires:
+Protocol v1 has exactly one channel, `production`. There is no per-component pointer and no global
+`active` harness state. Deployment requires:
 
-1. the candidate's lifecycle projection is `canary`;
-2. all required evaluation and offline-canary results reference the exact candidate ID, protocol ID,
-   runtime-state snapshot, and environment;
-3. the promotion decision is signed by the promoter;
-4. the channel's current generation, record hash, and harness ID equal the candidate's evaluated parent;
-5. a rollback target resolves and is valid under the same protocol.
+1. an `approved` exact target manifest and its qualification decision;
+2. a signed `DeploymentDecision`;
+3. current production generation, pointer hash, and target equal to the CAS expectation;
+4. an approved, protocol-compatible rollback target whose manifest hash, qualification-decision
+   reference, and complete closure are retained; and
+5. recomputed target and rollback hashes.
 
-The registry then appends one CAS record that increments the generation and swaps the whole-harness ID.
-It is impossible to activate a composition assembled from independently evaluated component versions.
-Existing sessions and descendants remain pinned to their initialization version.
+The deployment registry appends one record and increments the generation. `deploy` retains the prior
+target as approved and records it as rollback target. `rollback` is another channel-scoped CAS to that
+target and does not change either version's qualification. Existing sessions and descendants remain
+pinned.
 
-Rollback is the same atomic operation in reverse: it targets the exact recorded rollback harness,
-revalidates hashes, appends a decision and pointer record, and retains all rejected content and evidence.
+The initial pointer requires two separately approved, composition-equivalent manifests: a bootstrap
+target and a rollback anchor. Neither skips the qualification lifecycle.
+
+`retired` means ineligible for new sessions/deployments, not deleted. Retirement is rejected while a
+version is the production target, rollback target, live-session pin, descendant pin, pending transaction,
+or subject to a hold requiring deployment eligibility.
 
 ## State invariants
 
 - A manifest byte never changes after its ID is assigned.
-- Lifecycle and deployment are projections over signed append-only records.
+- Qualification and deployment are separate projections over signed append-only records.
 - A session retry, recovery, resume, memory update, or prompt reinjection emits no harness lifecycle
   record.
-- A candidate cannot become active without evaluation of the exact whole composition.
-- A stale active generation causes promotion failure; implicit rebase is forbidden.
+- A candidate cannot become `approved` without evaluation of the exact whole composition.
+- An approved candidate is not deployed until a separate production-channel CAS succeeds.
+- A stale production generation causes deployment failure; implicit rebase is forbidden.
+- Replacement and rollback do not retire or globally disable either manifest.
 - Git commits and worktrees provide isolation and lineage convenience only. Manifest hashes and trusted
   records are authoritative.

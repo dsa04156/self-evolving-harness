@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/promotion-decision.schema.json",
-  "title": "PromotionDecision",
-  "description": "A promoter-authenticated control decision over one exact whole-harness manifest. It is external to content identity.",
+  "title": "Harness Qualification PromotionDecision",
+  "description": "A promoter-authenticated approve/reject decision for one exact whole-harness manifest. It changes qualification only; channel deployment requires a separate DeploymentDecision.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,13 +11,11 @@
     "protocolId",
     "epistemicClass",
     "action",
-    "channelId",
     "parentHarnessVersionId",
     "candidateHarnessVersionId",
-    "rollbackTargetHarnessVersionId",
-    "expectedDeployment",
     "evaluationResultIds",
     "promotionPolicyHash",
+    "candidateCostGate",
     "reasonCodes",
     "criteria",
     "decidedBy",
@@ -27,7 +25,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "promotionDecisionId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -41,21 +39,11 @@
     "action": {
       "type": "string",
       "enum": [
-        "promote",
-        "reject",
-        "rollback"
+        "approve",
+        "reject"
       ]
     },
-    "channelId": {
-      "$ref": "./common.schema.json#/$defs/entityId"
-    },
     "parentHarnessVersionId": {
-      "$ref": "./common.schema.json#/$defs/harnessVersionId"
-    },
-    "candidateHarnessVersionId": {
-      "$ref": "./common.schema.json#/$defs/harnessVersionId"
-    },
-    "rollbackTargetHarnessVersionId": {
       "oneOf": [
         {
           "$ref": "./common.schema.json#/$defs/harnessVersionId"
@@ -65,26 +53,8 @@
         }
       ]
     },
-    "expectedDeployment": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "generation",
-        "harnessVersionId",
-        "pointerRecordHash"
-      ],
-      "properties": {
-        "generation": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "harnessVersionId": {
-          "$ref": "./common.schema.json#/$defs/harnessVersionId"
-        },
-        "pointerRecordHash": {
-          "$ref": "./common.schema.json#/$defs/sha256"
-        }
-      }
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
     },
     "evaluationResultIds": {
       "type": "array",
@@ -96,6 +66,16 @@
     },
     "promotionPolicyHash": {
       "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "candidateCostGate": {
+      "oneOf": [
+        {
+          "$ref": "./candidate-cost-gate.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "reasonCodes": {
       "type": "array",
@@ -157,10 +137,7 @@
       "if": {
         "properties": {
           "action": {
-            "enum": [
-              "promote",
-              "rollback"
-            ]
+            "const": "approve"
           }
         },
         "required": [
@@ -169,8 +146,8 @@
       },
       "then": {
         "properties": {
-          "rollbackTargetHarnessVersionId": {
-            "$ref": "./common.schema.json#/$defs/harnessVersionId"
+          "candidateCostGate": {
+            "$ref": "./candidate-cost-gate.schema.json"
           }
         }
       }

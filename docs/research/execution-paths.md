@@ -156,5 +156,5 @@ Harness Evolution Loop (never an in-place task retry)
   many immutable traces → weakness pattern → component attribution
   → bounded proposal → new content-addressed candidate
   → isolated static validation → external gate evaluation
-  → canary → promote/reject; active regression → rollback
+  → canary → approve/reject; production regression → channel-scoped rollback
 ```

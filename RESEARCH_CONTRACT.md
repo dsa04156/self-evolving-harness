@@ -1,6 +1,6 @@
 # Research Contract
 
-Status: **revised preregistration; Gate 1R pending**  
+Status: **revised preregistration; Gate 1RR pending**
 Protocol version: `draft-1`
 
 ## Terminology
@@ -13,7 +13,7 @@ Protocol version: `draft-1`
 | Memory update | Append an observation or result to persistent memory. | No |
 | Adaptation | Ephemeral routing/context choice made during a session. | No |
 | Harness mutation | Create a candidate by changing one or more authorized components. | Yes |
-| Harness evolution | Mutation plus independent evaluation and recorded promote/reject/rollback decision. | Yes |
+| Harness evolution | Mutation plus independent evaluation and recorded approve/reject qualification decision. Deployment/rollback is a separate channel lifecycle. | Yes |
 | Meta-evolution | Change the optimizer, mutation algorithm, evaluator, or promotion logic. | Yes, but out of MVP |
 | Model training | Change model weights or learned provider state. | No; out of scope |
 
@@ -26,7 +26,7 @@ candidate-version event.
 1. Freeze research scope, source-level prior art, hypotheses, falsification rules, dataset access,
    budgets, architecture, schemas, and threat model.
 2. Obtain Architect Gate 1 decision; if `REVISE`, change only authorized contracts and resubmit.
-3. Obtain Gate 1R approval and freeze the implementation ADR.
+3. Obtain explicit Gate 1 approval after all revision rounds and freeze the implementation ADR.
 4. Implement deterministic runtime/evolution tests without a live provider.
 5. Obtain Architect Gate 2 decision.
 6. With separate user approval, run a bounded live-provider smoke test.
@@ -44,7 +44,7 @@ The user granted blanket authorization for the planned external review, provider
 operations, and publication workflow on 2026-07-30. That authorization does not override the gates,
 budgets, data roles, or trust boundaries. The following remain impossible before their protocol phase:
 
-- runtime/provider execution before Gate 1R/2 authorization;
+- runtime/provider execution before Gate 1/2 authorization;
 - gate/final access before the corresponding signed phase capability;
 - external publication of performance/security claims before the final evidence gate.
 
@@ -63,14 +63,15 @@ Runtime evidence has three physically and logically separate classes:
 2. verifier outcomes emitted by a fixed evaluator;
 3. LLM/rule-based inferences, including causal attribution and mutation predictions.
 
-Inference cannot satisfy a completion or promotion gate. Every inference must name source event
+Inference cannot satisfy a completion or qualification gate. Every inference must name source event
 IDs, producer identity, confidence, and at least one alternative explanation.
 
 ## Data access
 
 - `D_mine`: visible to weakness mining and proposer.
-- `D_gate`: visible only to the candidate evaluation gate; no mutation may train directly on its
-  detailed trace without protocol amendment.
+- `D_gate`: one-shot per protocol and visible only to evaluator/promoter/audit until all final work is
+  irrevocably complete. A later human release makes it exploratory and forces a fresh gate for any new
+  confirmatory protocol.
 - HFB final: sealed only under independent authorship/vault conditions; otherwise developer-withheld.
 - Terminal-Bench final: withheld public test with explicit pretraining/prior-exposure contamination risk.
 - Temporal holdout: created or collected after protocol freeze and used only for final replication.

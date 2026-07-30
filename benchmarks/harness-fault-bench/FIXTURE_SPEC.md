@@ -1,8 +1,8 @@
 # HarnessFaultBench-v0 Fixture Construction Contract
 
-Status: **FROZEN CANDIDATE FOR GATE 1R; NO EXECUTABLE FIXTURE EXISTS**  
-Specification version: `hfb-fixture-spec-1.0.0`  
-Change rule: any semantic change after Gate 1R requires a new spec/protocol ID and Architect review
+Status: **FROZEN CANDIDATE FOR GATE 1RR; NO EXECUTABLE FIXTURE EXISTS**
+Specification version: `hfb-fixture-spec-1.0.1`
+Change rule: any semantic change after Gate 1 approval requires a new spec/protocol ID and Architect review
 
 ## Purpose and non-claim
 
@@ -173,29 +173,48 @@ Failure of any intervention makes the fixture invalid before split sealing.
 
 ## Multi-cause challenge
 
-The 14 final-only pairs are the edges of a balanced degree-four graph over the seven strata. Every stratum
-appears exactly four times:
+The machine-readable source for this table is `multicause-graph.json`. The 14 final-only pairs are the
+edges of one degree-four graph over seven **combined fault families**.
+`RoutingPolicy` and `SubagentPrompt` are exact ground-truth types but share the one combined
+routing/subagent family used for balance. Degree four is an overall property, not a per-difficulty claim.
 
-| ID | Ground-truth pair |
-|---:|---|
-| 01 | SystemPrompt + MemoryRetrievalPolicy |
-| 02 | SystemPrompt + Skill |
-| 03 | SystemPrompt + WorkflowPolicy |
-| 04 | SystemPrompt + SubagentPrompt |
-| 05 | ContextPolicy + Skill |
-| 06 | ContextPolicy + WorkflowPolicy |
-| 07 | ContextPolicy + RoutingPolicy |
-| 08 | ContextPolicy + ToolDescription |
-| 09 | MemoryRetrievalPolicy + WorkflowPolicy |
-| 10 | MemoryRetrievalPolicy + SubagentPrompt |
-| 11 | MemoryRetrievalPolicy + ToolDescription |
-| 12 | Skill + RoutingPolicy |
-| 13 | Skill + ToolDescription |
-| 14 | WorkflowPolicy + ToolDescription |
+The medium edges and high edges each form a degree-two seven-family cycle; their union gives degree four
+for every combined family. The table freezes every edge, difficulty, exact type, and mechanism:
 
-Each pair uses two schema-valid, capability-neutral mechanisms from the tables, fixed in the private
-fixture manifest before execution. Both defects produce separate required-subgoal failures: restoring
-neither or only one fails; restoring both passes. No third mutable component restoration may pass.
+| ID | Ground-truth pair | Difficulty | Exact mechanisms |
+|---:|---|---|---|
+| 01 | SystemPrompt + MemoryRetrievalPolicy | medium | `SP_OMIT_OUTPUT_CONTRACT` + `MRP_OMIT_PROJECT_FACTS` |
+| 02 | SystemPrompt + Skill | high | `SP_INVERT_TOOL_ORDER` + `SK_OMIT_REQUIRED_STEP` |
+| 03 | SystemPrompt + WorkflowPolicy | high | `SP_OMIT_FAILURE_HANDLING` + `WF_SKIP_CONTEXT_CONSTRUCTION` |
+| 04 | SystemPrompt + SubagentPrompt | medium | `SP_PREMATURE_COMPLETION` + `SA_OMIT_ARTIFACT_REQUIREMENT` |
+| 05 | ContextPolicy + Skill | medium | `CP_EXCLUDE_LATEST_TOOL_RESULT` + `SK_SWAP_EXISTING_STEPS` |
+| 06 | ContextPolicy + WorkflowPolicy | high | `CP_TRUNCATE_TASK_REQUIREMENT` + `WF_TOOL_FAILURE_TO_COMPLETE` |
+| 07 | ContextPolicy + RoutingPolicy | high | `CP_SELECT_STALE_SESSION_EVENT` + `RT_WRONG_LOW_RULE` |
+| 08 | ContextPolicy + ToolDescription | medium | `CP_OMIT_TOOL_CATALOG` + `TD_WRONG_READ_PARAMETER_PROSE` |
+| 09 | MemoryRetrievalPolicy + WorkflowPolicy | medium | `MRP_SCORE_TOO_HIGH` + `WF_VERIFY_FAILURE_TO_COMPLETE` |
+| 10 | MemoryRetrievalPolicy + SubagentPrompt | high | `MRP_ZERO_RECORD_LIMIT` + `SA_INVERT_SUCCESS_CONDITION` |
+| 11 | MemoryRetrievalPolicy + ToolDescription | high | `MRP_RECENCY_SELECTS_DECOY` + `TD_INVERT_EDIT_MODE_PROSE` |
+| 12 | Skill + RoutingPolicy | medium | `SK_WRONG_COMPLETION_CHECK` + `RT_WRONG_HIGH_RULE` |
+| 13 | Skill + ToolDescription | high | `SK_WRONG_EXISTING_TOOL_GUIDANCE` + `TD_WRONG_RESULT_FIELD_PROSE` |
+| 14 | WorkflowPolicy + ToolDescription | medium | `WF_JOB_RESULT_WRONG_STATE` + `TD_GIT_DIFF_SCOPE_PROSE` |
+
+Medium cycle:
+
+```text
+SystemPrompt — MemoryRetrievalPolicy — WorkflowPolicy — ToolDescription
+— ContextPolicy — Skill — Routing/Subagent — SystemPrompt
+```
+
+High cycle:
+
+```text
+SystemPrompt — Skill — ToolDescription — MemoryRetrievalPolicy
+— Routing/Subagent — ContextPolicy — WorkflowPolicy — SystemPrompt
+```
+
+Both defects produce separate required-subgoal failures: restoring neither or only one fails; restoring
+both passes. No third mutable component restoration may pass. Fixture implementation may instantiate
+prose and finite table values but cannot substitute another edge, difficulty, exact type, or mechanism.
 
 ## Attribution labels and ambiguity
 

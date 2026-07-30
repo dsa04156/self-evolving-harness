@@ -1,6 +1,6 @@
 # Validator and Adversarial Acceptance Criteria
 
-Status: Gate 1R design contract; tests are specified but not implemented or executed
+Status: Gate 1RR design contract; tests are specified but not implemented or executed
 
 JSON Schema is necessary but insufficient. Gate 2 requires deterministic cross-object validators,
 authenticated-process tests, and OS-boundary adversarial evidence.
@@ -17,7 +17,8 @@ The trusted validator performs these stages in order and emits one signed receip
 6. mutable payload grammar, forbidden construct, finite graph, declared-ID, and capability derivation;
 7. parent/candidate closure comparison, transitive component count, size vector, and immutable diff;
 8. protocol/split/phase/principal/message/record-authority validation;
-9. lifecycle, lineage, whole-harness deployment CAS, rollback, and session inheritance validation;
+9. qualification, lineage, production-channel deployment CAS, rollback, retirement, session inheritance,
+   and abnormal termination validation;
 10. evidence sequence/hash/signature, epistemic class, source linkage, redaction, and budget completeness;
 11. metric/split, gate-feedback, candidate-cost, and promotion-decision policy validation.
 
@@ -39,11 +40,17 @@ chooses defaults, canonicalizes silently, or converts an inference into a truste
 - runtime state and child delegation pins equal the parent session;
 - event/receipt/audit sequences have no gap, fork, duplicate, cross-session, or cross-protocol link;
 - producer role/key is authorized for the event/record type;
-- lifecycle transition follows the table and state is only a projection;
-- promotion inputs reference exact candidate/protocol/snapshot and only mine/gate/deterministic roles;
-- deployment CAS expected generation/prior hash/parent equal the current channel and target is one evaluated
-  whole harness;
-- gate batch/release counts and fields obey the frozen feedback policy;
+- qualification transition follows the table and has no `active`/`rolled_back` state;
+- approval inputs reference exact candidate/protocol/snapshot and only mine/gate/deterministic roles;
+- deployment CAS expected generation/prior hash/target equal the production pointer and target is one
+  approved whole harness;
+- replacing/rolling back a pointer leaves both manifests approved and retained;
+- retirement fails while any production, rollback, live-session/descendant, pending-transaction, or
+  deployment-eligibility hold exists;
+- every abnormal session reaches `terminated` only after revocation, job/process reap, and sealed
+  accounting/evidence;
+- one-shot gate unlock, recipient, release-time, evidence/feedback distinction, and fresh-gate rules obey
+  the frozen policy;
 - provider/tool/feedback/phase totals equal event-level ledger sums, including failures/cancellations;
 - candidate cost formula and high-cost exception are reproduced exactly;
 - final roles never appear in candidate, promotion, tuning, or rollback-policy records.
@@ -79,18 +86,21 @@ chooses defaults, canonicalizes silently, or converts an inference into a truste
 - same fake provider/tool/seed/snapshot yields byte-identical event-chain hash;
 - memory/workspace/checkpoint/cache/environment difference changes snapshot ID;
 - child/job harness/protocol/model/split/principal/budget/snapshot rebind is rejected;
-- activation during session does not change parent/descendant harness;
+- production-pointer change during a session does not change parent/descendant harness;
 - crash recovery succeeds only from a matching signed checkpoint and exact overlays.
 
 ### Lifecycle, promotion, and rollback
 
-- every legal and illegal session/harness transition;
+- every legal and illegal session/qualification transition;
+- every abnormal reason from all nonterminal session states, crash during termination, complete
+  descendant/capability revocation, process/job reap, sealed accounting, and resume rejection;
 - missing/skipped/duplicated/out-of-order/cross-protocol lifecycle records;
-- mixed component activation and per-component active pointer rejection;
+- mixed component deployment and per-component pointer rejection;
 - stale/concurrent generation/prior-pointer/parent CAS rejection;
-- candidate does not change active pointer when static/evaluation/gate/canary fails;
+- approval does not change the production pointer; failed static/evaluation/gate/canary cannot approve;
+- deploy/rollback/decommission use separate decisions and exact production CAS expectations;
 - rollback target deletion/substitution rejection and exact content-hash restoration;
-- rejected, invalid, exhausted, and rolled-back candidate retention.
+- rejected, invalid, exhausted, and deployment-rollback-involved candidate retention.
 
 ### Evidence and accounting
 
@@ -109,7 +119,9 @@ chooses defaults, canonicalizes silently, or converts an inference into a truste
 - split counts/disjointness and exact Terminal-Bench public source commitment;
 - all HFB single/multi-cause causal interventions, difficulty/type balance, scorer ties/unknown IDs;
 - multi-cause/final result supplied to promoter is rejected;
-- second gate query/replacement candidate/proposer gate access rejected;
+- second gate unlock/query, replacement candidate, proposer access, and pre-final
+  developer/protocol-author access rejected;
+- post-final human release marks the gate exploratory and forces a fresh gate for later confirmatory work;
 - task-clustered bootstrap golden vectors and no task×seed sample-size inflation;
 - Holm comparison and candidate-cost formula golden vectors;
 - cross-protocol pooling rejected.
@@ -152,7 +164,7 @@ be substituted as passing evidence.
 - every adversarial case produces its exact frozen denial/error code and audit receipt;
 - zero unauthorized read/write/network/secret/record/promotion/activation succeeds;
 - crash recovery leaves no orphan process and no partial authoritative record;
-- failed candidate never changes active deployment;
+- failed or merely approved candidate never changes the production deployment;
 - rollback exactly restores baseline closure;
 - schema, environment, toolchain, executable, protocol, and test-corpus hashes accompany the report;
 - independent audit replay reconstructs the same final projections and head hashes.

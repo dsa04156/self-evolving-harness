@@ -1,6 +1,6 @@
 # Threat Model
 
-Status: Gate 1R design contract  
+Status: Gate 1RR design contract
 Scope: standalone runtime, component/evolution registries, local candidate execution, evaluation, and
 promotion
 
@@ -8,7 +8,7 @@ promotion
 
 | Asset | Required property |
 |---|---|
-| active whole-harness manifest and rollback target | authentic composition, atomic activation, availability, exact resolution |
+| production whole-harness pointer and rollback target | authentic approved composition, atomic CAS, availability, exact resolution |
 | component/type/protocol manifests | stable content identity, authentic protocol provenance |
 | evaluator, verifier, permission/safety/budget/model/promotion/tool/optimizer pins | denied candidate write, digest integrity, protocol separation |
 | benchmark tasks, split, verifier details, temporal authoring | role-appropriate confidentiality, frozen semantics, contamination disclosure |
@@ -54,11 +54,13 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Small reference edit replaces large/multiple behavior | full transitive closure expansion, artifact rehash, changed-family and size-vector accounting | reference-swap fixture charged/rejected | semantic magnitude is imperfect |
 | Candidate edits evaluator, policies, model, budget, data, tool code, middleware, optimizer, or schemas | proposer allowlist, immutable pins/mounts, closure diff, protocol ID | direct, transitive, symlink, generated, and artifact replacement tests | build supply-chain compromise |
 | Memory/workspace/cache/checkpoint contaminates paired evaluation | immutable runtime-state snapshot, fresh overlays, independent stores | hidden-state and foreign-checkpoint tests | provider-side state not fully observable |
-| Child/job rebinds active harness, model, split, principal, or budget | signed inheritance envelope and broker checks; no deployment-channel access | every inherited field modification rejected; orphan cancellation | external job cancellation lag |
+| Child/job rebinds deployed harness, model, split, principal, or budget | signed inheritance envelope and broker checks; no deployment-channel access | every inherited field modification rejected; orphan cancellation | external job cancellation lag |
 | Evaluator or promoter impersonation | separate UID/container/key, peer credentials, Ed25519 envelope, record-type authority | wrong UID/key/role/message/schema rejected | key/host compromise |
 | Replay, truncation, oversized payload, confused response, protocol downgrade, or peer crash | length framing, limits, hash, sequence/nonce/expiry, correlation, closed errors | replay/partial/extra/oversized/cross-correlation/cross-protocol/crash tests | denial of service |
 | Proposer reads gate/test/verifier or infers it adaptively | absent mounts, opaque handles, deny egress, fixed one-shot release fields/count | path/canary/error/side-channel probes; feedback cap exhaustion | aggregate leakage; public-model contamination |
-| Final test affects promotion/tuning/rollback | metric-to-split authorization and promoter rejection | final-role result supplied to promoter is rejected | human may launch a new protocol after seeing results |
+| Final test affects qualification/deployment/tuning/rollback | metric-to-split authorization and promoter rejection | final-role result supplied to promoter is rejected | human may launch a new exploratory protocol after seeing results |
+| Gate aggregate influences a later confirmatory protocol | one-shot gate capability; promoter/audit-only evidence until final closure; fresh gate after human release | pre-final recipient and second-unlock probes rejected | gate is consumed even if the run is disappointing |
+| Abnormal session is killed without auditable cleanup | `terminating → terminated`, reason enum, descendant/capability revocation, process reap, sealed accounting/evidence | every reason, crash-during-termination, orphan and resume tests | malicious host outside TCB |
 | Temporal tasks are tailored to candidate | blinded independent authors, frozen inclusion rules/hashes/verifiers, no result access | authorship/access log review | author priors and small sample |
 | Public Terminal-Bench is misrepresented as sealed | “withheld public test” label and contamination report | terminology/static report check | unknown pretraining exposure |
 | Tool path traversal, symlink race, device/FIFO/socket, hardlink, ADS | descriptor-relative access, special/link rejection, fresh namespace | cross-platform malicious filesystem corpus | kernel/filesystem defects |
@@ -69,7 +71,7 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Model/tool/feedback compute is laundered through roles/caches/failures | sole provider/tool broker, shared phase account, charge all attempts/statuses | hidden-role, cancelled, cached, retry and subagent accounting tests | provider billing/telemetry ambiguity |
 | Model alias silently drifts | pinned exposed identity/parameters, request IDs, probe/disclosure, reproducibility tier | mismatch/drift report and invalidation rule | opaque service-side updates |
 | Gate is overfit through repeated aggregates | finite candidate batch, one non-adaptive gate selection, fixed released fields, every release charged | second query/refinement request denied | first aggregate still informs selection by design |
-| Whole-harness evaluation is laundered into per-component activation | only one whole-harness deployment pointer and CAS | attempt mixed composition/per-component pointer rejected | registry implementation defect |
+| Qualification is laundered into deployment or per-component activation | separate approval and production-pointer decisions; whole-harness CAS only | approved-without-deploy and mixed-component pointer tests | registry implementation defect |
 | Concurrent promotion loses parent/rollback lineage | expected generation, prior pointer hash, parent ID, registry serialization | stale and concurrent CAS tests | distributed registry outside MVP |
 | Rollback target missing or modified | content addressing, preactivation resolution/retention, rehash on rollback | deletion/substitution and exact restoration tests | catastrophic loss of all replicas |
 | Protocol evidence is mixed after evaluator/policy change | protocol-scoped pinning in every record and analysis | cross-protocol result aggregation rejected | reporting mistake outside tooling |
@@ -87,7 +89,7 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
    permits one mine-generated batch and one gate selection, then closes the gate capability.
 5. **Compute laundering:** proposer delegates hidden model work. Every provider call requires a
    phase-account capability at the sole proxy.
-6. **Active-version race:** candidate evaluated from parent A while B activates. Whole-harness CAS fails;
+6. **Production-pointer race:** candidate evaluated from parent A while B deploys. Whole-harness CAS fails;
    no implicit rebase.
 7. **Rollback erasure:** candidate removes A. It has no registry write capability; activation first
    resolves and retains the rollback closure.

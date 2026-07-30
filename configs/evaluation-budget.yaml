@@ -1,6 +1,6 @@
-schemaVersion: 2
+schemaVersion: 3
 protocolVersion: draft-1
-status: gate1r_structural_contract_pilot_pending
+status: gate1rr_structural_contract_pilot_pending
 
 seeds:
   slotAndProposal:
@@ -47,6 +47,49 @@ trackB:
   finalTrajectoriesPerTaskPerRolloutSeed: 1
   finalRetryReflectionMutation: false
   b0EvolutionCost: 0
+
+h3RepresentationExperiment:
+  treatment: B6
+  control: B6-RAW
+  datasetRoles:
+    - mine
+    - dedicated_pilot
+  gateAccess: false
+  finalAccess: false
+  identical:
+    - source_event_ids
+    - deterministic_failure_cluster_assignments
+    - proposer_and_attribution_model
+    - model_parameters
+    - candidate_count
+    - proposal_seeds
+    - mutable_component_grammar
+    - attribution_workflow
+    - solver_work
+    - static_validation
+    - mine_pilot_selector
+    - provider_tool_feedback_and_host_caps
+    - failure_handling
+  onlyDifference: evidence_representation
+  candidateSlotsPerArm: 5
+  adaptiveReplacementCandidates: 0
+  selectedArtifactsPerArm: 1
+  invalidOrMissingCandidateQuality: 0
+
+h4TransferExperiment:
+  status: exploratory
+  freezeDeadline: gate3_before_first_track_b_candidate_and_before_any_gate_final_or_transfer_result
+  secondProviderAndModelIdentity: PILOT_PENDING
+  secondModelEvolutionCalls: 0
+  modelSpecificRetuning: false
+  candidateReselection: false
+  comparedArms:
+    - B0
+    - B6_FROZEN
+  trajectoriesPerTaskPerRolloutSeed: 1
+  matchedPerPassTokenToolTimeBudget: true
+  reportModel1EvolutionCostSeparately: true
+  unavailableContractDisposition: withdraw_h4_before_results
 
 identity:
   provider: PILOT_PENDING
@@ -138,8 +181,15 @@ deterministicCompute:
     - wall_clock_seconds
 
 candidateCostGate:
-  scalar: mean_total_charged_tokens_over_all_gate_tasks
-  epsilonTokens: 1
+  formulaVersion: seh-candidate-cost-v1
+  taskAggregation: exact_common_gate_task_set
+  failedAndTimedOutTasksCountAsPass: false
+  failedAndTimedOutTasksRemainInDenominator: true
+  missingUsageChargesReservedCap: true
+  successSmoothingAlpha: 0.5
+  successSmoothingDenominatorAddend: 1
+  tokenSmoothingTokens: 1
+  scalar: arithmetic_mean_total_charged_tokens_per_gate_task
   normalMaximumRatio: 1.10
   highCostException:
     minimumPassCountIncrease: 1

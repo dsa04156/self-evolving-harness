@@ -1,6 +1,6 @@
 # HarnessFaultBench-v0
 
-Status: fixture-construction contract frozen candidate; executable fixtures pending Gate 1R approval  
+Status: fixture-construction contract frozen candidate; executable fixtures pending Gate 1 approval
 Purpose: measure harness-defect attribution, not general LLM coding ability.
 
 ## Design

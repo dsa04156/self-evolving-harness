@@ -1,6 +1,6 @@
 # ADR-0001: Runtime, Evaluator, and Isolation Stack
 
-Status: **revised; pending Architect Gate 1R approval**  
+Status: **revised; pending Architect Gate 1 approval**
 Date: 2026-07-30
 
 ## Context

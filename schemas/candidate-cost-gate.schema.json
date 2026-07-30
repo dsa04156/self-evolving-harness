@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/candidate-cost-gate.schema.json",
+  "title": "Deterministic Candidate Operational Cost Gate",
+  "description": "Signed integer inputs and exact cross-product terms for seh-candidate-cost-v1. No floating-point field participates in a decision; validator and promoter recompute every term.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "formulaVersion",
+    "gateTaskSetHash",
+    "taskCount",
+    "candidatePasses",
+    "parentPasses",
+    "failToPassCount",
+    "passToFailCount",
+    "candidateFailedOrTimedOutTasks",
+    "parentFailedOrTimedOutTasks",
+    "candidateTotalChargedTokens",
+    "parentTotalChargedTokens",
+    "candidateCostTerm",
+    "parentCostTerm",
+    "normalThresholdLeft",
+    "normalThresholdRight",
+    "highCostEfficiencyLeft",
+    "highCostEfficiencyRight",
+    "path",
+    "passed",
+    "sourceLedgerReceiptIds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "formulaVersion": {
+      "const": "seh-candidate-cost-v1"
+    },
+    "gateTaskSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "candidatePasses": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parentPasses": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failToPassCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "passToFailCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidateFailedOrTimedOutTasks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parentFailedOrTimedOutTasks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidateTotalChargedTokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parentTotalChargedTokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidateCostTerm": {
+      "description": "candidateTotalChargedTokens + taskCount",
+      "type": "integer",
+      "minimum": 1
+    },
+    "parentCostTerm": {
+      "description": "parentTotalChargedTokens + taskCount",
+      "type": "integer",
+      "minimum": 1
+    },
+    "normalThresholdLeft": {
+      "description": "10 * candidateCostTerm",
+      "type": "integer",
+      "minimum": 10
+    },
+    "normalThresholdRight": {
+      "description": "11 * parentCostTerm",
+      "type": "integer",
+      "minimum": 11
+    },
+    "highCostEfficiencyLeft": {
+      "description": "20 * (2*candidatePasses + 1) * parentCostTerm",
+      "type": "integer",
+      "minimum": 20
+    },
+    "highCostEfficiencyRight": {
+      "description": "21 * (2*parentPasses + 1) * candidateCostTerm",
+      "type": "integer",
+      "minimum": 21
+    },
+    "path": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "high_cost_exception",
+        "rejected"
+      ]
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "sourceLedgerReceiptIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    }
+  }
+}

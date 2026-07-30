@@ -1,7 +1,8 @@
-# Gate 1 → Gate 1R Change Log and Open Fields
+# Gate 1 → Gate 1R → Gate 1RR Change Log and Open Fields
 
-Status: `draft-1`; external Gate 1 decision `REVISE`; Gate 1R pending  
-Architect response: `.codex/gpt-pro-architect/responses/response-1.md`
+Status: `draft-1`; external Gate 1 and Gate 1R decisions `REVISE`; Gate 1RR pending
+Architect responses: `.codex/gpt-pro-architect/responses/response-1.md`,
+`.codex/gpt-pro-architect/responses/response-1r.md`
 
 ## Corrective changes
 
@@ -43,6 +44,22 @@ Architect response: `.codex/gpt-pro-architect/responses/response-1.md`
 - Bootstrap rollback lineage is external to content identity.
 - The invalid external-architect topic collision remains archived and explicitly unusable as evidence.
 
+## Gate 1R → Gate 1RR corrections
+
+- Qualification now ends at `approved`; protocol-v1 deployment exists only as the single `production`
+  channel pointer, and rollback is a channel-scoped CAS rather than a global harness state.
+- Sessions now have a modeled `terminating → terminated` abnormal path with mandatory revocation, job
+  shutdown, sealed accounting, and final evidence.
+- H3 now has the named `B6-RAW` counterfactual differing from `B6` only by evidence representation.
+- `D_gate` is one-shot for the protocol; arm, selector, report-template, and analysis hashes are frozen
+  before access, and selection evidence remains promoter/audit-only until confirmatory finalization.
+- Candidate cost uses exact signed-ledger integer inequalities, including full reservation for missing
+  usage and zero pass credit for failures/timeouts.
+- The fourteen multi-cause edges are enumerated as two seven-edge strata, with degree four per family
+  overall and degree two per family within each stratum.
+- H4 remains exploratory under a pre-outcome second-model freeze and forbids retuning, reselection, or
+  second-model evolution.
+
 ## Fields intentionally unresolved until authorized pilot/implementation
 
 These are not free-form decisions. Their fill rules are preregistered and one-way:
@@ -62,5 +79,5 @@ Changing a filled field after protocol freeze creates a new protocol ID.
 ## Gate discipline
 
 No runtime/evolution implementation, provider call, benchmark execution, gate/final access, canary,
-promotion, or performance/security claim occurs before an explicit Gate 1R approval. The only preserved
+promotion, or performance/security claim occurs before an explicit Gate 1 approval. The only preserved
 code is the non-authoritative spike archive.

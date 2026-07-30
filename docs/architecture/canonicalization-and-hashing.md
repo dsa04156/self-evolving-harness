@@ -1,6 +1,6 @@
 # Canonicalization and Hashing Contract
 
-Status: Gate 1R design contract  
+Status: Gate 1R design contract
 Profile identifier: `seh-jcs-v1`
 
 This contract removes ambiguity from component, harness, artifact, protocol, and audit identities. Git

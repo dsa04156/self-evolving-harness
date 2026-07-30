@@ -49,17 +49,22 @@ zero, or extra task retries explain the effect.
 
 ### C-H3 — Layered evidence efficiency
 
-Layered evidence reduces total charged system inference by at least 20% without materially reducing
-mine/dedicated-pilot attribution or candidate quality relative to raw traces.
+In a dedicated paired experiment, B6 layered evidence reduces total charged system inference by at least
+20% without materially reducing mine/dedicated-pilot attribution or selected-candidate targeted-repair
+quality relative to `B6-RAW`. The arms differ only in evidence representation.
 
 Falsified when the total-cost ratio interval is not below 0.80, work is shifted to another role, or
 quality crosses a pilot-validated task-resolution margin. Proposer tokens are secondary.
 
 ### C-H4 — Cross-model transfer (stretch)
 
-A harness evolved on one model transfers positively to a second unseen model without re-evolution.
+A harness evolved on model 1 transfers positively to a Gate-3-frozen second model without re-evolution,
+retuning, or candidate reselection. Model-2 B0 and frozen B6 receive one matched pass per task/seed and
+model 2 receives zero evolution calls.
 
-Falsified by negative transfer or a need for model-specific retuning.
+H4 is exploratory and is withdrawn before results if the complete second-model contract cannot be frozen
+before the first Track B candidate. It is unsupported by negative/inconclusive transfer, drift, or any
+model-specific retuning.
 
 ## Claim-strength rules
 

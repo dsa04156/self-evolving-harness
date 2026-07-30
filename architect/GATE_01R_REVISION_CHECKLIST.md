@@ -1,8 +1,8 @@
 # Gate 1R Revision Checklist
 
-Status: **READY FOR EXTERNAL RESUBMISSION**  
-Source decision: `.codex/gpt-pro-architect/responses/response-1.md`  
-Decision: `REVISE`  
+Status: **EXTERNAL DECISION RECEIVED — REVISE**
+Source decision: `.codex/gpt-pro-architect/responses/response-1.md`
+Decision: `REVISE`
 Protocol under revision: `draft-0` → `draft-1`
 
 This checklist is the authoritative trace from the external Architect's 26 required revisions to the
@@ -37,7 +37,7 @@ an explicit Gate 1R `APPROVE` does.
 | R23 | Define immutability as protocol-scoped digest pinning and forbid mixed-protocol confirmatory evidence. | trust boundary; protocol manifest schema | Any trust-plane change forces a new protocol ID. | complete; static precheck passed |
 | R24 | Revise ADR: language split is not security; require OS isolation, authenticated/schema messages, correlation, limits, timeouts/errors, artifact hashes, and locked environments. | revised ADR; wire envelope schema | Threat/transport acceptance table covers impersonation, replay, truncation, oversized payloads, and crash. | complete; static precheck passed |
 | R25 | Quarantine the pre-contract Python spike as a hash-pinned, non-authoritative artifact outside all runtime/package/test/import/evidence paths. | `spikes/python-contract-spike/` | Root package discovery and import search cannot reach the spike. | complete; archived hashes passed |
-| R26 | Resubmit revised manifests, invariants, matrices, plans, fixture spec, ADR, and validator/adversarial criteria. | `PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | Local precheck passes; exact packet hash is recorded; same external conversation returns a decision. | packet prepared; external decision pending |
+| R26 | Resubmit revised manifests, invariants, matrices, plans, fixture spec, ADR, and validator/adversarial criteria. | `PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | Local precheck passes; exact packet hash is recorded; same external conversation returns a decision. | complete; external decision `REVISE`, response hash `22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd` |
 
 ## Dependency order
 

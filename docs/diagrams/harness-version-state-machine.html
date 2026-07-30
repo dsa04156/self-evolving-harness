@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HarnessVersion Lifecycle</title>
+  <title>Harness Qualification Lifecycle</title>
   <link rel="icon" href="data:,">
   <style>
     :root { --page:#f5f7fa; --paper:#fff; --ink:#162033; --muted:#657186; --line:#9da9bb; --blue:#2563eb; --blue-soft:#eaf1ff; --amber:#c86b08; --amber-soft:#fff3df; --dark:#1f2937; --red:#b42318; --red-soft:#fff0ee; }
@@ -30,11 +30,11 @@
 </head>
 <body>
 <main>
-  <h1>HarnessVersion Lifecycle</h1>
-  <p class="dek">Every mutation becomes a separate version and must pass static, evaluation, canary, and audited decision gates.</p>
+  <h1>Harness Qualification Lifecycle</h1>
+  <p class="dek">Qualification ends at approved. Production deployment and rollback live in a separate channel-pointer history.</p>
   <svg viewBox="0 0 1120 660" role="img" aria-labelledby="title desc">
     <title id="title">Harness version state machine</title>
-    <desc id="desc">A harness progresses from draft to active through validation and evaluation. It may be rejected or rolled back, with retired as terminal archival state.</desc>
+    <desc id="desc">A harness progresses from draft to approved through validation and evaluation. It may be rejected, and approved or rejected versions may later be retired.</desc>
     <defs>
       <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9da9bb"/></marker>
       <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c86b08"/></marker>
@@ -53,8 +53,6 @@
       <path class="edge fail" marker-end="url(#arrow-red)" d="M668 144 V256 H560"/>
       <path class="edge fail" marker-end="url(#arrow-red)" d="M852 144 V256 H560"/>
       <path class="edge" marker-end="url(#arrow)" d="M480 336 V392 H888"/>
-      <path class="edge fail" marker-end="url(#arrow-red)" d="M964 104 H944 V456 H740"/>
-      <path class="edge" marker-end="url(#arrow)" d="M668 496 H600 V432 H888"/>
     </g>
 
     <g>
@@ -79,16 +77,12 @@
       <text class="sub" x="852" y="121">new cohort only</text>
 
       <rect class="state primary" x="964" y="64" width="144" height="80" rx="8"/>
-      <text class="name" x="1036" y="99">active</text>
-      <text class="sub" x="1036" y="121">external rollback target + CAS</text>
+      <text class="name" x="1036" y="99">approved</text>
+      <text class="sub" x="1036" y="121">deployable by separate CAS</text>
 
       <rect class="state fail" x="400" y="256" width="160" height="80" rx="8"/>
       <text class="name" x="480" y="291">rejected</text>
       <text class="sub" x="480" y="313">preserve proposal + result</text>
-
-      <rect class="state fail" x="596" y="456" width="144" height="80" rx="8"/>
-      <text class="name" x="668" y="491">rolled_back</text>
-      <text class="sub" x="668" y="513">target hash restored</text>
 
       <rect class="state terminal" x="888" y="352" width="160" height="80" rx="8"/>
       <text class="name light" x="968" y="387">retired</text>
@@ -98,14 +92,13 @@
       <text class="label" x="368" y="94">static pass</text>
       <text class="label" x="576" y="94">admit</text>
       <text class="label" x="760" y="94">gate pass</text>
-      <text class="label" x="944" y="94">promote CAS</text>
-      <text class="label" x="998" y="238">supersede</text>
+      <text class="label" x="944" y="94">approve</text>
+      <text class="label" x="998" y="238">retire</text>
       <text class="label" x="650" y="240">any gate failure</text>
-      <text class="label" x="826" y="474">rollback decision</text>
       <text class="label" x="774" y="416">archive</text>
 
-      <text class="note" x="20" y="592">No direct candidate → active edge. A stale evaluated parent causes CAS failure and requires re-evaluation or rejection.</text>
-      <text class="note" x="20" y="616">Rejected and rolled-back versions are retained; session retry, restart, recovery, or prompt reinjection never enters this machine.</text>
+      <text class="note" x="20" y="592">No lifecycle edge deploys a version. A separate signed production-channel CAS points only to an approved manifest.</text>
+      <text class="note" x="20" y="616">Rollback is a channel event, not a state. Retry, restart, recovery, or prompt reinjection never enters this machine.</text>
     </g>
   </svg>
 </main>

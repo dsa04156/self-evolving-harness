@@ -1,6 +1,6 @@
 # Phase-Specific Budget Ledger
 
-Status: Gate 1R design contract; numeric fields marked `PILOT_PENDING` are frozen at Gate 3 before gate or
+Status: Gate 1RR design contract; numeric fields marked `PILOT_PENDING` are frozen at Gate 3 before gate or
 final access
 
 ## Phase taxonomy
@@ -107,28 +107,50 @@ comparator. If none exists, report no break-even. This is sensitivity analysis, 
 
 ## Candidate operational cost gate
 
-Primary scalar:
+Formula version: `seh-candidate-cost-v1`.
+
+Let `T` be the exact common ordered `D_gate` task set and `n = |T| > 0`. Parent and candidate must have
+one terminal record for every task; no task is excluded.
+
+- `Y[m,t] = 1` only for an authenticated verifier pass; failure, invalid output, timeout, cancellation,
+  budget exhaustion, or candidate-attributable crash is zero.
+- `U[m,t]` is the nonnegative integer `totalChargedTokens` from the signed phase ledger. Missing final
+  provider usage is replaced by the full pre-admission reservation before this formula runs.
+- `P_m = Σ_t Y[m,t]`.
+- `U_m = Σ_t U[m,t]`, including failed and timed-out tasks.
+- `C_m = U_m / n` charged tokens per task.
+- `S_m = (P_m + 0.5) / (n + 1)`, the fixed Jeffreys-smoothed pass rate.
+- `E_m = S_m / (C_m + 1 token)`, smoothed success per charged token.
+- `R_C = (C_candidate + 1) / (C_parent + 1)`.
+- `R_E = E_candidate / E_parent`.
+
+The normal path requires `R_C <= 1.10`. The validator computes it without floating point:
 
 ```text
-C_m = mean totalChargedTokens over all D_gate tasks,
-      counting failures and exhausted tasks
-R_C = (C_candidate + 1) / (C_parent + 1)
+10 * (U_candidate + n) <= 11 * (U_parent + n)
 ```
 
-Normal path requires `R_C <= 1.10`.
-
-The only high-cost exception is fully mechanical:
+If that inequality is false, the only high-cost exception requires every clause:
 
 ```text
-R_C > 1.10
-AND candidate_passes - parent_passes >= 1
-AND fail_to_pass_count - pass_to_fail_count >= 1
-AND ((candidate_passes + 0.5)/(n + 1))/(C_candidate + 1)
-    >= 1.05 * ((parent_passes + 0.5)/(n + 1))/(C_parent + 1)
+10 * (U_candidate + n) > 11 * (U_parent + n)
+P_candidate - P_parent >= 1
+fail_to_pass_count - pass_to_fail_count >= 1
+20 * (2*P_candidate + 1) * (U_parent + n)
+  >= 21 * (2*P_parent + 1) * (U_candidate + n)
 ```
 
-If any clause fails, reject. No prose “Pareto” argument can override the rule. Safety, permission, data,
-immutable, and audit violations remain zero regardless of success/cost.
+The last inequality is exactly `R_E >= 1.05`; the fixed constants are 0.5 success pseudocount in both
+binary outcomes and one charged token in each denominator. Counts are over the same task pairs.
+Zero observed usage is valid and still receives the one-token smoothing term. Missing usage never
+becomes zero: reservation charging occurs first.
+
+The signed `CandidateCostGate` stores the common task-set hash, all source ledger receipt IDs, integer
+inputs, exact cross-product terms, selected path, and result. Validator and promoter independently recompute the integer
+inequalities. A mismatch, invalid/missing ledger, unequal task set, or any safety, permission, data,
+immutable, or audit violation rejects the candidate before the cost exception. No prose argument,
+alternative smoothing, provider-price substitution, timeout exclusion, or post-hoc unit change is
+allowed.
 
 Provider cost micros, tool attempts, wall clock, and peak resources form a reported secondary vector.
 They cannot be omitted or substituted for the primary scalar post hoc.

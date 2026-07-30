@@ -1,6 +1,6 @@
 # Executable Baseline Matrix
 
-Status: Gate 1R design contract
+Status: Gate 1RR design contract
 
 All compared arms use the same provider/model configuration, immutable runtime/tool/policy set,
 environment snapshot, task order commitment, input visibility for that arm, and host-side accounting.
@@ -18,10 +18,33 @@ environment snapshot, task order commitment, input visibility for that arm, and 
 | B5-U Free-form mutable-bundle rewrite | any/all MVP-mutable declarative components | no required attribution | unconstrained within immutable boundary and method budget | mine only, then one gate batch | yes |
 | B5-SM Size-matched free-form control | any MVP-mutable declarative component(s) | no attribution | candidate/component/closure-size matched to B6 | identical to B6 except attribution | yes |
 | B6-ABL Bounded attribution ablation | same bounded grammar as B6 | **withheld** | same candidate count, component-count envelope, closure edit-size envelope, preservation fields, and proposal budget as B6 | identical to B6 | yes |
+| B6-RAW Raw-evidence control | same bounded grammar as B6 | same attribution workflow | H3-only paired mine/dedicated-pilot arm; canonical raw events grouped by the same frozen cluster assignments | no gate/final; same mine/pilot selector as paired B6 | H3 only |
 | B6 Proposed | bounded declarative components | ranked `AttributionResult` | one component for single cause, at most two explicit multi-cause, expanded closure ceiling | mine only, then one gate batch | yes |
 
 `B5-SM` and `B6-ABL` are mandatory controls, not optional ablations and not additional headline B
 numbers. B5-U is reported but cannot identify the effect of attribution or boundedness.
+
+## H3 representation contrast
+
+`B6-RAW` is paired only with a dedicated H3 instance of B6. Both receive the exact same source event IDs,
+deterministic failure-cluster assignments, proposer and attribution model/parameters, five proposal
+seeds, mutation grammar, solver work, static checks, mine/dedicated-pilot task sets, selector, caps, and
+failure rules. The sole treatment difference is evidence representation:
+
+- B6 receives content-addressed per-task reports, failure patterns, and the mutation evidence packet;
+- B6-RAW receives canonical raw event/receipt streams grouped by the same cluster IDs.
+
+The mine/pilot selector is frozen before execution and orders valid candidates by zero violations,
+highest paired targeted-repair pass count, lowest pass→fail count, lowest total charged inference, then
+lexicographic harness ID. It selects at most one of five candidates. Invalid, absent, timed-out, or
+budget-exhausted slots remain charged and receive quality zero; there is no replacement. Neither arm
+accesses `D_gate` or a final role for H3.
+
+Primary H3 cost is
+`total_system_charged_tokens(B6) / total_system_charged_tokens(B6-RAW)` from the common raw-corpus
+commitment through selected-candidate commitment. Paired quality endpoints are HarnessFaultBench
+mine/dedicated-pilot top-1 attribution accuracy and task-average targeted-repair pass rate of the
+selected candidate on dedicated pilot repair tasks.
 
 ## B5-SM matching
 

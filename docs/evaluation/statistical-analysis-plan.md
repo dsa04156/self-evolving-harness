@@ -1,6 +1,6 @@
 # Statistical Analysis Plan
 
-Status: Gate 1R design contract; seed count and explicitly named margins follow frozen mine/pilot-only
+Status: Gate 1RR design contract; seed count and explicitly named margins follow frozen mine/pilot-only
 rules before any gate or final observation
 
 ## Experimental units
@@ -42,26 +42,32 @@ a size-matched free-form control. B5-U is descriptive.
 
 ## Cost/efficiency estimand
 
-H3 primary cost includes every inference role from receipt of raw trace corpus through frozen candidate
-selection:
+H3 is the paired dedicated mine/pilot comparison B6 versus B6-RAW. Both begin from the same source-event
+and deterministic cluster commitments and end at their selected candidate commitments. Primary cost
+includes every inference role:
 
 ```text
 total_system_charged_tokens =
   summarization + mining + attribution + proposal + judge
   + subagent + background + any differing solver inference
 
-cost_ratio = total_system_charged_tokens_layered
-             / total_system_charged_tokens_raw_trace
+cost_ratio = total_system_charged_tokens_B6
+             / total_system_charged_tokens_B6_RAW
 ```
 
 Provider cost micros is co-reported; proposer-context tokens are secondary only. Shared trace-generation
 cost is identical and reported both excluded (incremental) and included (standalone). H3 material effect
 requires an interval upper bound below `0.80`, not only a point estimate.
 
-Quality non-inferiority is evaluated on mine/dedicated-pilot tasks, never `D_gate` or final:
+Both arms use five fixed candidate slots and the same mine/pilot selector. Invalid, absent, timed-out,
+or exhausted slots have quality zero, remain fully charged, and cannot be replaced. Quality
+non-inferiority is paired on mine/dedicated-pilot tasks, never `D_gate` or final:
 
-- attribution margin cannot exceed one HarnessFaultBench mine task: `1/28 = 3.571` percentage points;
-- candidate-quality margin cannot exceed one Terminal-Bench mine task: `1/45 = 2.222` percentage points;
+- top-1 attribution margin cannot exceed one HarnessFaultBench mine task: `1/28 = 3.571` percentage
+  points;
+- selected-candidate targeted-repair pass-rate margin cannot exceed one dedicated-pilot repair task; if
+  that set has 45 tasks its maximum is `1/45 = 2.222` points, otherwise it is exactly one divided by the
+  frozen task count;
 - both are accepted for confirmatory use only if the dedicated pilot demonstrates at least 80% power at
   the frozen rollout count under paired simulation. If not, H3 remains exploratory; margins are not
   widened.
@@ -112,8 +118,8 @@ HarnessFaultBench deterministic metrics use exact binomial intervals and no pseu
    intersection-union claim; the two quality intervals additionally use Holm adjustment.
 5. **Matched-budget scaling:** B6 must beat B1, B2, and B3 in Track A with Holm-adjusted positive
    intervals. Otherwise no “better than test-time scaling” wording.
-6. **H4 transfer:** exploratory/stretch unless a separate protocol preregisters model and power; no
-   confirmatory generalization wording.
+6. **H4 transfer:** exploratory under the Gate-3-frozen second-model contract, one matched model-2 pass
+   for B0 and frozen B6, no model-2 evolution or retuning; no confirmatory wording.
 
 Ablations beyond mandatory B6-ABL, benchmark subgroups, cross-model transfer, and B5-U causal
 interpretation are exploratory with exact intervals and no significance language.
