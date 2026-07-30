@@ -92,6 +92,7 @@ export interface AgentRunResult {
   readonly modelUsage: Readonly<ModelUsage>;
   readonly eventHeadHash: string;
   readonly eventCount: number;
+  readonly terminationReason?: TerminationReason;
 }
 
 export type TerminationReason =

@@ -35,8 +35,12 @@ const HARNESS_TRANSITIONS: Readonly<
 });
 
 export class SessionStateMachine {
-  #state: SessionState = "created";
+  #state: SessionState;
   #terminationDescriptor: TerminationDescriptor | null = null;
+
+  public constructor(initialState: "created" | "initialized" | "running" = "created") {
+    this.#state = initialState;
+  }
 
   public get state(): SessionState {
     return this.#state;

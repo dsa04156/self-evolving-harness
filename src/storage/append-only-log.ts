@@ -28,6 +28,33 @@ interface RecordIdentity<T extends JsonValue> {
   readonly payload: T;
 }
 
+function hashablePayload<T extends JsonValue>(payload: T): JsonValue {
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return payload;
+  }
+  const attestation = payload["attestation"];
+  if (
+    typeof attestation !== "object" ||
+    attestation === null ||
+    Array.isArray(attestation) ||
+    !("signature" in attestation)
+  ) {
+    return payload;
+  }
+  const { signature: _signature, ...attestationWithoutSignature } = attestation;
+  return {
+    ...payload,
+    attestation: attestationWithoutSignature,
+  };
+}
+
+function recordDigest(identity: RecordIdentity<JsonValue>): string {
+  return sha256({
+    ...identity,
+    payload: hashablePayload(identity.payload),
+  });
+}
+
 function recordName(sequence: number): string {
   return `${sequence.toString().padStart(20, "0")}.json`;
 }
@@ -83,7 +110,7 @@ export class AppendOnlyLog<T extends JsonValue = JsonValue> {
       };
       const record: AppendOnlyRecord<T> = {
         ...identity,
-        recordHash: sha256(identity),
+        recordHash: recordDigest(identity),
       };
       const finalPath = path.join(this.#directory, recordName(record.sequence));
       const temporary = path.join(
@@ -142,6 +169,7 @@ export class AppendOnlyLog<T extends JsonValue = JsonValue> {
       try {
         const metadata = await handle.stat();
         assertCondition(metadata.isFile(), "HASH_MISMATCH", `${name} is not a regular file`);
+        assertCondition(metadata.nlink === 1, "HASH_MISMATCH", `${name} has an external hard link`);
         source = await handle.readFile("utf8");
       } finally {
         await handle.close();
@@ -163,7 +191,7 @@ export class AppendOnlyLog<T extends JsonValue = JsonValue> {
         payload: parsedRecord.payload,
       };
       assertCondition(
-        parsedRecord.recordHash === sha256(identity),
+        parsedRecord.recordHash === recordDigest(identity),
         "HASH_MISMATCH",
         `Audit record hash mismatch at ${name}`,
       );

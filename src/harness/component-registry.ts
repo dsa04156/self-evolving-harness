@@ -233,6 +233,24 @@ export class HarnessComponentRegistry {
     return stored.manifest;
   }
 
+  public referenceFor(componentManifestId: string): ComponentReference {
+    return componentReference(this.getComponent(componentManifestId));
+  }
+
+  public capabilitiesFor(componentManifestId: string): readonly string[] {
+    const stored = this.#components.get(componentManifestId);
+    if (stored === undefined) {
+      throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing component ${componentManifestId}`);
+    }
+    return stored.capabilityIds;
+  }
+
+  public dependencyIdsFor(componentManifestId: string): readonly string[] {
+    return this.getComponent(componentManifestId).identity.dependencies.map(
+      (dependency) => dependency.component.componentManifestId,
+    );
+  }
+
   public async getPayload(componentManifestId: string): Promise<JsonValue> {
     const stored = this.#components.get(componentManifestId);
     if (stored === undefined) {

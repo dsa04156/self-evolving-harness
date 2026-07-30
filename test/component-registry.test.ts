@@ -6,7 +6,11 @@ import test from "node:test";
 
 import {
   ArtifactStore,
+  BoundedMutationEngine,
+  DeterministicClock,
+  DeterministicIdFactory,
   HarnessComponentRegistry,
+  PrincipalSigner,
   SchemaRegistry,
 } from "../src/index.js";
 
@@ -131,4 +135,62 @@ test("versioned component graph permits bounded mutable changes and exposes immu
     reloaded.getHarness(boundedCandidate.harnessVersionId).manifestHash,
     boundedCandidate.manifestHash,
   );
+
+  const proposer = PrincipalSigner.generate({
+    principalId: "proposer.mutation",
+    role: "proposer",
+    implementationDigest: `sha256:${"b".repeat(64)}`,
+    instanceId: "proposer.mutation.instance",
+  });
+  const mutation = new BoundedMutationEngine({
+    root,
+    protocolId: `protocol-sha256:${"c".repeat(64)}`,
+    registry,
+    schemas,
+    clock: new DeterministicClock(),
+    ids: new DeterministicIdFactory(),
+    proposer: proposer.identity,
+  });
+  const mutationInput = {
+    parentHarnessVersionId: parent.harnessVersionId,
+    candidateSemanticVersion: "1.0.1",
+    attributionMode: "guided" as const,
+    attributionResultId: "attribution-001",
+    causeClass: "single_fault" as const,
+    primaryFailureMechanism: "The prompt omitted an explicit verification instruction.",
+    targets: [
+      {
+        componentManifestId: promptV1.componentManifestId,
+        nextSemanticVersion: "1.0.1",
+        operations: [
+          {
+            op: "replace" as const,
+            path: "/sections/0/content",
+            value: "Act carefully and verify the result.",
+          },
+        ],
+        semanticOperations: ["prompt.section.replaced"],
+      },
+    ],
+    predictedFix: "The agent will verify its result before completion.",
+    predictedRegressions: ["The additional check may use more context tokens."],
+    passingBehaviorPreservation: ["task-contract-001"],
+    predictionMetadata: {
+      sourceEventIds: ["event-source-001"],
+      sourceReceiptIds: [],
+      confidence: 0.8,
+      alternativeExplanations: ["The verifier could be overly strict."],
+      producerIdentity: proposer.identity,
+      method: "deterministic-test-attribution",
+    },
+  };
+  const proposed = await mutation.propose(mutationInput);
+  const proposalDiff = registry.diffHarnesses(
+    parent.harnessVersionId,
+    proposed.candidate.harnessVersionId,
+  );
+  assert.equal(proposalDiff.changed.length, 1);
+  assert.equal(proposed.proposal.immutableDiffCount, 0);
+  await mutation.setDisposition(proposed.proposal.mutationProposalId, "rejected");
+  await assert.rejects(mutation.propose(mutationInput), /duplicates rejected proposal/u);
 });

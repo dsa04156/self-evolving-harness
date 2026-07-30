@@ -127,6 +127,7 @@ export class ArtifactStore {
     try {
       const metadata = await handle.stat();
       assertCondition(metadata.isFile(), "ARTIFACT_UNAVAILABLE", "Artifact is not a regular file");
+      assertCondition(metadata.nlink === 1, "HASH_MISMATCH", "Artifact has an external hard link");
       assertCondition(
         metadata.size <= this.#maxBytes,
         "PAYLOAD_TOO_LARGE",
@@ -166,6 +167,7 @@ export class ArtifactStore {
     try {
       const metadata = await handle.stat();
       assertCondition(metadata.isFile(), "HASH_MISMATCH", "Artifact path is not a regular file");
+      assertCondition(metadata.nlink === 1, "HASH_MISMATCH", "Artifact has an external hard link");
       const actual = await handle.readFile();
       const equal =
         actual.byteLength === expected.byteLength &&

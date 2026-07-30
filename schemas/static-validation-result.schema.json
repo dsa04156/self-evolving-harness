@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/static-validation-result.schema.json",
+  "title": "StaticValidationResult",
+  "description": "Operations-authenticated verifier outcome for one exact parent, candidate, and mutation proposal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "staticValidationResultId",
+    "protocolId",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "mutationProposalId",
+    "epistemicClass",
+    "valid",
+    "checks",
+    "immutableDiffCount",
+    "disabledConditionalDiffCount",
+    "changedComponentCount",
+    "validator",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "staticValidationResultId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "mutationProposalId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "epistemicClass": {
+      "const": "verifier_outcome"
+    },
+    "valid": {
+      "const": true
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "checkId",
+          "passed",
+          "observedValue"
+        ],
+        "properties": {
+          "checkId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "passed": {
+            "const": true
+          },
+          "observedValue": {}
+        }
+      }
+    },
+    "immutableDiffCount": {
+      "const": 0
+    },
+    "disabledConditionalDiffCount": {
+      "const": 0
+    },
+    "changedComponentCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2
+    },
+    "validator": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

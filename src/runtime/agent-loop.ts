@@ -107,7 +107,7 @@ export class AgentExecutionLoop {
   readonly #clock: Clock;
   readonly #ids: IdFactory;
   readonly #runtimeIdentity: PrincipalIdentity;
-  readonly #state = new SessionStateMachine();
+  readonly #state: SessionStateMachine;
 
   public constructor(input: {
     configuration: AgentLoopConfiguration;
@@ -121,6 +121,7 @@ export class AgentExecutionLoop {
     clock: Clock;
     ids: IdFactory;
     runtimeIdentity: PrincipalIdentity;
+    initialState?: "created" | "initialized" | "running";
   }) {
     this.#configuration = input.configuration;
     this.#provider = input.provider;
@@ -133,6 +134,7 @@ export class AgentExecutionLoop {
     this.#clock = input.clock;
     this.#ids = input.ids;
     this.#runtimeIdentity = input.runtimeIdentity;
+    this.#state = new SessionStateMachine(input.initialState);
   }
 
   public get state(): SessionStateMachine {
@@ -143,14 +145,19 @@ export class AgentExecutionLoop {
     let aggregateUsage = emptyModelUsage();
     let verification: AgentRunResult["verification"] = null;
     let finalText: string | null = null;
+    let terminationReason: AgentRunResult["terminationReason"];
     const transcript: ModelInputItem[] = [];
     let verificationFeedback: string | null = null;
 
     try {
-      this.#state.transition("initialized");
-      await this.#emitState("created", "initialized");
-      this.#state.transition("running");
-      await this.#emitState("initialized", "running");
+      if (this.#state.state === "created") {
+        this.#state.transition("initialized");
+        await this.#emitState("created", "initialized");
+      }
+      if (this.#state.state === "initialized") {
+        this.#state.transition("running");
+        await this.#emitState("initialized", "running");
+      }
       await this.#events.emit({
         eventType: "task_submitted",
         payload: { taskHash: sha256({ task }) },
@@ -356,6 +363,7 @@ export class AgentExecutionLoop {
       });
       if (failure.code === "BUDGET_EXHAUSTED" || failure.code === "DEADLINE_EXCEEDED") {
         const reason = failure.code === "BUDGET_EXHAUSTED" ? "budget_exhaustion" : "deadline_expiry";
+        terminationReason = reason;
         const descriptor = this.#state.beginTermination({
           terminationTransactionId: this.#ids.next("termination"),
           initiatingRecordId: this.#ids.next("lifecycle"),
@@ -401,6 +409,7 @@ export class AgentExecutionLoop {
       modelUsage: aggregateUsage,
       eventHeadHash: await this.#events.headHash(),
       eventCount: events.length,
+      ...(terminationReason === undefined ? {} : { terminationReason }),
     };
   }
 

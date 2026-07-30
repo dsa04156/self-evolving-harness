@@ -54,6 +54,7 @@ export class WorkspacePathGuard {
     const metadata = await lstat(target);
     assertCondition(!metadata.isSymbolicLink(), "AUTHORIZATION_DENIED", "Symlink read denied");
     assertCondition(metadata.isFile(), "AUTHORIZATION_DENIED", "Only regular files may be read");
+    assertCondition(metadata.nlink === 1, "AUTHORIZATION_DENIED", "Hard-linked file read denied");
     return target;
   }
 
@@ -78,6 +79,13 @@ export class WorkspacePathGuard {
     try {
       const metadata = await handle.stat();
       assertCondition(metadata.isFile(), "AUTHORIZATION_DENIED", "File changed during read");
+      assertCondition(metadata.nlink === 1, "AUTHORIZATION_DENIED", "File became hard-linked");
+      const openedPath = await realpath(`/proc/self/fd/${handle.fd}`);
+      assertCondition(
+        openedPath === this.root || openedPath.startsWith(`${this.root}${path.sep}`),
+        "AUTHORIZATION_DENIED",
+        "Opened file escaped the workspace",
+      );
       assertCondition(metadata.size <= maxBytes, "PAYLOAD_TOO_LARGE", "Read exceeds output limit");
       return await handle.readFile();
     } finally {

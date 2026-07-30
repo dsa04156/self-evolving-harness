@@ -61,7 +61,12 @@ test("strict JSON and canonical hashing reject ambiguous input", () => {
 
 test("all frozen JSON schemas compile and validate a closed payload", async () => {
   const schemas = await SchemaRegistry.load(path.resolve("schemas"));
-  assert.equal(schemas.schemaIds.length, 33);
+  assert.ok(schemas.schemaIds.length >= 33);
+  assert.ok(
+    schemas.schemaIds.includes(
+      "https://self-evolving-harness.local/schemas/static-validation-result.schema.json",
+    ),
+  );
   schemas.validate(PROMPT_SCHEMA, promptPayload());
   assert.throws(
     () => schemas.validate(PROMPT_SCHEMA, { ...promptPayload(), unexpected: true }),

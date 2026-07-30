@@ -10,6 +10,7 @@ import {
   BubblewrapProcessRunner,
   BudgetAccount,
   ContextBuilder,
+  DescendantManager,
   DeterministicClock,
   DeterministicIdFactory,
   FakeModelProvider,
@@ -238,4 +239,79 @@ test("bash tool runs in a no-network filesystem sandbox", async (t) => {
     stderr: "",
     timedOut: false,
   });
+});
+
+test("descendants inherit pins and cannot widen budget or permissions", async (t) => {
+  const root = await temporaryDirectory(t);
+  const workspace = new WorkspacePathGuard(root);
+  await workspace.initialize();
+  const runner = new BubblewrapProcessRunner(root, {
+    timeoutMillis: 2_000,
+    maxOutputBytes: 64 * 1024,
+    maxCommandBytes: 32 * 1024,
+    environment: {},
+  });
+  await runner.initialize();
+  const artifacts = new ArtifactStore(path.join(root, "artifacts"));
+  await artifacts.initialize();
+  const clock = new DeterministicClock();
+  const pins: SessionPins = {
+    protocolId,
+    harnessVersionId,
+    runtimeStateSnapshotId: snapshotId,
+    modelIdentityHash: hash("5"),
+    permissionPolicyHash: hash("6"),
+    safetyPolicyHash: hash("7"),
+    budgetPolicyHash: hash("8"),
+    budgetAccountId: "budget.descendants.1",
+    datasetPermissions: ["deterministic"],
+  };
+  const limits: BudgetLimits = { ...LIMITS, maxDescendants: 2 };
+  const manager = new DescendantManager({
+    root,
+    parentSessionId: "session.descendants.1",
+    pins,
+    parentLimits: limits,
+    permissionCeiling: ["filesystem.read", "shell.bash"],
+    parentBudget: new BudgetAccount(limits, clock),
+    runner,
+    artifacts,
+    clock,
+    ids: new DeterministicIdFactory(),
+  });
+  await assert.rejects(
+    manager.startBackendJob({
+      command: "true",
+      budgetSlice: { ...limits, maxModelCalls: limits.maxModelCalls + 1 },
+    }),
+    /exceeds its parent/u,
+  );
+  await assert.rejects(
+    manager.spawnSubagent({
+      task: "forbidden",
+      budgetSlice: { ...limits, maxDescendants: 0 },
+      permissionToolIds: ["filesystem.write"],
+      executor: async () => {
+        throw new Error("must not execute");
+      },
+    }),
+    /permission ceiling/u,
+  );
+  const job = await manager.startBackendJob({
+    command: "printf job-ok",
+    budgetSlice: {
+      ...limits,
+      maxModelCalls: 0,
+      maxInputTokens: 0,
+      maxOutputTokens: 0,
+      maxToolCalls: 1,
+      maxRetries: 0,
+      maxDescendants: 0,
+    },
+  });
+  const completed = await manager.wait(job.descendantId);
+  assert.equal(completed.state, "completed");
+  const records = await manager.records(job.descendantId);
+  assert.deepEqual(records.at(-1)?.pins, pins);
+  assert.equal(records.at(-1)?.artifactHash?.startsWith("sha256:"), true);
 });
