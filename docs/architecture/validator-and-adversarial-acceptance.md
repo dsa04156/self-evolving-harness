@@ -1,6 +1,7 @@
 # Validator and Adversarial Acceptance Criteria
 
-Status: Gate 1RRR correction candidate; Gate 2 tests are specified but not implemented or executed
+Status: Gate 1RRR contract approved; Gate 2 deterministic/runtime tests are implemented, while the
+distinct-principal OS and authenticated-socket acceptance suite remains incomplete
 
 JSON Schema is necessary but insufficient. Gate 2 requires deterministic cross-object validators,
 authenticated-process tests, and OS-boundary adversarial evidence.

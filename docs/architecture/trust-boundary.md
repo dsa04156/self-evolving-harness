@@ -1,6 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR correction candidate
+Status: Gate 1RRR contract approved; Gate 2 enforcement is partial and remains
+`isolation_emulated`
 
 ## Security objective
 

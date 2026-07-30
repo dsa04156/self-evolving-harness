@@ -1,9 +1,11 @@
 # Gate 1 → Gate 1R → Gate 1RR → Gate 1RRR Change Log and Open Fields
 
-Status: `draft-1`; external Gate 1, Gate 1R, and Gate 1RR decisions `REVISE`; Gate 1RRR pending
+Status: `draft-1`; external Gate 1, Gate 1R, and Gate 1RR decisions `REVISE`; Gate 1RRR
+decision `APPROVE`
 Architect responses: `.codex/gpt-pro-architect/responses/response-1.md`,
 `.codex/gpt-pro-architect/responses/response-1r.md`,
-`.codex/gpt-pro-architect/responses/response-1rr.md`
+`.codex/gpt-pro-architect/responses/response-1rr.md`,
+`.codex/gpt-pro-architect/responses/response-1rrr.md`
 
 ## Corrective changes
 

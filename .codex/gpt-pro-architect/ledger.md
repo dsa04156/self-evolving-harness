@@ -154,3 +154,20 @@ response path, interpreted decision, required revisions, and the commit containi
   candidate isolation, bounded declarative mutation, and external evaluator process
 - still prohibited: paid provider calls, benchmark evolution, gate/final/temporal/withheld-public
   access, live/external deployment, push/release, and publication/performance/security claims
+
+## Round 2 preparation — 2026-07-30
+
+- packet: `.codex/gpt-pro-architect/packets/packet-2.md`
+- authoritative project copy: `architect/PACKET_02_RUNTIME_AND_TRUST.md`
+- packet hash: `f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d`
+- packet size: 10,483 characters / 10,503 bytes
+- implementation commit: `91dd84f555740fe2819f6d6e1436d7030c6ce596`
+- manifest: `architect/PACKET_02_MANIFEST.json`
+- local evidence: 20/20 deterministic tests; 91.53% line, 86.72% branch, 88.26% function
+  coverage; TypeScript build pass; 34 schemas compiled; fake-provider CLI demo completed
+- declared nonconformance: same-host-UID evaluator/controller boundary remains
+  `isolation_emulated`; dedicated peer-credential Unix transport and several lifecycle/identity
+  contracts remain incomplete
+- scope: redacted runtime/trust summary, test totals, limitations, and hashes only
+- authorized transport: same exact project conversation, endpoint, and browser target only
+- status: prepared, not yet transmitted

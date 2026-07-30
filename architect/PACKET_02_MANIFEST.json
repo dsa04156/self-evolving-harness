@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate2-runtime-trust-draft-1",
+  "createdAt": "2026-07-30T21:54:10+09:00",
+  "status": "prepared",
+  "respondsToPacketSha256": "9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d",
+  "respondsToDecisionSha256": "32b7b0841baff34177dcc39ac3092873df32d5c7cb48519ca3548cb64e3c3b82",
+  "implementationCommit": "91dd84f555740fe2819f6d6e1436d7030c6ce596",
+  "packet": {
+    "path": "architect/PACKET_02_RUNTIME_AND_TRUST.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-2.md",
+    "sha256": "f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d",
+    "characterCount": 10483,
+    "byteCount": 10503,
+    "copiesByteIdentical": true
+  },
+  "validation": {
+    "path": "docs/evaluation/gate2-validation.md",
+    "sha256": "e0597adbce9eef2ede8c7dc8d4207233c82ef3cb0e1698d32e5a88c59ed22f2e",
+    "tests": {
+      "total": 20,
+      "passed": 20,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "pending": 0
+    },
+    "coveragePercent": {
+      "line": 91.53,
+      "branch": 86.72,
+      "function": 88.26
+    },
+    "compiledSchemas": 34,
+    "build": "pass",
+    "trustDisposition": "isolation_emulated"
+  },
+  "environment": {
+    "node": "24.18.1",
+    "python": "3.13.14",
+    "bubblewrap": "0.9.0",
+    "kernel": "Linux 7.0.0-28-generic x86_64",
+    "packageLockSha256": "6067e8a69a6adfbf2f0f5eb7f395b5afb6dd114b74c131e55cd3f3c8986d3ed2",
+    "evaluatorSha256": "90c516a091bd39e72dd35f605d0d32c40098db48249e66cbec4bdb4e4d8bc434"
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "benchmarkExecution": false,
+    "gateOrFinalAccess": false,
+    "externalRepositoryWrite": false
+  },
+  "review": null
+}
