@@ -167,6 +167,7 @@ async function main(): Promise<void> {
       canonicalBytes({
         schemaVersion: 1,
         isolationClass: evaluator.isolationClass,
+        nodeVersion: process.version,
         operationsUid: process.getuid?.() ?? -1,
         operationsGid: process.getgid?.() ?? -1,
         auditPeer: audit.peerCredentials as unknown as JsonValue,

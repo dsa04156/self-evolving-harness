@@ -29,6 +29,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--root", required=True)
     parser.add_argument("--repository", required=True)
     parser.add_argument("--python-root", required=True)
+    parser.add_argument("--node-executable", required=True)
     return parser.parse_args()
 
 
@@ -124,6 +125,10 @@ def base_sandbox(
         "/opt/seh/evaluator",
         "--dir",
         "/opt/seh/scripts",
+        "--dir",
+        "/opt/node",
+        "--dir",
+        "/opt/node/bin",
         "--ro-bind",
         str(python_root),
         "/opt/python",
@@ -154,6 +159,8 @@ def base_sandbox(
     command.extend(
         [
             "--clearenv",
+            "--chdir",
+            "/",
             "--setenv",
             "PATH",
             "/usr/bin:/bin",
@@ -172,6 +179,8 @@ def base_sandbox(
             "--setenv",
             "PYTHONDONTWRITEBYTECODE",
             "1",
+            "--cap-drop",
+            "ALL",
             "--uid",
             str(uid),
             "--gid",
@@ -412,15 +421,20 @@ def run_probe(
 
 
 def run_operations(
-    root: Path, repository: Path, python_root: Path
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
 ) -> dict[str, Any]:
     command = base_sandbox("operations", root, repository, python_root)
     add_read_only_mounts(
         command,
         [
             (repository / "node_modules", "/opt/seh/node_modules"),
+            (repository / "package.json", "/opt/seh/package.json"),
             (repository / "schemas", "/opt/seh/schemas"),
             (repository / "src", "/opt/seh/src"),
+            (repository / "tsconfig.json", "/opt/seh/tsconfig.json"),
             (
                 repository / "scripts" / "os-principal-operations.ts",
                 "/opt/seh/scripts/os-principal-operations.ts",
@@ -429,10 +443,11 @@ def run_operations(
                 repository / "evaluator" / "unix_peer_relay.py",
                 "/opt/seh/evaluator/unix_peer_relay.py",
             ),
+            (node_executable, "/opt/node/bin/node"),
         ],
     )
     command += [
-        "/usr/bin/node",
+        "/opt/node/bin/node",
         "/opt/seh/node_modules/tsx/dist/cli.mjs",
         "/opt/seh/scripts/os-principal-operations.ts",
         "/run/config/operations.json",
@@ -467,22 +482,26 @@ def run_adversarial_client(
     root: Path,
     repository: Path,
     python_root: Path,
+    node_executable: Path,
 ) -> dict[str, Any]:
     command = base_sandbox("operations", root, repository, python_root)
     add_read_only_mounts(
         command,
         [
             (repository / "node_modules", "/opt/seh/node_modules"),
+            (repository / "package.json", "/opt/seh/package.json"),
             (repository / "schemas", "/opt/seh/schemas"),
             (repository / "src", "/opt/seh/src"),
+            (repository / "tsconfig.json", "/opt/seh/tsconfig.json"),
             (
                 repository / "scripts" / "os-principal-evaluator-adversary.ts",
                 "/opt/seh/scripts/os-principal-evaluator-adversary.ts",
             ),
+            (node_executable, "/opt/node/bin/node"),
         ],
     )
     command += [
-        "/usr/bin/node",
+        "/opt/node/bin/node",
         "/opt/seh/node_modules/tsx/dist/cli.mjs",
         "/opt/seh/scripts/os-principal-evaluator-adversary.ts",
         "/run/config/operations.json",
@@ -651,6 +670,7 @@ def main() -> int:
     root = Path(arguments.root).resolve()
     repository = Path(arguments.repository).resolve()
     python_root = Path(arguments.python_root).resolve()
+    node_executable = Path(arguments.node_executable).resolve()
     active: list[subprocess.Popen[bytes]] = []
     try:
         if os.geteuid() != 0:
@@ -691,7 +711,12 @@ def main() -> int:
             ),
         }
         socket_permission_probe(root, repository, python_root)
-        integration = run_operations(root, repository, python_root)
+        integration = run_operations(
+            root,
+            repository,
+            python_root,
+            node_executable,
+        )
         wait_server(audit_process, expected_returncodes={0}, label="audit")
         wait_server(evaluator_process, expected_returncodes={0}, label="evaluator")
         active.clear()
@@ -703,6 +728,8 @@ def main() -> int:
             "wrong_role",
             "wrong_key",
             "bad_signature",
+            "schema_invalid",
+            "snapshot_mismatch",
             "replay",
             "extra_frame",
             "peer_crash",
@@ -712,7 +739,13 @@ def main() -> int:
             server, _server_pid = start_evaluator(root, repository, python_root)
             active.append(server)
             adversarial.append(
-                run_adversarial_client(mode, root, repository, python_root)
+                run_adversarial_client(
+                    mode,
+                    root,
+                    repository,
+                    python_root,
+                    node_executable,
+                )
             )
             wait_server(
                 server,

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
+import re
 import socket
 import stat
 import struct
@@ -32,6 +33,14 @@ RESPONSE_SCHEMA_ID = (
 )
 PEER_CREDENTIAL_FORMAT = "3i"
 LOG_ID = "audit.main"
+ENTITY_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{2,159}$")
+SHA256_PATTERN = re.compile(r"^sha256:[a-f0-9]{64}$")
+PROTOCOL_ID_PATTERN = re.compile(r"^protocol-sha256:[a-f0-9]{64}$")
+SIGNATURE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{80,128}$")
+UTC_TIMESTAMP_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?Z$"
+)
 
 
 def validate_i_json(value: Any, location: str = "$") -> None:
@@ -240,8 +249,108 @@ def require_exact_keys(value: dict[str, Any], expected: set[str], label: str) ->
         raise ValueError(f"{label} keys mismatch")
 
 
+def is_integer(value: Any, minimum: int = 0, maximum: int | None = None) -> bool:
+    return (
+        type(value) is int
+        and value >= minimum
+        and (maximum is None or value <= maximum)
+    )
+
+
+def is_entity_id(value: Any) -> bool:
+    return isinstance(value, str) and ENTITY_ID_PATTERN.fullmatch(value) is not None
+
+
+def validate_principal_identity(value: Any, expected_role: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("principal identity is not an object")
+    required = {
+        "principalId",
+        "role",
+        "identityDigest",
+        "implementationDigest",
+        "instanceId",
+    }
+    if frozenset(value) not in {
+        frozenset(required),
+        frozenset(required | {"modelIdentityHash"}),
+    }:
+        raise ValueError("principal identity keys violate the closed schema")
+    model_identity = value.get("modelIdentityHash")
+    if (
+        not is_entity_id(value.get("principalId"))
+        or value.get("role") != expected_role
+        or not isinstance(value.get("identityDigest"), str)
+        or SHA256_PATTERN.fullmatch(value["identityDigest"]) is None
+        or not isinstance(value.get("implementationDigest"), str)
+        or SHA256_PATTERN.fullmatch(value["implementationDigest"]) is None
+        or not is_entity_id(value.get("instanceId"))
+        or (
+            "modelIdentityHash" in value
+            and model_identity is not None
+            and (
+                not isinstance(model_identity, str)
+                or SHA256_PATTERN.fullmatch(model_identity) is None
+            )
+        )
+    ):
+        raise ValueError("principal identity violates the closed schema")
+
+
+def validate_audit_link(value: Any) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("audit link is not an object")
+    require_exact_keys(
+        value,
+        {
+            "protocolId",
+            "logId",
+            "sequence",
+            "recordHash",
+            "previousRecordHash",
+        },
+        "audit link",
+    )
+    if (
+        not isinstance(value.get("protocolId"), str)
+        or PROTOCOL_ID_PATTERN.fullmatch(value["protocolId"]) is None
+        or not is_entity_id(value.get("logId"))
+        or not is_integer(value.get("sequence"))
+        or not isinstance(value.get("recordHash"), str)
+        or SHA256_PATTERN.fullmatch(value["recordHash"]) is None
+        or (
+            value.get("previousRecordHash") is not None
+            and (
+                not isinstance(value["previousRecordHash"], str)
+                or SHA256_PATTERN.fullmatch(value["previousRecordHash"]) is None
+            )
+        )
+    ):
+        raise ValueError("audit link violates the closed schema")
+
+
+def validate_subject(value: Any, label: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} is not an object")
+    require_exact_keys(
+        value, {"subjectType", "subjectId", "subjectHash"}, label
+    )
+    if (
+        not isinstance(value.get("subjectType"), str)
+        or not 1 <= len(value["subjectType"]) <= 128
+        or not isinstance(value.get("subjectId"), str)
+        or not 1 <= len(value["subjectId"]) <= 256
+        or not isinstance(value.get("subjectHash"), str)
+        or SHA256_PATTERN.fullmatch(value["subjectHash"]) is None
+    ):
+        raise ValueError(f"{label} violates the closed schema")
+
+
 def parse_timestamp(value: Any, label: str) -> datetime:
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if (
+        not isinstance(value, str)
+        or UTC_TIMESTAMP_PATTERN.fullmatch(value) is None
+    ):
         raise ValueError(f"{label} is not a UTC timestamp")
     parsed = datetime.fromisoformat(value[:-1] + "+00:00")
     if parsed.tzinfo is None:
@@ -262,25 +371,24 @@ def validate_request_payload(payload: dict[str, Any]) -> None:
             common | {"subjectType", "subjectId", "subjectHash"},
             "append payload",
         )
-        if (
-            not isinstance(payload.get("subjectType"), str)
-            or not isinstance(payload.get("subjectId"), str)
-            or not isinstance(payload.get("subjectHash"), str)
-            or not payload["subjectHash"].startswith("sha256:")
-        ):
-            raise ValueError("invalid audit subject")
+        validate_subject(
+            {
+                "subjectType": payload.get("subjectType"),
+                "subjectId": payload.get("subjectId"),
+                "subjectHash": payload.get("subjectHash"),
+            },
+            "audit subject",
+        )
     elif operation == "verify_link":
         require_exact_keys(payload, common | {"link", "expected"}, "verify payload")
-        if not isinstance(payload.get("link"), dict) or not isinstance(
-            payload.get("expected"), dict
-        ):
-            raise ValueError("invalid audit verification payload")
+        validate_audit_link(payload.get("link"))
+        validate_subject(payload.get("expected"), "expected audit subject")
     elif operation == "verify_all":
         require_exact_keys(payload, common, "verify-all payload")
     else:
         raise ValueError("unsupported audit operation")
-    if payload.get("schemaVersion") != 1 or not isinstance(
-        payload.get("requestId"), str
+    if payload.get("schemaVersion") != 1 or not is_entity_id(
+        payload.get("requestId")
     ):
         raise ValueError("invalid audit payload version or request ID")
 
@@ -321,6 +429,10 @@ def authenticate_request(
         message.get("schemaVersion") != 1
         or message.get("wireProtocolVersion") != WIRE_PROTOCOL_VERSION
         or message.get("protocolId") != config["protocolId"]
+        or PROTOCOL_ID_PATTERN.fullmatch(message["protocolId"]) is None
+        or not is_entity_id(message.get("messageId"))
+        or not is_entity_id(message.get("correlationId"))
+        or message.get("causationId") is not None
     ):
         raise ValueError("wire protocol downgrade or manifest mismatch")
     if (
@@ -331,21 +443,29 @@ def authenticate_request(
     ):
         raise ValueError("audit request identity, role, or schema mismatch")
     if (
-        message.get("senderSequence") != expected_sequence
+        not is_integer(message.get("senderSequence"))
+        or message.get("senderSequence") != expected_sequence
         or not isinstance(message.get("nonce"), str)
+        or re.fullmatch(r"[A-Za-z0-9_-]{22,64}", message["nonce"]) is None
         or message["nonce"] in seen_nonces
     ):
         raise ValueError("audit request replay or sequence mismatch")
     sent_at = parse_timestamp(message.get("sentAt"), "sentAt")
     expires_at = parse_timestamp(message.get("expiresAt"), "expiresAt")
     now = datetime.now(timezone.utc)
-    if sent_at > now + timedelta(seconds=5) or expires_at < now or expires_at <= sent_at:
+    if (
+        sent_at > now + timedelta(seconds=5)
+        or expires_at < now
+        or expires_at <= sent_at
+        or expires_at > sent_at + timedelta(seconds=30)
+    ):
         raise ValueError("audit request deadline invalid")
     payload = message.get("payload")
     if (
         not isinstance(payload, dict)
         or message.get("payloadHash") != sha256(payload)
         or message.get("payloadSizeBytes") != len(canonical(payload))
+        or not is_integer(message.get("payloadSizeBytes"), 2, MAX_FRAME_BYTES)
         or message.get("artifactRefs") != []
         or message.get("result") != {"status": "request", "error": None}
     ):
@@ -353,9 +473,16 @@ def authenticate_request(
     attestation = message.get("attestation")
     if (
         not isinstance(attestation, dict)
-        or attestation.get("keyId") != config["operationsKeyId"]
+    ):
+        raise ValueError("audit request attestation mismatch")
+    require_exact_keys(
+        attestation, {"keyId", "algorithm", "signature"}, "attestation"
+    )
+    if (
+        attestation.get("keyId") != config["operationsKeyId"]
         or attestation.get("algorithm") != "Ed25519"
         or not isinstance(attestation.get("signature"), str)
+        or SIGNATURE_PATTERN.fullmatch(attestation["signature"]) is None
     ):
         raise ValueError("audit request attestation mismatch")
     openssl_verify(
@@ -364,6 +491,8 @@ def authenticate_request(
         attestation["signature"],
     )
     validate_request_payload(payload)
+    if message["correlationId"] != payload["requestId"]:
+        raise ValueError("audit correlation does not bind its request ID")
     seen_nonces.add(message["nonce"])
     return payload
 
@@ -422,9 +551,29 @@ def validate_secret(path: str, expected_uid: int) -> None:
     if (
         not stat.S_ISREG(metadata.st_mode)
         or metadata.st_uid != expected_uid
+        or metadata.st_nlink != 1
         or stat.S_IMODE(metadata.st_mode) & 0o077
     ):
         raise PermissionError("audit key ownership or mode is invalid")
+
+
+def public_key_digest(path: str, *, private: bool) -> str:
+    arguments = ["/usr/bin/openssl", "pkey"]
+    if not private:
+        arguments.append("-pubin")
+    arguments.extend(["-in", path, "-pubout", "-outform", "DER"])
+    completed = subprocess.run(
+        arguments,
+        check=False,
+        capture_output=True,
+        env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+    )
+    if completed.returncode != 0:
+        raise ValueError(
+            "key identity derivation failed: "
+            + completed.stderr.decode("utf-8", errors="replace")[:1000]
+        )
+    return "sha256:" + hashlib.sha256(completed.stdout).hexdigest()
 
 
 def record_digest(core: dict[str, Any]) -> str:
@@ -668,10 +817,35 @@ def peer_credentials(connection: socket.socket) -> tuple[int, int, int]:
 
 
 def serve(arguments: argparse.Namespace) -> int:
+    config_metadata = os.stat(arguments.config, follow_symlinks=False)
+    if not stat.S_ISREG(config_metadata.st_mode) or config_metadata.st_nlink != 1:
+        raise PermissionError("audit config is not a single regular file")
     with open(arguments.config, "rb") as config_file:
         parsed = parse_canonical_json(config_file.read())
     if not isinstance(parsed, dict) or parsed.get("protocolId") != arguments.protocol_id:
         raise ValueError("audit configuration protocol mismatch")
+    require_exact_keys(
+        parsed,
+        {
+            "auditIdentity",
+            "auditKeyId",
+            "operationsIdentity",
+            "operationsKeyId",
+            "protocolId",
+        },
+        "audit config",
+    )
+    if (
+        not isinstance(parsed["protocolId"], str)
+        or PROTOCOL_ID_PATTERN.fullmatch(parsed["protocolId"]) is None
+        or not is_entity_id(parsed.get("auditKeyId"))
+        or not is_entity_id(parsed.get("operationsKeyId"))
+    ):
+        raise ValueError("audit configuration identity fields are invalid")
+    validate_principal_identity(parsed["auditIdentity"], "audit_store")
+    validate_principal_identity(
+        parsed["operationsIdentity"], "operations_owner"
+    )
     config = {
         **parsed,
         "auditPrivateKeyPath": arguments.private_key,
@@ -679,6 +853,22 @@ def serve(arguments: argparse.Namespace) -> int:
         "operationsPublicKeyPath": arguments.operations_public_key,
     }
     validate_secret(arguments.private_key, os.geteuid())
+    for public_key in (
+        arguments.audit_public_key,
+        arguments.operations_public_key,
+    ):
+        metadata = os.stat(public_key, follow_symlinks=False)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            raise PermissionError("audit public key path is not a regular file")
+    if (
+        public_key_digest(arguments.private_key, private=True)
+        != parsed["auditIdentity"]["identityDigest"]
+        or public_key_digest(arguments.audit_public_key, private=False)
+        != parsed["auditIdentity"]["identityDigest"]
+        or public_key_digest(arguments.operations_public_key, private=False)
+        != parsed["operationsIdentity"]["identityDigest"]
+    ):
+        raise PermissionError("audit key material does not match pinned identities")
     os.makedirs(arguments.log_directory, mode=0o700, exist_ok=True)
     directory_metadata = os.stat(arguments.log_directory, follow_symlinks=False)
     if (

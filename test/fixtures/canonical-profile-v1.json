@@ -11,6 +11,17 @@
       "sha256": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
     },
     {
+      "id": "prototype-named-keys",
+      "value": {
+        "__proto__": {
+          "safe": true
+        },
+        "constructor": "data"
+      },
+      "canonical": "{\"__proto__\":{\"safe\":true},\"constructor\":\"data\"}",
+      "sha256": "sha256:4031eca27621bff5408be0f899bbad794d1c312dae2e16daac500daed72f59fc"
+    },
+    {
       "id": "utf16-key-order",
       "value": {
         "": "bmp",

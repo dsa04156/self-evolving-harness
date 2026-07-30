@@ -208,7 +208,12 @@ class StrictJsonParser {
       );
       this.#offset += 1;
       this.#skipWhitespace();
-      result[key] = this.#parseValue(`${location}.${key}`);
+      Object.defineProperty(result, key, {
+        value: this.#parseValue(`${location}.${key}`),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
       this.#skipWhitespace();
       const separator = this.#source[this.#offset];
       if (separator === "}") {

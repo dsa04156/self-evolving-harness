@@ -104,6 +104,14 @@ def sign_challenge(private_key: str, challenge: str) -> str:
     return base64.urlsafe_b64encode(completed.stdout).decode("ascii").rstrip("=")
 
 
+def process_status_value(label: str) -> str:
+    with open("/proc/self/status", encoding="utf-8") as status:
+        for line in status:
+            if line.startswith(label + ":"):
+                return line.split(":", 1)[1].strip()
+    raise ValueError(f"process status has no {label}")
+
+
 def main() -> int:
     arguments = parse_arguments()
     metadata = os.stat(arguments.own_key, follow_symlinks=False)
@@ -133,6 +141,8 @@ def main() -> int:
         "challengeSignature": sign_challenge(
             arguments.own_key, arguments.challenge
         ),
+        "effectiveCapabilities": process_status_value("CapEff"),
+        "noNewPrivileges": process_status_value("NoNewPrivs"),
         "forbiddenReadsDenied": len(arguments.forbidden_read),
         "forbiddenWritesDenied": len(arguments.forbidden_write),
         "signalsDenied": len(arguments.target_pid),

@@ -11,6 +11,7 @@ import {
   PrincipalSigner,
   RandomIdFactory,
   SchemaRegistry,
+  sha256,
   type JsonValue,
   type PrincipalIdentity,
   type PublicPrincipal,
@@ -232,6 +233,25 @@ async function main(): Promise<void> {
       attestation["signature"] =
         "A".repeat(String(attestation["signature"]).length);
       mutable["attestation"] = attestation;
+    } else if (
+      mode === "schema_invalid" ||
+      mode === "snapshot_mismatch"
+    ) {
+      const payload = structuredClone(
+        mutable["payload"],
+      ) as Record<string, JsonValue>;
+      if (mode === "schema_invalid") {
+        payload["methodId"] = "B7";
+      } else {
+        payload["candidateFilesystemSnapshotHash"] = digest("f");
+      }
+      mutable["payload"] = payload;
+      mutable["payloadHash"] = sha256(payload);
+      mutable["payloadSizeBytes"] = canonicalBytes(payload).byteLength;
+      const { attestation: _attestation, ...unsigned } = mutable;
+      mutable["attestation"] = operations.attest(
+        unsigned as unknown as JsonValue,
+      ) as unknown as JsonValue;
     } else if (mode !== "wrong_key") {
       throw new Error(`unknown adversarial mode ${mode}`);
     }

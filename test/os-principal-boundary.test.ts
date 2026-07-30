@@ -35,6 +35,55 @@ async function writeCanonical(file: string, value: JsonValue): Promise<void> {
   await writeFile(file, canonicalBytes(value), { mode: 0o600 });
 }
 
+async function restoreFixtureOwnership(root: string): Promise<void> {
+  const script = [
+    "import os,stat,sys",
+    "root=sys.argv[1]",
+    "for current,dirs,files in os.walk(root,topdown=False):",
+    " for name in files:",
+    "  path=os.path.join(current,name)",
+    "  try: os.chown(path,0,0,follow_symlinks=False)",
+    "  except FileNotFoundError: pass",
+    " for name in dirs:",
+    "  path=os.path.join(current,name)",
+    "  try:",
+    "   os.chown(path,0,0,follow_symlinks=False)",
+    "   os.chmod(path,stat.S_IMODE(os.lstat(path).st_mode)|0o700)",
+    "  except FileNotFoundError: pass",
+    "os.chown(root,0,0,follow_symlinks=False)",
+    "os.chmod(root,stat.S_IMODE(os.lstat(root).st_mode)|0o700)",
+  ].join("\n");
+  const child = spawn(
+    "/usr/bin/rootlesskit",
+    [
+      "--subid-source=static",
+      "/usr/bin/python3",
+      "-c",
+      script,
+      root,
+    ],
+    {
+      env: {
+        PATH: "/usr/bin:/bin",
+        LANG: "C.UTF-8",
+        LC_ALL: "C.UTF-8",
+        TZ: "UTC",
+      },
+      stdio: ["ignore", "ignore", "pipe"],
+    },
+  );
+  const stderr: Buffer[] = [];
+  child.stderr.on("data", (chunk: Buffer) => stderr.push(Buffer.from(chunk)));
+  const exitCode = await new Promise<number | null>((resolve) =>
+    child.once("close", resolve),
+  );
+  assert.equal(
+    exitCode,
+    0,
+    `fixture ownership recovery failed: ${Buffer.concat(stderr).toString("utf8")}`,
+  );
+}
+
 test(
   "subordinate UIDs enforce role keys, authenticated sockets, namespaces and denials",
   {
@@ -67,6 +116,7 @@ test(
       snapshotDescriptor as unknown as JsonValue,
     );
     t.after(async () => {
+      await restoreFixtureOwnership(root);
       await worktrees.disposeMaterializedSnapshot(snapshot).catch(() => undefined);
       await worktrees.dispose(candidate).catch(() => undefined);
       await rm(root, { recursive: true, force: true });
@@ -195,6 +245,8 @@ test(
         path.resolve("."),
         "--python-root",
         pythonRoot,
+        "--node-executable",
+        process.execPath,
       ],
       {
         env: {
@@ -236,6 +288,8 @@ test(
           uid: number;
           challenge: string;
           challengeSignature: string;
+          effectiveCapabilities: string;
+          noNewPrivileges: string;
           forbiddenReadsDenied: number;
           forbiddenWritesDenied: number;
           signalsDenied: number;
@@ -245,6 +299,7 @@ test(
       >;
       integration: {
         isolationClass: string;
+        nodeVersion: string;
         operationsUid: number;
         auditPeer: { uid: number };
         evaluatorPeer: { uid: number };
@@ -274,6 +329,7 @@ test(
       ),
     );
     assert.equal(evidence.integration.isolationClass, "os_enforced_external");
+    assert.equal(evidence.integration.nodeVersion, "v24.18.1");
     assert.equal(evidence.integration.operationsUid, roleUids.operations);
     assert.equal(evidence.integration.auditPeer.uid, roleUids.audit);
     assert.equal(evidence.integration.evaluatorPeer.uid, roleUids.evaluator);
@@ -303,13 +359,15 @@ test(
         ),
         true,
       );
+      assert.equal(probe.effectiveCapabilities, "0000000000000000");
+      assert.equal(probe.noNewPrivileges, "1");
       assert.equal(probe.forbiddenReadsDenied, 4);
       assert.equal(probe.forbiddenWritesDenied, 4);
       assert.ok(probe.signalsDenied >= 1);
       assert.equal(probe.ptraceDenied, probe.signalsDenied);
       assert.notEqual(probe.networkDenied, "");
     }
-    assert.equal(evidence.adversarial.length, 9);
+    assert.equal(evidence.adversarial.length, 11);
     assert.ok(
       evidence.adversarial.every(
         (item) => item.rejectedWithoutFinalResult,

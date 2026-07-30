@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
+import re
 import socket
 import stat
 import struct
@@ -37,6 +38,62 @@ RESPONSE_SCHEMA_ID = (
     "evaluator-response-payload.schema.json"
 )
 PEER_CREDENTIAL_FORMAT = "3i"
+ENTITY_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@/-]{2,159}$")
+SHA256_PATTERN = re.compile(r"^sha256:[a-f0-9]{64}$")
+HARNESS_ID_PATTERN = re.compile(r"^hv-sha256:[a-f0-9]{64}$")
+SNAPSHOT_ID_PATTERN = re.compile(r"^rss-sha256:[a-f0-9]{64}$")
+PROTOCOL_ID_PATTERN = re.compile(r"^protocol-sha256:[a-f0-9]{64}$")
+SIGNATURE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{80,128}$")
+UTC_TIMESTAMP_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+    r"[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,9})?Z$"
+)
+METHOD_IDS = {
+    "B0",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5-U",
+    "B5-SM",
+    "B6-ABL",
+    "B6",
+}
+MANIFEST_PIN_KEYS = {
+    "protocol",
+    "budget",
+    "modelConfiguration",
+    "split",
+    "evaluator",
+    "environment",
+    "toolchain",
+    "statisticalPlan",
+}
+USAGE_KEYS = {
+    "modelRequestAttempts",
+    "completedModelCalls",
+    "failedModelCalls",
+    "cancelledModelCalls",
+    "inputTokens",
+    "outputTokens",
+    "reasoningTokens",
+    "cachedInputTokens",
+    "totalChargedTokens",
+    "providerCostMicros",
+    "toolCalls",
+    "feedbackEvents",
+    "wallClockMillis",
+}
+VIOLATION_KINDS = {
+    "safety",
+    "permission",
+    "budget",
+    "manifest",
+    "state_snapshot",
+    "data_access",
+    "audit",
+    "protocol",
+}
 
 
 def canonical(value: Any) -> bytes:
@@ -245,7 +302,10 @@ def unsigned(message: dict[str, Any]) -> dict[str, Any]:
 
 
 def parse_timestamp(value: Any, label: str) -> datetime:
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if (
+        not isinstance(value, str)
+        or UTC_TIMESTAMP_PATTERN.fullmatch(value) is None
+    ):
         raise ValueError(f"{label} is not a UTC timestamp")
     parsed = datetime.fromisoformat(value[:-1] + "+00:00")
     if parsed.tzinfo is None:
@@ -259,6 +319,192 @@ def require_exact_keys(value: dict[str, Any], expected: set[str], label: str) ->
         missing = sorted(expected - actual)
         extra = sorted(actual - expected)
         raise ValueError(f"{label} keys mismatch missing={missing} extra={extra}")
+
+
+def is_integer(value: Any, minimum: int = 0, maximum: int | None = None) -> bool:
+    return (
+        type(value) is int
+        and value >= minimum
+        and (maximum is None or value <= maximum)
+    )
+
+
+def is_entity_id(value: Any) -> bool:
+    return isinstance(value, str) and ENTITY_ID_PATTERN.fullmatch(value) is not None
+
+
+def validate_principal_identity(value: Any, expected_role: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("principal identity is not an object")
+    required = {
+        "principalId",
+        "role",
+        "identityDigest",
+        "implementationDigest",
+        "instanceId",
+    }
+    if frozenset(value) not in {
+        frozenset(required),
+        frozenset(required | {"modelIdentityHash"}),
+    }:
+        raise ValueError("principal identity keys violate the closed schema")
+    model_identity = value.get("modelIdentityHash")
+    if (
+        not is_entity_id(value.get("principalId"))
+        or value.get("role") != expected_role
+        or not isinstance(value.get("identityDigest"), str)
+        or SHA256_PATTERN.fullmatch(value["identityDigest"]) is None
+        or not isinstance(value.get("implementationDigest"), str)
+        or SHA256_PATTERN.fullmatch(value["implementationDigest"]) is None
+        or not is_entity_id(value.get("instanceId"))
+        or (
+            "modelIdentityHash" in value
+            and model_identity is not None
+            and (
+                not isinstance(model_identity, str)
+                or SHA256_PATTERN.fullmatch(model_identity) is None
+            )
+        )
+    ):
+        raise ValueError("principal identity violates the closed schema")
+
+
+def validate_unique_strings(
+    value: Any,
+    label: str,
+    *,
+    minimum_items: int,
+    pattern: re.Pattern[str] | None = None,
+) -> None:
+    if (
+        not isinstance(value, list)
+        or len(value) < minimum_items
+        or any(not isinstance(item, str) for item in value)
+        or len(set(value)) != len(value)
+        or (
+            pattern is not None
+            and any(pattern.fullmatch(item) is None for item in value)
+        )
+    ):
+        raise ValueError(f"{label} is not a unique canonical string list")
+
+
+def validate_usage(value: Any) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("usage is not an object")
+    require_exact_keys(value, USAGE_KEYS, "usage")
+    if any(not is_integer(item) for item in value.values()):
+        raise ValueError("usage contains a non-integer or negative value")
+    if value["modelRequestAttempts"] != (
+        value["completedModelCalls"]
+        + value["failedModelCalls"]
+        + value["cancelledModelCalls"]
+    ):
+        raise ValueError("usage model-attempt accounting does not balance")
+
+
+def validate_manifest_pins(value: Any) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("manifest pins are not an object")
+    require_exact_keys(value, MANIFEST_PIN_KEYS, "manifest pins")
+    if any(
+        not isinstance(item, str) or SHA256_PATTERN.fullmatch(item) is None
+        for item in value.values()
+    ):
+        raise ValueError("manifest pin is not a SHA-256 digest")
+
+
+def validate_task_pairs(value: Any, rollout_seeds: list[int]) -> None:
+    if not isinstance(value, list) or not 1 <= len(value) <= 10_000:
+        raise ValueError("task pair count is outside the closed schema")
+    seen: set[tuple[str, int]] = set()
+    for pair in value:
+        if not isinstance(pair, dict):
+            raise ValueError("task pair is not an object")
+        require_exact_keys(
+            pair,
+            {
+                "opaqueTaskHandleHash",
+                "rolloutSeed",
+                "parentPassed",
+                "candidatePassed",
+                "parentReceiptId",
+                "candidateReceiptId",
+            },
+            "task pair",
+        )
+        key = (pair.get("opaqueTaskHandleHash"), pair.get("rolloutSeed"))
+        if (
+            not isinstance(key[0], str)
+            or SHA256_PATTERN.fullmatch(key[0]) is None
+            or not is_integer(key[1])
+            or key[1] not in rollout_seeds
+            or type(pair.get("parentPassed")) is not bool
+            or type(pair.get("candidatePassed")) is not bool
+            or not is_entity_id(pair.get("parentReceiptId"))
+            or not is_entity_id(pair.get("candidateReceiptId"))
+            or key in seen
+        ):
+            raise ValueError("task pair violates its closed schema")
+        seen.add(key)
+
+
+def validate_violations(value: Any) -> None:
+    if not isinstance(value, list):
+        raise ValueError("violations are not an array")
+    for violation in value:
+        if not isinstance(violation, dict):
+            raise ValueError("violation is not an object")
+        require_exact_keys(
+            violation, {"kind", "count", "receiptIds"}, "violation"
+        )
+        if (
+            violation.get("kind") not in VIOLATION_KINDS
+            or not is_integer(violation.get("count"))
+        ):
+            raise ValueError("violation metadata is invalid")
+        validate_unique_strings(
+            violation.get("receiptIds"),
+            "violation receipt IDs",
+            minimum_items=0,
+        )
+        if any(
+            not is_entity_id(receipt_id)
+            for receipt_id in violation["receiptIds"]
+        ):
+            raise ValueError("violation receipt ID is invalid")
+
+
+def validate_audit_link(value: Any) -> None:
+    if not isinstance(value, dict):
+        raise ValueError("audit link is not an object")
+    require_exact_keys(
+        value,
+        {
+            "protocolId",
+            "logId",
+            "sequence",
+            "recordHash",
+            "previousRecordHash",
+        },
+        "audit link",
+    )
+    if (
+        not isinstance(value.get("protocolId"), str)
+        or not value["protocolId"].startswith("protocol-sha256:")
+        or not is_entity_id(value.get("logId"))
+        or not is_integer(value.get("sequence"))
+        or not isinstance(value.get("recordHash"), str)
+        or SHA256_PATTERN.fullmatch(value["recordHash"]) is None
+        or (
+            value.get("previousRecordHash") is not None
+            and (
+                not isinstance(value["previousRecordHash"], str)
+                or SHA256_PATTERN.fullmatch(value["previousRecordHash"]) is None
+            )
+        )
+    ):
+        raise ValueError("audit link violates its closed schema")
 
 
 def validate_request_payload(payload: dict[str, Any]) -> None:
@@ -290,20 +536,67 @@ def validate_request_payload(payload: dict[str, Any]) -> None:
             },
             "evaluate payload",
         )
+        snapshot_hash = payload.get("candidateFilesystemSnapshotHash")
+        rollout_seeds = payload.get("rolloutSeeds")
         if (
             payload.get("schemaVersion") != 1
             or payload.get("datasetRole") != "deterministic"
             or payload.get("phase") != "deterministic"
+            or not is_entity_id(payload.get("requestId"))
+            or not is_entity_id(payload.get("evaluationResultId"))
+            or payload.get("methodId") not in METHOD_IDS
+            or not isinstance(payload.get("parentHarnessVersionId"), str)
+            or HARNESS_ID_PATTERN.fullmatch(
+                payload["parentHarnessVersionId"]
+            )
+            is None
+            or not isinstance(payload.get("candidateHarnessVersionId"), str)
+            or HARNESS_ID_PATTERN.fullmatch(
+                payload["candidateHarnessVersionId"]
+            )
+            is None
             or (
-                payload.get("candidateFilesystemSnapshotHash") is not None
-                and not isinstance(
-                    payload.get("candidateFilesystemSnapshotHash"), str
+                snapshot_hash is not None
+                and (
+                    not isinstance(snapshot_hash, str)
+                    or SHA256_PATTERN.fullmatch(snapshot_hash) is None
                 )
             )
+            or not isinstance(rollout_seeds, list)
+            or not rollout_seeds
+            or any(not is_integer(seed) for seed in rollout_seeds)
+            or len(set(rollout_seeds)) != len(rollout_seeds)
         ):
             raise ValueError("unsupported evaluate payload version or data role")
-        if not isinstance(payload.get("taskPairs"), list) or not payload["taskPairs"]:
-            raise ValueError("evaluate payload requires task pairs")
+        validate_unique_strings(
+            payload.get("runtimeStateSnapshotIds"),
+            "runtime-state snapshot IDs",
+            minimum_items=1,
+            pattern=SNAPSHOT_ID_PATTERN,
+        )
+        validate_manifest_pins(payload.get("manifestPins"))
+        validate_task_pairs(payload.get("taskPairs"), rollout_seeds)
+        validate_usage(payload.get("totalUsage"))
+        lower = payload.get("pairedCi95LowerPercentagePointMicros")
+        upper = payload.get("pairedCi95UpperPercentagePointMicros")
+        if (
+            not is_integer(lower, -100_000_000, 100_000_000)
+            or not is_integer(upper, -100_000_000, 100_000_000)
+            or lower > upper
+        ):
+            raise ValueError("paired confidence interval is invalid")
+        validate_unique_strings(
+            payload.get("sourceEvidenceReceiptIds"),
+            "source evidence receipt IDs",
+            minimum_items=1,
+        )
+        if any(
+            not is_entity_id(receipt_id)
+            for receipt_id in payload["sourceEvidenceReceiptIds"]
+        ):
+            raise ValueError("source evidence receipt ID is invalid")
+        validate_violations(payload.get("violations"))
+        parse_timestamp(payload.get("createdAt"), "createdAt")
     elif operation == "finalize":
         require_exact_keys(
             payload,
@@ -316,8 +609,14 @@ def validate_request_payload(payload: dict[str, Any]) -> None:
             },
             "finalize payload",
         )
-        if payload.get("schemaVersion") != 1:
+        if (
+            payload.get("schemaVersion") != 1
+            or not is_entity_id(payload.get("requestId"))
+            or not isinstance(payload.get("coreHash"), str)
+            or SHA256_PATTERN.fullmatch(payload["coreHash"]) is None
+        ):
             raise ValueError("unsupported finalize payload version")
+        validate_audit_link(payload.get("auditLink"))
     else:
         raise ValueError("unsupported evaluator operation")
 
@@ -358,6 +657,10 @@ def authenticate_request_envelope(
         message.get("schemaVersion") != 1
         or message.get("wireProtocolVersion") != WIRE_PROTOCOL_VERSION
         or message.get("protocolId") != config["protocolId"]
+        or PROTOCOL_ID_PATTERN.fullmatch(message["protocolId"]) is None
+        or not is_entity_id(message.get("messageId"))
+        or not is_entity_id(message.get("correlationId"))
+        or message.get("causationId") is not None
     ):
         raise ValueError("wire protocol downgrade or manifest mismatch")
     if (
@@ -378,7 +681,11 @@ def authenticate_request_envelope(
     sent_at = parse_timestamp(message.get("sentAt"), "sentAt")
     expires_at = parse_timestamp(message.get("expiresAt"), "expiresAt")
     now = datetime.now(timezone.utc)
-    if expires_at < sent_at or sent_at > now + timedelta(seconds=30):
+    if (
+        expires_at < sent_at
+        or expires_at > sent_at + timedelta(seconds=30)
+        or sent_at > now + timedelta(seconds=30)
+    ):
         raise ValueError("invalid evaluator request time range")
     if expires_at < now:
         raise TimeoutError("evaluator request expired")
@@ -389,15 +696,19 @@ def authenticate_request_envelope(
     if (
         attestation.get("algorithm") != "Ed25519"
         or attestation.get("keyId") != config["operationsKeyId"]
+        or not isinstance(attestation.get("signature"), str)
+        or SIGNATURE_PATTERN.fullmatch(attestation["signature"]) is None
     ):
         raise ValueError("request key mismatch")
-    if message.get("senderSequence") != expected_sequence:
+    if (
+        not is_integer(message.get("senderSequence"))
+        or message.get("senderSequence") != expected_sequence
+    ):
         raise ValueError("request sequence mismatch")
     nonce = message.get("nonce")
     if (
         not isinstance(nonce, str)
-        or len(nonce) < 22
-        or len(nonce) > 64
+        or re.fullmatch(r"[A-Za-z0-9_-]{22,64}", nonce) is None
         or nonce in seen_nonces
     ):
         raise ValueError("request replay detected")
@@ -408,9 +719,12 @@ def authenticate_request_envelope(
     if (
         message.get("payloadHash") != sha256(payload)
         or message.get("payloadSizeBytes") != len(payload_bytes)
+        or not is_integer(message.get("payloadSizeBytes"), 2, MAX_FRAME_BYTES)
     ):
         raise ValueError("request payload hash or size mismatch")
     validate_request_payload(payload)
+    if message["correlationId"] != payload["requestId"]:
+        raise ValueError("request correlation does not bind its request ID")
     openssl_verify(
         config["operationsPublicKeyPath"],
         canonical(unsigned(message)),
@@ -642,10 +956,31 @@ def validate_secret_file(path: str, expected_uid: int) -> None:
     metadata = os.stat(path, follow_symlinks=False)
     if not stat.S_ISREG(metadata.st_mode):
         raise PermissionError(f"key path is not a regular file: {path}")
+    if metadata.st_nlink != 1:
+        raise PermissionError(f"key path is hard-linked: {path}")
     if metadata.st_uid != expected_uid:
         raise PermissionError(f"key owner mismatch: {path}")
     if stat.S_IMODE(metadata.st_mode) & 0o077:
         raise PermissionError(f"key is accessible outside its owner: {path}")
+
+
+def public_key_digest(path: str, *, private: bool) -> str:
+    arguments = ["/usr/bin/openssl", "pkey"]
+    if not private:
+        arguments.append("-pubin")
+    arguments.extend(["-in", path, "-pubout", "-outform", "DER"])
+    completed = subprocess.run(
+        arguments,
+        check=False,
+        capture_output=True,
+        env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+    )
+    if completed.returncode != 0:
+        raise ValueError(
+            "key identity derivation failed: "
+            + completed.stderr.decode("utf-8", errors="replace")[:1000]
+        )
+    return "sha256:" + hashlib.sha256(completed.stdout).hexdigest()
 
 
 def is_lower_hex(value: Any, lengths: set[int]) -> bool:
@@ -661,6 +996,12 @@ def verify_filesystem_snapshot(
     descriptor_path: str,
     expected_hash: str,
 ) -> str:
+    descriptor_metadata = os.stat(descriptor_path, follow_symlinks=False)
+    if (
+        not stat.S_ISREG(descriptor_metadata.st_mode)
+        or descriptor_metadata.st_nlink != 1
+    ):
+        raise PermissionError("filesystem snapshot descriptor is not a single regular file")
     with open(descriptor_path, "rb") as descriptor_file:
         descriptor = parse_canonical_json(descriptor_file.read())
     if not isinstance(descriptor, dict):
@@ -881,13 +1222,39 @@ def evaluator_loop(
 
 
 def serve_unix(arguments: argparse.Namespace) -> int:
+    config_metadata = os.stat(arguments.config, follow_symlinks=False)
+    if not stat.S_ISREG(config_metadata.st_mode) or config_metadata.st_nlink != 1:
+        raise PermissionError("evaluator config is not a single regular file")
     with open(arguments.config, "rb") as config_file:
         config_bytes = config_file.read()
     parsed_config = parse_canonical_json(config_bytes)
     if not isinstance(parsed_config, dict):
         raise ValueError("evaluator config is not an object")
+    require_exact_keys(
+        parsed_config,
+        {
+            "evaluatorIdentity",
+            "evaluatorKeyId",
+            "operationsIdentity",
+            "operationsKeyId",
+            "protocolId",
+            "candidateFilesystemSnapshotHash",
+        },
+        "evaluator config",
+    )
     if parsed_config.get("protocolId") != arguments.protocol_id:
         raise ValueError("evaluator configuration protocol mismatch")
+    if (
+        not isinstance(parsed_config["protocolId"], str)
+        or PROTOCOL_ID_PATTERN.fullmatch(parsed_config["protocolId"]) is None
+        or not is_entity_id(parsed_config.get("evaluatorKeyId"))
+        or not is_entity_id(parsed_config.get("operationsKeyId"))
+    ):
+        raise ValueError("evaluator configuration identity fields are invalid")
+    validate_principal_identity(parsed_config["evaluatorIdentity"], "evaluator")
+    validate_principal_identity(
+        parsed_config["operationsIdentity"], "operations_owner"
+    )
     configured_snapshot = parsed_config.get("candidateFilesystemSnapshotHash")
     if configured_snapshot is None:
         if (
@@ -914,8 +1281,18 @@ def serve_unix(arguments: argparse.Namespace) -> int:
     }
     validate_secret_file(arguments.private_key, os.geteuid())
     public_key_metadata = os.stat(arguments.operations_public_key, follow_symlinks=False)
-    if not stat.S_ISREG(public_key_metadata.st_mode):
+    if (
+        not stat.S_ISREG(public_key_metadata.st_mode)
+        or public_key_metadata.st_nlink != 1
+    ):
         raise PermissionError("operations public key path is not a regular file")
+    if (
+        public_key_digest(arguments.private_key, private=True)
+        != parsed_config["evaluatorIdentity"]["identityDigest"]
+        or public_key_digest(arguments.operations_public_key, private=False)
+        != parsed_config["operationsIdentity"]["identityDigest"]
+    ):
+        raise PermissionError("evaluator key material does not match pinned identities")
 
     try:
         os.lstat(arguments.socket)
