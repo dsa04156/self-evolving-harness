@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/attribution-result.schema.json",
+  "title": "AttributionResult",
+  "description": "An external signed inference record. It is not a field asserted by candidate payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "attributionResultId",
+    "protocolId",
+    "harnessVersionId",
+    "failurePatternId",
+    "datasetRole",
+    "useClass",
+    "epistemicClass",
+    "rankedCandidates",
+    "metadata",
+    "producer",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "attributionResultId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "failurePatternId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "datasetRole": {
+      "$ref": "./common.schema.json#/$defs/datasetRole"
+    },
+    "useClass": {
+      "type": "string",
+      "enum": [
+        "proposal_input",
+        "protocol_readiness",
+        "final_reporting"
+      ]
+    },
+    "epistemicClass": {
+      "const": "inference"
+    },
+    "rankedCandidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rank",
+          "componentId",
+          "componentManifestId",
+          "typeEntryId",
+          "resolvedComponentType",
+          "score",
+          "hypothesizedMechanism",
+          "sourceEventIds",
+          "sourceReceiptIds"
+        ],
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "componentId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "componentManifestId": {
+            "$ref": "./common.schema.json#/$defs/componentManifestId"
+          },
+          "typeEntryId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "resolvedComponentType": {
+            "type": "string",
+            "enum": [
+              "SystemPrompt",
+              "ContextPolicy",
+              "MemoryRetrievalPolicy",
+              "Skill",
+              "WorkflowPolicy",
+              "RoutingPolicy",
+              "SubagentPrompt",
+              "ToolDescription"
+            ]
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "hypothesizedMechanism": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000
+          },
+          "sourceEventIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          },
+          "sourceReceiptIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "$ref": "./common.schema.json#/$defs/inferenceMetadata"
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "useClass": {
+            "const": "proposal_input"
+          }
+        },
+        "required": [
+          "useClass"
+        ]
+      },
+      "then": {
+        "properties": {
+          "datasetRole": {
+            "const": "mine"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "useClass": {
+            "const": "protocol_readiness"
+          }
+        },
+        "required": [
+          "useClass"
+        ]
+      },
+      "then": {
+        "properties": {
+          "datasetRole": {
+            "const": "gate"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "useClass": {
+            "const": "final_reporting"
+          }
+        },
+        "required": [
+          "useClass"
+        ]
+      },
+      "then": {
+        "properties": {
+          "datasetRole": {
+            "enum": [
+              "sealed_test",
+              "withheld_public_test",
+              "temporal_holdout"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

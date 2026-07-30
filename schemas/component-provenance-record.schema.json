@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/component-provenance-record.schema.json",
+  "title": "Append-Only ComponentProvenanceRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "protocolId",
+    "componentManifestId",
+    "sourceKind",
+    "parentComponentManifestId",
+    "mutationProposalId",
+    "sourceEvidenceReceiptIds",
+    "recordedBy",
+    "recordedAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "componentManifestId": {
+      "$ref": "./common.schema.json#/$defs/componentManifestId"
+    },
+    "sourceKind": {
+      "type": "string",
+      "enum": [
+        "bootstrap",
+        "human_authored",
+        "bounded_mutation",
+        "protocol_migration"
+      ]
+    },
+    "parentComponentManifestId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mutationProposalId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceEvidenceReceiptIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

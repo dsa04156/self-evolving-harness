@@ -1,0 +1,170 @@
+schemaVersion: 2
+protocolVersion: draft-1
+status: gate1r_structural_contract_pilot_pending
+
+seeds:
+  slotAndProposal:
+    - 1729
+    - 271828
+    - 314159
+    - 161803
+    - 57721
+  finalRolloutCount: PILOT_PENDING_BY_PRECISION_RULE
+  finalRolloutValues: PILOT_PENDING_AFTER_COUNT_FREEZE
+
+trackA:
+  kSolverAttemptSlotsPerTask: 5
+  b0DirectSlots: 1
+  equalHardCapMethods:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5-U
+    - B5-SM
+    - B6-ABL
+    - B6
+  standardizedFeedback:
+    fields:
+      - binary_outcome
+      - closed_failure_class
+      - usage
+    maximumPacketsPerTask: 5
+  artifactReuseAcrossTasks: false
+
+trackB:
+  kCandidateManifestsPerMethod: 5
+  equalDevelopmentCapMethods:
+    - B4
+    - B5-U
+    - B5-SM
+    - B6-ABL
+    - B6
+  gateBatchesPerMethod: 1
+  gateEvaluationsPerCandidate: 1
+  adaptiveReplacementCandidates: 0
+  selectedArtifactsPerMethod: 1
+  finalTrajectoriesPerTaskPerRolloutSeed: 1
+  finalRetryReflectionMutation: false
+  b0EvolutionCost: 0
+
+identity:
+  provider: PILOT_PENDING
+  modelId: PILOT_PENDING
+  modelRevision: PILOT_PENDING
+  serviceTier: PILOT_PENDING
+  reproducibilityTier: PILOT_PENDING
+  parameters:
+    reasoningEffort: PILOT_PENDING
+    temperature: PILOT_PENDING
+    topP: PILOT_PENDING
+
+phases:
+  mine_trace_generation: &pendingCaps
+    providerModelRequestAttempts: PILOT_PENDING
+    totalChargedTokens: PILOT_PENDING
+    providerCostMicros: PILOT_PENDING
+    toolAttempts: PILOT_PENDING
+    feedbackEvents: PILOT_PENDING
+    wallClockSeconds: PILOT_PENDING
+    processCount: PILOT_PENDING
+    cpuSeconds: PILOT_PENDING
+    memoryMiB: PILOT_PENDING
+    outputBytes: PILOT_PENDING
+  evidence_summarization: *pendingCaps
+  weakness_mining: *pendingCaps
+  attribution: *pendingCaps
+  proposal: *pendingCaps
+  static_validation: *pendingCaps
+  gate_evaluation: *pendingCaps
+  gate_selection: *pendingCaps
+  offline_canary: *pendingCaps
+  track_a_task_search: *pendingCaps
+  final_solving: *pendingCaps
+  temporal_replication: *pendingCaps
+
+perRequest:
+  rolloutTokenCapT: PILOT_PENDING
+  reservationRequired: true
+  missingUsageChargesFullReservation: true
+
+tokenAccounting:
+  formula: uncached_input_plus_cached_input_plus_output_plus_nonoverlapping_reasoning
+  countCachedAtFullTokenCapWeight: true
+  preventReasoningOutputDoubleCount: true
+  failedWithUsageChargeMaximumOfReportedAndObserved: true
+  failedWithoutUsageChargeReservation: true
+  cancelledWithoutUsageChargeReservation: true
+  retriesAreNewChargedRequests: true
+  cacheHitsChargedSymmetrically: true
+  chargedRoles:
+    - solver
+    - proposer
+    - summarizer
+    - weakness_miner
+    - attribution
+    - judge
+    - reflection
+    - subagent
+    - background_job
+
+toolAccounting:
+  chargeAfterSchemaAdmissionBeforeDispatch: true
+  chargeDeniedFailedTimedOutAttempts: true
+  chargeFilesystemShellGitSubagentBackgroundAndBrokerOperations: true
+
+feedbackAccounting:
+  chargeCandidateEvaluationRelease: true
+  chargeSelectionPacket: true
+  chargeFailedAndCancelledRelease: true
+
+reallocation:
+  acrossPhases: false
+  acrossTasks: false
+  acrossCandidates: false
+  acrossSeeds: false
+  acrossMethods: false
+  acrossTracks: false
+  unusedBudgetExpires: true
+  paddingCallsForbidden: true
+
+deterministicCompute:
+  reportedSeparately: true
+  convertedToModelTokens: false
+  fields:
+    - verifier_cpu_seconds
+    - validator_cpu_seconds
+    - peak_memory_mib
+    - wall_clock_seconds
+
+candidateCostGate:
+  scalar: mean_total_charged_tokens_over_all_gate_tasks
+  epsilonTokens: 1
+  normalMaximumRatio: 1.10
+  highCostException:
+    minimumPassCountIncrease: 1
+    minimumNetFailToPassMinusPassToFail: 1
+    minimumSmoothedSuccessPerTokenRatioImprovement: 1.05
+  safetyPermissionDataImmutableAuditViolationMaximum: 0
+
+environment:
+  containerImageDigest: PILOT_PENDING
+  toolchainDigest: PILOT_PENDING
+  networkPolicyDigest: PILOT_PENDING
+  clockPolicy: runtime_state_snapshot
+
+pilotPendingFields:
+  - seeds.finalRolloutCount
+  - seeds.finalRolloutValues
+  - identity
+  - phases
+  - perRequest.rolloutTokenCapT
+  - environment
+  - statisticalMargins
+  - h4SecondModelIdentity
+
+amendmentRule:
+  fillOnlyFromMineOrDedicatedPilot: true
+  freezeBeforeGateAndFinalAccess: true
+  postFreezeChangeRequiresNewProtocolId: true
+  crossProtocolConfirmatoryPoolingForbidden: true

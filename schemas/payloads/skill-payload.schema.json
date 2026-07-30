@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/skill-payload.schema.json",
+  "title": "SEH Declarative Skill Payload v1",
+  "description": "A skill is model guidance and finite checks, never executable code or a package.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "skillId",
+    "summary",
+    "allowedToolIds",
+    "steps",
+    "completionChecks"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.skill.v1"
+    },
+    "skillId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "allowedToolIds": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stepId",
+          "kind",
+          "instruction"
+        ],
+        "properties": {
+          "stepId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "instruction",
+              "tool_guidance",
+              "evidence_check",
+              "completion_check"
+            ]
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "toolId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tool_guidance"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "toolId"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "toolId"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "completionChecks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    }
+  }
+}

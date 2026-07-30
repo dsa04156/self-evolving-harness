@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/harness-component.schema.json",
+  "title": "Immutable ComponentManifest",
+  "description": "The componentManifestId is SHA-256 over RFC 8785 canonical bytes of identity only. Lifecycle, provenance, evaluation, and activation records are external.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "componentManifestId",
+    "identity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "componentManifestId": {
+      "$ref": "./common.schema.json#/$defs/componentManifestId"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalizationProfile",
+        "componentId",
+        "semanticVersion",
+        "typeRegistryRef",
+        "payload",
+        "dependencies",
+        "behaviorClosure"
+      ],
+      "properties": {
+        "canonicalizationProfile": {
+          "const": "seh-jcs-v1"
+        },
+        "componentId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "semanticVersion": {
+          "$ref": "./common.schema.json#/$defs/semanticVersion"
+        },
+        "typeRegistryRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "typeRegistryId",
+            "typeRegistryHash",
+            "typeEntryId"
+          ],
+          "properties": {
+            "typeRegistryId": {
+              "$ref": "./common.schema.json#/$defs/typeRegistryId"
+            },
+            "typeRegistryHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "typeEntryId": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "language",
+            "artifact",
+            "capabilityDigest"
+          ],
+          "properties": {
+            "language": {
+              "type": "string",
+              "enum": [
+                "seh.normalized-text.v1",
+                "seh.prompt-markdown.v1",
+                "seh.context-policy.v1",
+                "seh.memory-retrieval-policy.v1",
+                "seh.skill.v1",
+                "seh.workflow.v1",
+                "seh.routing-policy.v1",
+                "seh.tool-description.v1",
+                "seh.policy-json.v1",
+                "seh.immutable-artifact.v1"
+              ]
+            },
+            "artifact": {
+              "$ref": "./common.schema.json#/$defs/artifactRef"
+            },
+            "capabilityDigest": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relation",
+              "component"
+            ],
+            "properties": {
+              "relation": {
+                "type": "string",
+                "enum": [
+                  "requires",
+                  "extends",
+                  "uses_schema",
+                  "uses_description"
+                ]
+              },
+              "component": {
+                "$ref": "./common.schema.json#/$defs/componentRef"
+              }
+            }
+          }
+        },
+        "behaviorClosure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "closureHash",
+            "componentCount",
+            "artifactCount",
+            "canonicalBytes"
+          ],
+          "properties": {
+            "closureHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "componentCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "artifactCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16384
+            },
+            "canonicalBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1073741824
+            }
+          }
+        }
+      }
+    }
+  }
+}

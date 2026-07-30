@@ -1,0 +1,31 @@
+# GPT Pro Architect Thread
+
+- destination: ChatGPT.com
+- transport: Oracle CLI 0.16.1 direct remote-Chrome connection
+- model target: GPT-5.6 Sol Pro via Oracle alias `gpt-5-pro`
+- topic id: self-evolving-harness-architecture
+- status: gate1r_ready_for_resubmission
+- slug family: self-evolving-harness-gate1
+- active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
+- previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
+- oracle latest session id: self-evolving-harness-gate1-fresh
+- oracle session ids: self-evolving-harness-gate1-fresh
+- browser reuse mode: direct-remote-cdp
+- browser endpoint: 127.0.0.1:9222
+- browser owner: pre-existing local architect Chrome
+- browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
+- reuse required: true
+- new window allowed: false unless explicitly approved
+- last reuse preflight: `--remote-chrome 127.0.0.1:9222 --browser-tab 4BA3...`; dry-run confirmed exact tab reuse and no local launch
+- new windows opened this topic: 0; one new tab opened for the new project topic
+- created: 2026-07-30
+- updated: 2026-07-30
+- last packet: `.codex/gpt-pro-architect/packets/packet-1.md`
+- next packet: `.codex/gpt-pro-architect/packets/packet-1r.md`
+- next packet sha256: `877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242`
+- next packet manifest: `architect/PACKET_01R_MANIFEST.json`
+- approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
+- archive policy: never while active
+- reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
+- continuation limitation: Oracle `--browser-attach-running` searches only the invoking user's config roots and could not find the pre-existing profile under `/home/etri`; direct `--remote-chrome` exact-tab reuse is required
+- model evidence: Oracle 0.16.1; requested `gpt-5-pro`; dry-run resolved browser `gpt-5-pro`; live harvest reported `Model: Pro`; server-side generation identity remains vendor-opaque

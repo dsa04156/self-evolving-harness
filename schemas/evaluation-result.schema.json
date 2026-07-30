@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evaluation-result.schema.json",
+  "title": "EvaluationResult",
+  "description": "Evaluator-authenticated result external to HarnessVersion identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evaluationResultId",
+    "protocolId",
+    "track",
+    "phase",
+    "methodId",
+    "datasetRole",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "runtimeStateSnapshotIds",
+    "rolloutSeeds",
+    "epistemicClass",
+    "validity",
+    "manifestPins",
+    "taskPairs",
+    "aggregate",
+    "attributionMetrics",
+    "usageByPhaseRole",
+    "totalUsage",
+    "deterministicCompute",
+    "feedbackEvents",
+    "gateChecks",
+    "violations",
+    "evaluator",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "evaluationResultId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "track": {
+      "type": "string",
+      "enum": [
+        "contract",
+        "A",
+        "B",
+        "temporal"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "pilot",
+        "mine",
+        "gate",
+        "offline_canary",
+        "final",
+        "temporal_replication",
+        "deterministic"
+      ]
+    },
+    "methodId": {
+      "type": "string",
+      "enum": [
+        "B0",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5-U",
+        "B5-SM",
+        "B6-ABL",
+        "B6"
+      ]
+    },
+    "datasetRole": {
+      "$ref": "./common.schema.json#/$defs/datasetRole"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "runtimeStateSnapshotIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^rss-sha256:[a-f0-9]{64}$"
+      }
+    },
+    "rolloutSeeds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "epistemicClass": {
+      "const": "verifier_outcome"
+    },
+    "validity": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "invalid_protocol",
+        "invalid_manifest",
+        "invalid_state_snapshot",
+        "invalid_budget",
+        "invalid_evidence",
+        "invalid_data_access",
+        "incomplete"
+      ]
+    },
+    "manifestPins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol",
+        "budget",
+        "modelConfiguration",
+        "split",
+        "evaluator",
+        "environment",
+        "toolchain",
+        "statisticalPlan"
+      ],
+      "properties": {
+        "protocol": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "budget": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "modelConfiguration": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "split": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "evaluator": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "environment": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "toolchain": {"$ref": "./common.schema.json#/$defs/sha256"},
+        "statisticalPlan": {"$ref": "./common.schema.json#/$defs/sha256"}
+      }
+    },
+    "taskPairs": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "opaqueTaskHandleHash",
+          "rolloutSeed",
+          "parentPassed",
+          "candidatePassed",
+          "parentReceiptId",
+          "candidateReceiptId"
+        ],
+        "properties": {
+          "opaqueTaskHandleHash": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          },
+          "rolloutSeed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parentPassed": {
+            "type": "boolean"
+          },
+          "candidatePassed": {
+            "type": "boolean"
+          },
+          "parentReceiptId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "candidateReceiptId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskCount",
+        "rolloutSeedCount",
+        "parentPassRate",
+        "candidatePassRate",
+        "deltaPercentagePoints",
+        "passToFailCount",
+        "failToPassCount",
+        "pairedCi95LowerPercentagePoints",
+        "pairedCi95UpperPercentagePoints",
+        "taskIsPrimaryUnit"
+      ],
+      "properties": {
+        "taskCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rolloutSeedCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parentPassRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "candidatePassRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "deltaPercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "passToFailCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failToPassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairedCi95LowerPercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "pairedCi95UpperPercentagePoints": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "taskIsPrimaryUnit": {
+          "const": true
+        }
+      }
+    },
+    "attributionMetrics": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "singleFaultTaskCount",
+            "singleFaultTop1Accuracy",
+            "singleFaultTop3Accuracy",
+            "multiCauseTaskCount",
+            "multiCauseRecallAt2",
+            "multiCauseExactSetAt2"
+          ],
+          "properties": {
+            "singleFaultTaskCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "singleFaultTop1Accuracy": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "singleFaultTop3Accuracy": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "multiCauseTaskCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "multiCauseRecallAt2": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "multiCauseExactSetAt2": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "usageByPhaseRole": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "phaseId",
+          "roleId",
+          "usage"
+        ],
+        "properties": {
+          "phaseId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "roleId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "usage": {
+            "$ref": "./common.schema.json#/$defs/budgetUsage"
+          }
+        }
+      }
+    },
+    "totalUsage": {
+      "$ref": "./common.schema.json#/$defs/budgetUsage"
+    },
+    "deterministicCompute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifierCpuMillis",
+        "validatorCpuMillis",
+        "wallClockMillis",
+        "peakMemoryMiB"
+      ],
+      "properties": {
+        "verifierCpuMillis": {"type": "integer", "minimum": 0},
+        "validatorCpuMillis": {"type": "integer", "minimum": 0},
+        "wallClockMillis": {"type": "integer", "minimum": 0},
+        "peakMemoryMiB": {"type": "integer", "minimum": 0}
+      }
+    },
+    "feedbackEvents": {
+      "type": "array",
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "gateChecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gateId",
+          "passed",
+          "observedValue",
+          "threshold",
+          "evidenceReceiptIds"
+        ],
+        "properties": {
+          "gateId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "observedValue": {},
+          "threshold": {},
+          "evidenceReceiptIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "count",
+          "receiptIds"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "safety",
+              "permission",
+              "budget",
+              "manifest",
+              "state_snapshot",
+              "data_access",
+              "audit",
+              "protocol"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "receiptIds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        }
+      }
+    },
+    "evaluator": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

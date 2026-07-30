@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate1r-draft-1",
+  "createdAt": "2026-07-30T19:19:00+09:00",
+  "status": "ready_for_review_not_transmitted",
+  "supersedesPacketSha256": "dae5250f170c9b6370e6110c8fce92a3e64301910c293fb44dba24cb3eaf213a",
+  "respondsToDecisionSha256": "8a0c1be94f0962eaaf06610a0107e28f0047adb72ada87eebbc51b972afdedce",
+  "packet": {
+    "path": "architect/PACKET_01R_RESEARCH_AND_ARCHITECTURE.md",
+    "sha256": "877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242",
+    "characterCount": 28476
+  },
+  "frozenContractInputs": {
+    "componentTypeRegistry": {
+      "path": "configs/component-type-registry.json",
+      "canonicalId": "ctr-sha256:4ea08a4fc41207afab1c571c43a3ca11bbdda3b9268ff556fccbac3a0d7edada",
+      "rawSha256": "53ea8090210c9c0efda05a8637db773d6faf36dbf5d5cb9066b41745efae3780"
+    },
+    "splitManifest": {
+      "path": "benchmarks/splits.json",
+      "sha256": "fbab1b5bb8c7796cab08ee5c4b3368647edbae4ec99678b408d6e3ff240966fb"
+    },
+    "budget": {
+      "path": "configs/evaluation-budget.yaml",
+      "sha256": "d9ea3533ade1778c39d8b9e189f3987d13596ca69cca311d42eeadd4e442dc42"
+    },
+    "gateFeedback": {
+      "path": "configs/gate-feedback-policy.yaml",
+      "sha256": "8b14310349cb98921a15f880ad777062c229566c6ce6e968f3fb47cf8b8441c6"
+    }
+  },
+  "evidence": {
+    "sourceLedgerSha256": "c232e486dd91a29102749e1499a98e3acb1431c63b3502baa069242a4cab67ee",
+    "baselineMatrixSha256": "1638b62cdc58c1fe7f8247084c84785971258810e6909a6b32c986a188313544",
+    "statisticalPlanSha256": "7c9db67ff80db2f3d4013d1cbb9a863cea5eda2cbc68b7313216c5896d18022e",
+    "fixtureSpecSha256": "e8f18fe797c2873cbe83d9673ab25cafff4a46aff848fff6cc5e8919e32c6a4a",
+    "principalMatrixSha256": "3efd96568d40edc8b8134922f201d3d7a9c9d06118c4ddf3ced26de991d652ed",
+    "validatorPlanSha256": "e3f57536a706de7f06018cc7ad7aeaf6a4b1b31f1dd24534cdfeae177b3cec41",
+    "localPrecheck": "PASS schemas=29 type_registry=valid splits=28/14/14/14+45/10/34 spike=quarantined markdown_links=10"
+  },
+  "bundles": {
+    "algorithm": "sha256(concat(path_utf8, NUL, file_bytes, NUL) for lexically_sorted_paths)",
+    "schemas": {
+      "glob": "schemas/**/*.schema.json",
+      "fileCount": 29,
+      "sha256": "b2350dd8688fdf300160b5fd0921827f705b9882ccf809665da24a25cd007680"
+    },
+    "architecture": {
+      "glob": "docs/architecture/*.md",
+      "fileCount": 15,
+      "sha256": "3cd72d8161f4eb2468539cc1b1aa1edf55b34d141a856879ded2148e9281765a"
+    },
+    "evaluation": {
+      "glob": "docs/evaluation/*.md",
+      "fileCount": 12,
+      "sha256": "899b69bec64caf2776d8efedac7328f6b1122f2fa283dd6d9614e3fae8c5531b"
+    },
+    "diagrams": {
+      "glob": "docs/diagrams/*.html",
+      "fileCount": 5,
+      "sha256": "46ddb494db46078bc3bebf833d0beeb698d8f9b1f444617da33ce94a581f0d5b"
+    }
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "benchmarkExecution": false,
+    "gateOrFinalAccess": false,
+    "externalRepositoryWrite": false
+  }
+}

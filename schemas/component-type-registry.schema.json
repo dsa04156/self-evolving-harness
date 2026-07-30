@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/component-type-registry.schema.json",
+  "title": "Immutable ComponentTypeRegistry",
+  "description": "Only the trusted protocol-authoring process may issue this registry. Candidate payloads may reference an entry but cannot define component type, mutable class, payload language, or capabilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "typeRegistryId",
+    "registryHash",
+    "identity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "typeRegistryId": {
+      "$ref": "./common.schema.json#/$defs/typeRegistryId"
+    },
+    "registryHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalizationProfile",
+        "registryVersion",
+        "entries"
+      ],
+      "properties": {
+        "canonicalizationProfile": {
+          "const": "seh-jcs-v1"
+        },
+        "registryVersion": {
+          "$ref": "./common.schema.json#/$defs/semanticVersion"
+        },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "typeEntryId",
+              "componentType",
+              "mutableClass",
+              "mvpMutationEnabled",
+              "allowedPayloadLanguages",
+              "payloadContractHash",
+              "allowedDependencyTypeEntryIds",
+              "allowedCapabilityIds",
+              "candidateMayContainExecutableBytes"
+            ],
+            "properties": {
+              "typeEntryId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
+              "componentType": {
+                "type": "string",
+                "enum": [
+                  "SystemPrompt",
+                  "ToolDescription",
+                  "ToolImplementation",
+                  "ContextPolicy",
+                  "MemoryPolicy",
+                  "MemoryRetrievalPolicy",
+                  "Skill",
+                  "Workflow",
+                  "WorkflowPolicy",
+                  "RoutingPolicy",
+                  "SubagentConfiguration",
+                  "SubagentPrompt",
+                  "RecoveryPolicy",
+                  "VerificationPolicy",
+                  "PermissionPolicy",
+                  "SafetyPolicy",
+                  "Evaluator",
+                  "BenchmarkManifest",
+                  "BudgetPolicy",
+                  "ModelIdentity",
+                  "TraceCollector",
+                  "AuditPolicy",
+                  "PromotionPolicy",
+                  "Middleware",
+                  "OptimizerCode"
+                ]
+              },
+              "mutableClass": {
+                "type": "string",
+                "enum": [
+                  "mutable",
+                  "conditionally-mutable",
+                  "immutable"
+                ]
+              },
+              "mvpMutationEnabled": {
+                "type": "boolean"
+              },
+              "allowedPayloadLanguages": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "seh.normalized-text.v1",
+                    "seh.prompt-markdown.v1",
+                    "seh.context-policy.v1",
+                    "seh.memory-retrieval-policy.v1",
+                    "seh.skill.v1",
+                    "seh.workflow.v1",
+                    "seh.routing-policy.v1",
+                    "seh.tool-description.v1",
+                    "seh.policy-json.v1",
+                    "seh.immutable-artifact.v1"
+                  ]
+                }
+              },
+              "payloadContractHash": {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              "allowedDependencyTypeEntryIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "./common.schema.json#/$defs/entityId"
+                }
+              },
+              "allowedCapabilityIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "./common.schema.json#/$defs/entityId"
+                }
+              },
+              "candidateMayContainExecutableBytes": {
+                "type": "boolean"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "mvpMutationEnabled": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "mvpMutationEnabled"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "mutableClass": {
+                      "const": "mutable"
+                    },
+                    "candidateMayContainExecutableBytes": {
+                      "const": false
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

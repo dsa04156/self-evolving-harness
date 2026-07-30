@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/tool-description-payload.schema.json",
+  "title": "SEH Model-Facing Tool Description Payload v1",
+  "description": "The immutable implementation input schema remains authoritative. This payload can document but cannot redefine it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "toolId",
+    "implementationSchemaHash",
+    "summary",
+    "usageNotes",
+    "parameterDescriptions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.tool-description.v1"
+    },
+    "toolId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+    },
+    "implementationSchemaHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "usageNotes": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "parameterDescriptions": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "jsonPointer",
+          "description"
+        ],
+        "properties": {
+          "jsonPointer": {
+            "type": "string",
+            "pattern": "^(/([^~/]|~[01])*)*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    }
+  }
+}

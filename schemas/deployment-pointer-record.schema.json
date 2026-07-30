@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/deployment-pointer-record.schema.json",
+  "title": "Atomic Whole-Harness DeploymentPointerRecord",
+  "description": "A channel points to exactly one evaluated HarnessVersionManifest. The trusted registry applies this append-only record with compare-and-swap; components are never activated independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "protocolId",
+    "channelId",
+    "operation",
+    "expectedBefore",
+    "after",
+    "promotionDecisionId",
+    "evaluationResultIds",
+    "appliedBy",
+    "appliedAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "channelId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "initialize",
+        "promote",
+        "rollback",
+        "retire"
+      ]
+    },
+    "expectedBefore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation",
+        "harnessVersionId",
+        "pointerRecordHash"
+      ],
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "minimum": -1
+        },
+        "harnessVersionId": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/harnessVersionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pointerRecordHash": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "after": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation",
+        "harnessVersionId",
+        "manifestHash"
+      ],
+      "properties": {
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "harnessVersionId": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/harnessVersionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manifestHash": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "promotionDecisionId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evaluationResultIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "appliedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "appliedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

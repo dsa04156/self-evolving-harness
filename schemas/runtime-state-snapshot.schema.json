@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/runtime-state-snapshot.schema.json",
+  "title": "Immutable RuntimeStateSnapshot",
+  "description": "Evaluation and replay identity for all behaviorally significant mutable runtime state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "snapshotHash",
+    "identity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "snapshotId": {
+      "type": "string",
+      "pattern": "^rss-sha256:[a-f0-9]{64}$"
+    },
+    "snapshotHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalizationProfile",
+        "protocolId",
+        "harnessVersionId",
+        "memory",
+        "workspace",
+        "environment",
+        "checkpoint",
+        "caches",
+        "policyPins",
+        "inheritance"
+      ],
+      "properties": {
+        "canonicalizationProfile": {
+          "const": "seh-jcs-v1"
+        },
+        "protocolId": {
+          "$ref": "./common.schema.json#/$defs/protocolId"
+        },
+        "harnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "manifest"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "fresh_empty",
+                "fixed_readonly",
+                "fixed_copy_on_write"
+              ]
+            },
+            "manifest": {
+              "oneOf": [
+                {
+                  "$ref": "./common.schema.json#/$defs/artifactRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "workspace": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "baseFilesystem",
+            "repositoryTreeHash",
+            "overlayMode",
+            "untrackedFilesAllowed"
+          ],
+          "properties": {
+            "baseFilesystem": {
+              "$ref": "./common.schema.json#/$defs/artifactRef"
+            },
+            "repositoryTreeHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "overlayMode": {
+              "const": "fresh_copy_on_write"
+            },
+            "untrackedFilesAllowed": {
+              "const": false
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "containerImageDigest",
+            "toolchainDigest",
+            "os",
+            "architecture",
+            "locale",
+            "timezone",
+            "clockMode",
+            "randomSeed",
+            "environmentAllowlistHash"
+          ],
+          "properties": {
+            "containerImageDigest": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "toolchainDigest": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "os": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "architecture": {
+              "type": "string",
+              "enum": [
+                "x86_64",
+                "aarch64"
+              ]
+            },
+            "locale": {
+              "const": "C.UTF-8"
+            },
+            "timezone": {
+              "const": "UTC"
+            },
+            "clockMode": {
+              "type": "string",
+              "enum": [
+                "fixed_epoch",
+                "recorded_real_time"
+              ]
+            },
+            "randomSeed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "environmentAllowlistHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          }
+        },
+        "checkpoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "artifact"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "none",
+                "fixed"
+              ]
+            },
+            "artifact": {
+              "oneOf": [
+                {
+                  "$ref": "./common.schema.json#/$defs/artifactRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "caches": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "providerCacheMode",
+            "runtimeCacheMode",
+            "manifest"
+          ],
+          "properties": {
+            "providerCacheMode": {
+              "type": "string",
+              "enum": [
+                "disabled",
+                "provider_reported_and_charged"
+              ]
+            },
+            "runtimeCacheMode": {
+              "type": "string",
+              "enum": [
+                "fresh_empty",
+                "fixed_readonly"
+              ]
+            },
+            "manifest": {
+              "oneOf": [
+                {
+                  "$ref": "./common.schema.json#/$defs/artifactRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "policyPins": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "permissionPolicyHash",
+            "safetyPolicyHash",
+            "modelIdentityHash",
+            "budgetPolicyHash",
+            "networkPolicyHash"
+          ],
+          "properties": {
+            "permissionPolicyHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "safetyPolicyHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "modelIdentityHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "budgetPolicyHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "networkPolicyHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          }
+        },
+        "inheritance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "descendantsMustInherit",
+            "rebindAllowed",
+            "pinnedFields"
+          ],
+          "properties": {
+            "descendantsMustInherit": {
+              "const": true
+            },
+            "rebindAllowed": {
+              "const": false
+            },
+            "pinnedFields": {
+              "type": "array",
+              "minItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "harnessVersionId",
+                  "protocolId",
+                  "datasetPermissions",
+                  "principalDelegation",
+                  "modelIdentityHash",
+                  "budgetAccountId",
+                  "runtimeStateSnapshotId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

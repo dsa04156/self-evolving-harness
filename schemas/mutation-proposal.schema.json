@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/mutation-proposal.schema.json",
+  "title": "MutationProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "mutationProposalId",
+    "protocolId",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "attributionMode",
+    "attributionResultId",
+    "causeClass",
+    "primaryFailureMechanism",
+    "targetChanges",
+    "changeSurface",
+    "predictedFix",
+    "predictedRegressions",
+    "passingBehaviorPreservation",
+    "rejectedEditComparison",
+    "immutableDiffCount",
+    "disabledConditionalDiffCount",
+    "predictionMetadata",
+    "proposer",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "mutationProposalId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "attributionMode": {
+      "type": "string",
+      "enum": [
+        "guided",
+        "ablated"
+      ]
+    },
+    "attributionResultId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "causeClass": {
+      "type": "string",
+      "enum": [
+        "single_fault",
+        "multi_cause"
+      ]
+    },
+    "primaryFailureMechanism": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    },
+    "targetChanges": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentId",
+          "before",
+          "after",
+          "directlyEdited",
+          "changedArtifactHashes",
+          "semanticOperations"
+        ],
+        "properties": {
+          "componentId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "before": {
+            "$ref": "./common.schema.json#/$defs/componentRef"
+          },
+          "after": {
+            "$ref": "./common.schema.json#/$defs/componentRef"
+          },
+          "directlyEdited": {
+            "type": "boolean"
+          },
+          "changedArtifactHashes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          },
+          "semanticOperations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.:-]{2,127}$"
+            }
+          }
+        }
+      }
+    },
+    "changeSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changedComponentCount",
+        "expandedClosureEditBytes",
+        "replacementSurfaceBytes",
+        "normalizedTokenInsertions",
+        "normalizedTokenDeletions",
+        "structuralEditOperations",
+        "capabilityIdsAdded",
+        "capabilityIdsRemoved",
+        "parentClosureHash",
+        "candidateClosureHash"
+      ],
+      "properties": {
+        "changedComponentCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "expandedClosureEditBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "replacementSurfaceBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "normalizedTokenInsertions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "normalizedTokenDeletions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "structuralEditOperations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capabilityIdsAdded": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "capabilityIdsRemoved": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "parentClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "candidateClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "predictedFix": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "predictedRegressions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "passingBehaviorPreservation": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "rejectedEditComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nearestRejectedProposalIds",
+        "isEquivalent",
+        "differenceSummary"
+      ],
+      "properties": {
+        "nearestRejectedProposalIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "isEquivalent": {
+          "const": false
+        },
+        "differenceSummary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "immutableDiffCount": {
+      "const": 0
+    },
+    "disabledConditionalDiffCount": {
+      "const": 0
+    },
+    "predictionMetadata": {
+      "$ref": "./common.schema.json#/$defs/inferenceMetadata"
+    },
+    "proposer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "attributionMode": {
+            "const": "guided"
+          }
+        },
+        "required": [
+          "attributionMode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attributionResultId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "attributionResultId": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "causeClass": {
+            "const": "single_fault"
+          }
+        },
+        "required": [
+          "causeClass"
+        ]
+      },
+      "then": {
+        "properties": {
+          "targetChanges": {
+            "maxItems": 1
+          },
+          "changeSurface": {
+            "properties": {
+              "changedComponentCount": {
+                "const": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

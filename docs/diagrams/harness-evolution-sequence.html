@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harness Evolution Loop — Sequence</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { --page:#f5f7fa; --paper:#fff; --ink:#162033; --muted:#657186; --line:#aeb8c8; --blue:#2563eb; --blue-soft:#eaf1ff; --amber:#c86b08; --amber-soft:#fff3df; --dark:#1f2937; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:1220px; background:var(--page); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:1200px; margin:32px auto; padding:32px 40px 40px; background:var(--paper); border:1px solid #dbe1ea; }
+    h1 { margin:0 0 8px; font-size:28px; letter-spacing:-.02em; }
+    .dek { margin:0 0 24px; color:var(--muted); font-size:15px; }
+    svg { width:1120px; height:860px; display:block; }
+    .lifeline { stroke:#c7cfdb; stroke-width:1.5; stroke-dasharray:5 6; }
+    .message { stroke:#748197; stroke-width:1.7; fill:none; }
+    .gate { stroke:var(--amber); stroke-width:1.8; fill:none; }
+    .return { stroke:#748197; stroke-width:1.5; fill:none; stroke-dasharray:6 5; }
+    .head { fill:#fff; stroke:#b8c1cf; stroke-width:1.5; }
+    .head.primary { fill:var(--blue-soft); stroke:var(--blue); }
+    .head.gate { fill:var(--amber-soft); stroke:var(--amber); }
+    .head.dark { fill:var(--dark); stroke:var(--dark); }
+    .head-text { font-size:14px; font-weight:720; fill:var(--ink); text-anchor:middle; }
+    .head-text.light { fill:#fff; }
+    .activation { fill:#eaf1ff; stroke:var(--blue); stroke-width:1; }
+    .activation.amber { fill:#fff3df; stroke:var(--amber); }
+    .label-bg { fill:#fff; }
+    .msg { font-size:12px; font-weight:620; fill:#465267; text-anchor:middle; }
+    .note { fill:#f8fafc; stroke:#b8c1cf; stroke-width:1.2; }
+    .note.amber { fill:var(--amber-soft); stroke:var(--amber); }
+    .note-title { font-size:13px; font-weight:720; fill:var(--ink); }
+    .note-copy { font-size:12px; fill:var(--muted); }
+    .phase { font-size:11px; font-weight:760; letter-spacing:.08em; fill:var(--amber); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Harness Evolution Loop</h1>
+  <p class="dek">Evidence proposes; the immutable evaluator measures; only a signed whole-harness CAS changes deployment.</p>
+  <svg viewBox="0 0 1120 860" role="img" aria-labelledby="title desc">
+    <title id="title">Harness evolution sequence diagram</title>
+    <desc id="desc">Mine evidence, attribute failure, propose a bounded mutation, create a new candidate in a worktree, evaluate it independently, canary it, and promote reject or rollback through an audited decision.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#748197"/></marker>
+      <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c86b08"/></marker>
+    </defs>
+
+    <g aria-hidden="true">
+      <line class="lifeline" x1="112" y1="100" x2="112" y2="792"/>
+      <line class="lifeline" x1="336" y1="100" x2="336" y2="792"/>
+      <line class="lifeline" x1="560" y1="100" x2="560" y2="792"/>
+      <line class="lifeline" x1="784" y1="100" x2="784" y2="792"/>
+      <line class="lifeline" x1="1008" y1="100" x2="1008" y2="792"/>
+      <path class="message" marker-end="url(#arrow)" d="M112 160 H328"/>
+      <path class="return" marker-end="url(#arrow)" d="M328 216 H120"/>
+      <path class="message" marker-end="url(#arrow)" d="M336 276 H552"/>
+      <path class="return" marker-end="url(#arrow)" d="M552 332 H344"/>
+      <path class="message" marker-end="url(#arrow)" d="M336 388 H552"/>
+      <path class="gate" marker-end="url(#arrow-amber)" d="M560 452 H776"/>
+      <path class="gate" marker-end="url(#arrow-amber)" d="M776 516 H1000"/>
+      <path class="return" marker-end="url(#arrow)" d="M1000 580 H568"/>
+      <path class="gate" marker-end="url(#arrow-amber)" d="M560 640 H1000"/>
+      <path class="return" marker-end="url(#arrow)" d="M1000 704 H568"/>
+      <path class="gate" marker-end="url(#arrow-amber)" d="M1008 760 H568"/>
+    </g>
+
+    <g>
+      <rect class="head" x="24" y="48" width="176" height="52" rx="8"/>
+      <text class="head-text" x="112" y="79">Evidence Plane</text>
+      <rect class="head primary" x="248" y="48" width="176" height="52" rx="8"/>
+      <text class="head-text" x="336" y="79">Attributor / Proposer</text>
+      <rect class="head" x="472" y="48" width="176" height="52" rx="8"/>
+      <text class="head-text" x="560" y="71">Registry +</text>
+      <text class="head-text" x="560" y="88">Worktree</text>
+      <rect class="head gate" x="696" y="48" width="176" height="52" rx="8"/>
+      <text class="head-text" x="784" y="79">External Evaluator</text>
+      <rect class="head dark" x="920" y="48" width="176" height="52" rx="8"/>
+      <text class="head-text light" x="1008" y="71">Promoter +</text>
+      <text class="head-text light" x="1008" y="88">Audit Store</text>
+
+      <rect class="activation" x="328" y="152" width="16" height="244"/>
+      <rect class="activation" x="552" y="268" width="16" height="500"/>
+      <rect class="activation amber" x="776" y="444" width="16" height="144"/>
+      <rect class="activation amber" x="1000" y="508" width="16" height="260"/>
+
+      <rect class="label-bg" x="152" y="141" width="144" height="22"/>
+      <text class="msg" x="224" y="156">D_mine evidence packet</text>
+      <rect class="label-bg" x="144" y="197" width="160" height="22"/>
+      <text class="msg" x="224" y="212">attribution + alternatives</text>
+      <rect class="label-bg" x="392" y="257" width="112" height="22"/>
+      <text class="msg" x="448" y="272">bounded proposal</text>
+      <rect class="label-bg" x="380" y="313" width="136" height="22"/>
+      <text class="msg" x="448" y="328">new candidate ID</text>
+      <rect class="label-bg" x="388" y="369" width="120" height="22"/>
+      <text class="msg" x="448" y="384">materialize worktree</text>
+      <rect class="label-bg" x="612" y="433" width="120" height="22"/>
+      <text class="msg" x="672" y="448">read-only candidate</text>
+      <rect class="label-bg" x="836" y="497" width="120" height="22"/>
+      <text class="msg" x="896" y="512">matched gate result</text>
+      <rect class="label-bg" x="716" y="561" width="136" height="22"/>
+      <text class="msg" x="784" y="576">canary authorization</text>
+      <rect class="label-bg" x="724" y="621" width="120" height="22"/>
+      <text class="msg" x="784" y="636">canary evidence</text>
+      <rect class="label-bg" x="716" y="685" width="136" height="22"/>
+      <text class="msg" x="784" y="700">promotion decision</text>
+      <rect class="label-bg" x="716" y="741" width="136" height="22"/>
+      <text class="msg" x="784" y="756">whole-harness CAS result</text>
+
+      <text class="phase" x="24" y="136">MINE</text>
+      <text class="phase" x="24" y="252">MUTATE</text>
+      <text class="phase" x="24" y="428">EVALUATE</text>
+      <text class="phase" x="24" y="620">DECIDE</text>
+
+      <rect class="note" x="24" y="440" width="360" height="88" rx="8"/>
+      <text class="note-title" x="44" y="466">Candidate isolation</text>
+      <text class="note-copy" x="44" y="488">Git worktree = lineage only. Evaluator uses a distinct</text>
+      <text class="note-copy" x="44" y="508">principal, read-only mounts, and opaque task handles.</text>
+
+      <rect class="note amber" x="24" y="552" width="360" height="104" rx="8"/>
+      <text class="note-title" x="44" y="578">No final-role feedback</text>
+      <text class="note-copy" x="44" y="600">D_gate selects candidates without detailed feedback.</text>
+      <text class="note-copy" x="44" y="620">Final roles run only after freeze and cannot</text>
+      <text class="note-copy" x="44" y="640">change the active harness under the same protocol.</text>
+    </g>
+  </svg>
+</main>
+</body>
+</html>

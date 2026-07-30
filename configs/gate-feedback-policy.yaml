@@ -1,0 +1,70 @@
+schemaVersion: 1
+protocolVersion: draft-1
+status: gate1r_frozen_candidate
+
+candidateBatch:
+  generationSource: mine_only
+  maximumCandidatesPerMethod: 5
+  adaptiveReplacementCandidates: 0
+  proposalSeeds:
+    - 1729
+    - 271828
+    - 314159
+    - 161803
+    - 57721
+  batchMustBeContentAddressedBeforeGate: true
+
+gateEvaluation:
+  maximumBatchesPerMethod: 1
+  maximumEvaluationsPerCandidate: 1
+  taskOrderCommitmentBeforeRun: true
+  proposerRunningDuringGate: false
+  proposerWriteCapabilityRevokedBeforeGate: true
+
+selection:
+  actor: promoter
+  rule: frozen_lexicographic_gate_rule
+  ties:
+    - zero_safety_permission_data_access_violations
+    - highest_gate_pass_count
+    - lowest_pass_to_fail_count
+    - lowest_total_charged_tokens
+    - lowest_harness_version_id_lexicographic
+  selectedArtifactsPerMethod: 1
+
+releasedPacket:
+  releaseTime: after_selection_and_candidate_write_revocation
+  recipients:
+    - evolution_reporter
+    - audit_store
+  proposerMayConsumeForNewCandidate: false
+  maximumPacketsPerMethod: 1
+  fields:
+    - candidate_count
+    - selected_harness_version_id
+    - aggregate_pass_count_by_candidate
+    - pass_to_fail_count_by_candidate
+    - fail_to_pass_count_by_candidate
+    - total_charged_tokens_by_candidate
+    - provider_cost_micros_by_candidate
+    - violation_count_by_class
+    - selection_reason_codes
+  forbiddenFields:
+    - task_ids
+    - task_text
+    - paths
+    - per_task_outcomes
+    - traces
+    - verifier_diagnostics
+    - ground_truth_labels
+
+feedbackAccounting:
+  oneEvaluationResultPerCandidateCountsAsOneFeedbackEvent: true
+  selectionPacketCountsAsOneFeedbackEvent: true
+  failedAndCancelledReleasesCount: true
+  maximumFeedbackEventsPerMethod: 6
+
+violation:
+  additionalGateQueryInvalidatesProtocolRun: true
+  proposerAccessInvalidatesProtocolRun: true
+  taskLevelLeakInvalidatesProtocolRun: true

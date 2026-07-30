@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "typeRegistryId": "ctr-sha256:4ea08a4fc41207afab1c571c43a3ca11bbdda3b9268ff556fccbac3a0d7edada",
+  "registryHash": "sha256:4ea08a4fc41207afab1c571c43a3ca11bbdda3b9268ff556fccbac3a0d7edada",
+  "identity": {
+    "canonicalizationProfile": "seh-jcs-v1",
+    "registryVersion": "1.0.0",
+    "entries": [
+      {
+        "typeEntryId": "type.audit-policy",
+        "componentType": "AuditPolicy",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["audit.append", "audit.verify"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.benchmark-manifest",
+        "componentType": "BenchmarkManifest",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["benchmark.identify"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.budget-policy",
+        "componentType": "BudgetPolicy",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["budget.enforce"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.context-policy",
+        "componentType": "ContextPolicy",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.context-policy.v1"],
+        "payloadContractHash": "sha256:4bac127cd3b1ea0326b3cf0f502b2e61f5c3b3e75d756ba4a597b1508dd0d57e",
+        "allowedDependencyTypeEntryIds": ["type.tool-description"],
+        "allowedCapabilityIds": ["context.read.memory", "context.read.session", "context.read.skills", "context.read.task", "context.read.tool-catalog", "context.read.tool-results", "context.read.verification"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.evaluator",
+        "componentType": "Evaluator",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.immutable-artifact.v1"],
+        "payloadContractHash": "sha256:06c1e4e04226941ce6e9991058c9521c149da2f9278b044768cf62d484fd2956",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["evaluation.read.opaque-task", "evaluation.write.result"],
+        "candidateMayContainExecutableBytes": true
+      },
+      {
+        "typeEntryId": "type.memory-policy",
+        "componentType": "MemoryPolicy",
+        "mutableClass": "conditionally-mutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["memory.admin"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.memory-retrieval-policy",
+        "componentType": "MemoryRetrievalPolicy",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.memory-retrieval-policy.v1"],
+        "payloadContractHash": "sha256:d34ab78a3c859822bb1e4ec8aaa79e025adee64dce89e0a11031adb0e78b4ac7",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["memory.read.accepted-lessons", "memory.read.project-facts", "memory.read.rejected-mutations", "memory.read.session-summaries", "memory.read.user-preferences"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.middleware",
+        "componentType": "Middleware",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.immutable-artifact.v1"],
+        "payloadContractHash": "sha256:06c1e4e04226941ce6e9991058c9521c149da2f9278b044768cf62d484fd2956",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["runtime.middleware"],
+        "candidateMayContainExecutableBytes": true
+      },
+      {
+        "typeEntryId": "type.model-identity",
+        "componentType": "ModelIdentity",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["model.invoke.pinned"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.optimizer-code",
+        "componentType": "OptimizerCode",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.immutable-artifact.v1"],
+        "payloadContractHash": "sha256:06c1e4e04226941ce6e9991058c9521c149da2f9278b044768cf62d484fd2956",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["optimizer.propose"],
+        "candidateMayContainExecutableBytes": true
+      },
+      {
+        "typeEntryId": "type.permission-policy",
+        "componentType": "PermissionPolicy",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["permission.authorize"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.promotion-policy",
+        "componentType": "PromotionPolicy",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["promotion.decide"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.recovery-policy",
+        "componentType": "RecoveryPolicy",
+        "mutableClass": "conditionally-mutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["recovery.classify", "recovery.resume"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.routing-policy",
+        "componentType": "RoutingPolicy",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.routing-policy.v1"],
+        "payloadContractHash": "sha256:3f6139c273bc9f0c83fe370803f3bbcaf547790ecaea890b97d098763c1a9696",
+        "allowedDependencyTypeEntryIds": ["type.subagent-prompt"],
+        "allowedCapabilityIds": ["routing.select.primary", "routing.select.subagent"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.safety-policy",
+        "componentType": "SafetyPolicy",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["safety.authorize"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.skill",
+        "componentType": "Skill",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.skill.v1"],
+        "payloadContractHash": "sha256:cfc3fa1c512823348291a94f00c9a57b6dbca2ad2268ec58b3382e10db38efa6",
+        "allowedDependencyTypeEntryIds": ["type.tool-description"],
+        "allowedCapabilityIds": ["skill.guide", "skill.reference.existing-tool"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.subagent-configuration",
+        "componentType": "SubagentConfiguration",
+        "mutableClass": "conditionally-mutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": ["type.subagent-prompt"],
+        "allowedCapabilityIds": ["subagent.configure"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.subagent-prompt",
+        "componentType": "SubagentPrompt",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.prompt-markdown.v1"],
+        "payloadContractHash": "sha256:4fcbbaff8b59b54c8886edf48abc38126292bad8dee6de032b5a13ee65e0c00f",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["prompt.instruct.subagent"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.system-prompt",
+        "componentType": "SystemPrompt",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.prompt-markdown.v1"],
+        "payloadContractHash": "sha256:4fcbbaff8b59b54c8886edf48abc38126292bad8dee6de032b5a13ee65e0c00f",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["prompt.instruct.primary"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.tool-description",
+        "componentType": "ToolDescription",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.tool-description.v1"],
+        "payloadContractHash": "sha256:94c9400e2a63cb9acac3d0576407d96e030037de7239f4694556f92967312dfd",
+        "allowedDependencyTypeEntryIds": ["type.tool-implementation"],
+        "allowedCapabilityIds": ["tool.describe.existing"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.tool-implementation",
+        "componentType": "ToolImplementation",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.immutable-artifact.v1"],
+        "payloadContractHash": "sha256:06c1e4e04226941ce6e9991058c9521c149da2f9278b044768cf62d484fd2956",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["tool.execute"],
+        "candidateMayContainExecutableBytes": true
+      },
+      {
+        "typeEntryId": "type.trace-collector",
+        "componentType": "TraceCollector",
+        "mutableClass": "immutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.immutable-artifact.v1"],
+        "payloadContractHash": "sha256:06c1e4e04226941ce6e9991058c9521c149da2f9278b044768cf62d484fd2956",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["trace.collect"],
+        "candidateMayContainExecutableBytes": true
+      },
+      {
+        "typeEntryId": "type.verification-policy",
+        "componentType": "VerificationPolicy",
+        "mutableClass": "conditionally-mutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.policy-json.v1"],
+        "payloadContractHash": "sha256:7fa58e5d6b119f0bec0a7cd5f7733766c066a210ae0ffe05f5cfe85ef1128c40",
+        "allowedDependencyTypeEntryIds": [],
+        "allowedCapabilityIds": ["verification.request"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.workflow",
+        "componentType": "Workflow",
+        "mutableClass": "conditionally-mutable",
+        "mvpMutationEnabled": false,
+        "allowedPayloadLanguages": ["seh.workflow.v1"],
+        "payloadContractHash": "sha256:d2ce96f7962c63dde1e5fd67545013c9bda3c6f1ea3c027066099043959c6f4b",
+        "allowedDependencyTypeEntryIds": ["type.routing-policy", "type.skill", "type.subagent-prompt"],
+        "allowedCapabilityIds": ["workflow.dispatch.closed-action"],
+        "candidateMayContainExecutableBytes": false
+      },
+      {
+        "typeEntryId": "type.workflow-policy",
+        "componentType": "WorkflowPolicy",
+        "mutableClass": "mutable",
+        "mvpMutationEnabled": true,
+        "allowedPayloadLanguages": ["seh.workflow.v1"],
+        "payloadContractHash": "sha256:d2ce96f7962c63dde1e5fd67545013c9bda3c6f1ea3c027066099043959c6f4b",
+        "allowedDependencyTypeEntryIds": ["type.routing-policy", "type.skill", "type.subagent-prompt"],
+        "allowedCapabilityIds": ["workflow.dispatch.closed-action"],
+        "candidateMayContainExecutableBytes": false
+      }
+    ]
+  }
+}

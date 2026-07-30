@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/immutable-artifact-descriptor.schema.json",
+  "title": "Protocol-Authored Immutable Artifact Descriptor v1",
+  "description": "Only protocol authors can bind executable bytes. Candidates cannot submit this language.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "kind",
+    "artifact",
+    "entrypoint",
+    "toolchainDigest"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.immutable-artifact.v1"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "runtime_module",
+        "tool_implementation",
+        "evaluator_binary",
+        "trace_collector",
+        "middleware",
+        "optimizer",
+        "model_descriptor"
+      ]
+    },
+    "artifact": {
+      "$ref": "../common.schema.json#/$defs/artifactRef"
+    },
+    "entrypoint": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}$"
+    },
+    "toolchainDigest": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}

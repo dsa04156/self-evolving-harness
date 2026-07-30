@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/harness-version.schema.json",
+  "title": "Immutable HarnessVersionManifest",
+  "description": "The harnessVersionId and manifestHash are derived only from RFC 8785 canonical bytes of identity. Parentage, lifecycle, evaluations, decisions, and activation are external append-only records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "harnessVersionId",
+    "manifestHash",
+    "identity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "manifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalizationProfile",
+        "semanticVersion",
+        "requiredRuntimeContractHash",
+        "typeRegistryId",
+        "componentBindings",
+        "behaviorClosure"
+      ],
+      "properties": {
+        "canonicalizationProfile": {
+          "const": "seh-jcs-v1"
+        },
+        "semanticVersion": {
+          "$ref": "./common.schema.json#/$defs/semanticVersion"
+        },
+        "requiredRuntimeContractHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "typeRegistryId": {
+          "$ref": "./common.schema.json#/$defs/typeRegistryId"
+        },
+        "componentBindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slotId",
+              "component"
+            ],
+            "properties": {
+              "slotId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
+              "component": {
+                "$ref": "./common.schema.json#/$defs/componentRef"
+              }
+            }
+          }
+        },
+        "behaviorClosure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "closureHash",
+            "componentCount",
+            "artifactCount",
+            "canonicalBytes"
+          ],
+          "properties": {
+            "closureHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "componentCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "artifactCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16384
+            },
+            "canonicalBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1073741824
+            }
+          }
+        }
+      }
+    }
+  }
+}

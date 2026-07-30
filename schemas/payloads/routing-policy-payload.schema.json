@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/routing-policy-payload.schema.json",
+  "title": "SEH Declarative Routing Policy Payload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "rules",
+    "defaultTarget"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.routing-policy.v1"
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ruleId",
+          "priority",
+          "match",
+          "target"
+        ],
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "match": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "taskClass",
+              "riskClass"
+            ],
+            "properties": {
+              "taskClass": {
+                "type": "string",
+                "enum": [
+                  "analysis",
+                  "code_change",
+                  "test",
+                  "documentation",
+                  "recovery",
+                  "unknown"
+                ]
+              },
+              "riskClass": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              }
+            }
+          },
+          "target": {
+            "$ref": "#/$defs/target"
+          }
+        }
+      }
+    },
+    "defaultTarget": {
+      "$ref": "#/$defs/target"
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "routeId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "subagent"
+          ]
+        },
+        "routeId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{2,95}$"
+        }
+      }
+    }
+  }
+}

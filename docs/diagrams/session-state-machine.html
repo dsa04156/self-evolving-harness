@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Session Lifecycle</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { --page:#f5f7fa; --paper:#fff; --ink:#162033; --muted:#657186; --line:#9da9bb; --blue:#2563eb; --blue-soft:#eaf1ff; --amber:#c86b08; --amber-soft:#fff3df; --dark:#1f2937; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:1180px; background:var(--page); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    main { width:1160px; margin:32px auto; padding:32px 40px 40px; background:var(--paper); border:1px solid #dbe1ea; }
+    h1 { margin:0 0 8px; font-size:28px; letter-spacing:-.02em; }
+    .dek { margin:0 0 24px; color:var(--muted); font-size:15px; }
+    svg { width:1080px; height:680px; display:block; }
+    .edge { fill:none; stroke:var(--line); stroke-width:1.8; }
+    .edge.recovery { stroke:var(--amber); }
+    .state { fill:#fff; stroke:#b8c1cf; stroke-width:1.5; }
+    .state.primary { fill:var(--blue-soft); stroke:var(--blue); }
+    .state.recovery { fill:var(--amber-soft); stroke:var(--amber); }
+    .state.terminal { fill:var(--dark); stroke:var(--dark); }
+    .name { font-size:15px; font-weight:720; fill:var(--ink); text-anchor:middle; }
+    .name.light { fill:#fff; }
+    .sub { font-size:11px; fill:var(--muted); text-anchor:middle; }
+    .label { font-size:11px; font-weight:650; fill:#667287; text-anchor:middle; }
+    .note { font-size:12px; fill:var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Session Lifecycle</h1>
+  <p class="dek">Operational continuity under a pinned HarnessVersion; no transition creates or activates a candidate.</p>
+  <svg viewBox="0 0 1080 680" role="img" aria-labelledby="title desc">
+    <title id="title">Session state machine</title>
+    <desc id="desc">Nine session states from created through retired, including waiting, blocked, recovering and validating branches.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9da9bb"/></marker>
+      <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c86b08"/></marker>
+    </defs>
+
+    <g aria-hidden="true">
+      <path class="edge" marker-end="url(#arrow)" d="M184 104 H236"/>
+      <path class="edge" marker-end="url(#arrow)" d="M380 104 H432"/>
+      <path class="edge" marker-end="url(#arrow)" d="M576 104 H628"/>
+      <path class="edge" marker-end="url(#arrow)" d="M772 104 H824"/>
+      <path class="edge" marker-end="url(#arrow)" d="M700 144 V176 H540 V144"/>
+      <path class="edge recovery" marker-end="url(#arrow-amber)" d="M896 144 V184 H700 V224"/>
+      <path class="edge recovery" marker-end="url(#arrow-amber)" d="M628 264 H600 V200 H504 V144"/>
+      <path class="edge" marker-end="url(#arrow)" d="M504 144 V352 H896 V392"/>
+      <path class="edge" marker-end="url(#arrow)" d="M896 472 V528"/>
+      <path class="edge" marker-end="url(#arrow)" d="M824 568 H576"/>
+      <path class="edge" marker-end="url(#arrow)" d="M824 432 H760 V328 H540 V144"/>
+    </g>
+
+    <g>
+      <rect class="state" x="40" y="64" width="144" height="80" rx="8"/>
+      <text class="name" x="112" y="99">created</text>
+      <text class="sub" x="112" y="121">no pinned runtime yet</text>
+
+      <rect class="state" x="236" y="64" width="144" height="80" rx="8"/>
+      <text class="name" x="308" y="99">initialized</text>
+      <text class="sub" x="308" y="121">harness + protocol + snapshot pinned</text>
+
+      <rect class="state primary" x="432" y="64" width="144" height="80" rx="8"/>
+      <text class="name" x="504" y="99">running</text>
+      <text class="sub" x="504" y="121">agent loop owns lease</text>
+
+      <rect class="state" x="628" y="64" width="144" height="80" rx="8"/>
+      <text class="name" x="700" y="99">waiting</text>
+      <text class="sub" x="700" y="121">child/job/input event</text>
+
+      <rect class="state recovery" x="824" y="64" width="144" height="80" rx="8"/>
+      <text class="name" x="896" y="99">blocked</text>
+      <text class="sub" x="896" y="121">authority or input missing</text>
+
+      <rect class="state recovery" x="628" y="224" width="144" height="80" rx="8"/>
+      <text class="name" x="700" y="259">recovering</text>
+      <text class="sub" x="700" y="281">replay + classify</text>
+
+      <rect class="state" x="824" y="392" width="144" height="80" rx="8"/>
+      <text class="name" x="896" y="427">validating</text>
+      <text class="sub" x="896" y="449">fixed verifier</text>
+
+      <rect class="state primary" x="824" y="528" width="144" height="80" rx="8"/>
+      <text class="name" x="896" y="563">completed</text>
+      <text class="sub" x="896" y="585">completion receipt</text>
+
+      <rect class="state terminal" x="432" y="528" width="144" height="80" rx="8"/>
+      <text class="name light" x="504" y="563">retired</text>
+      <text class="sub" x="504" y="585" fill="#d7deea">terminal · immutable</text>
+
+      <text class="label" x="210" y="94">pin</text>
+      <text class="label" x="406" y="94">submit</text>
+      <text class="label" x="602" y="94">delegate</text>
+      <text class="label" x="798" y="94">missing input</text>
+      <text class="label" x="620" y="168">child/job event</text>
+      <text class="label" x="794" y="176">authorize recovery</text>
+      <text class="label" x="554" y="216">replay valid</text>
+      <text class="label" x="700" y="344">terminal candidate</text>
+      <text class="label" x="920" y="506">pass</text>
+      <text class="label" x="700" y="558">finalize</text>
+      <text class="label" x="652" y="320">bounded retry</text>
+      <text class="note" x="40" y="648">Interruptions may retire from any non-terminal state when an explicit reason and final receipt are recorded.</text>
+    </g>
+  </svg>
+</main>
+</body>
+</html>

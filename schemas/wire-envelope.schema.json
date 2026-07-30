@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/wire-envelope.schema.json",
+  "title": "Authenticated Inter-Principal Wire Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "wireProtocolVersion",
+    "protocolId",
+    "messageId",
+    "correlationId",
+    "causationId",
+    "sender",
+    "recipientRole",
+    "messageType",
+    "sentAt",
+    "expiresAt",
+    "senderSequence",
+    "nonce",
+    "payloadSchemaId",
+    "payloadHash",
+    "payloadSizeBytes",
+    "payload",
+    "artifactRefs",
+    "result",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "wireProtocolVersion": {
+      "const": "seh-wire/1"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "messageId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "correlationId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "causationId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sender": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recipientRole": {
+      "$ref": "./common.schema.json#/$defs/principalRole"
+    },
+    "messageType": {
+      "type": "string",
+      "enum": [
+        "session.control",
+        "runtime.event_batch",
+        "runtime.child_delegation",
+        "provider.request",
+        "provider.response",
+        "evaluator.request",
+        "evaluator.result",
+        "promoter.request",
+        "promoter.decision",
+        "deployment.compare_and_swap",
+        "audit.append",
+        "audit.acknowledge"
+      ]
+    },
+    "sentAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "expiresAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "senderSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22,64}$"
+    },
+    "payloadSchemaId": {
+      "type": "string",
+      "pattern": "^https://self-evolving-harness\\.local/schemas/[A-Za-z0-9_./-]+\\.schema\\.json$",
+      "maxLength": 256
+    },
+    "payloadHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "payloadSizeBytes": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 1048576
+    },
+    "payload": {
+      "type": "object"
+    },
+    "artifactRefs": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/artifactRef"
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "error"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "request",
+            "ok",
+            "error"
+          ]
+        },
+        "error": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code",
+                "retryable",
+                "safeDetail"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "AUTHENTICATION_FAILED",
+                    "AUTHORIZATION_DENIED",
+                    "SCHEMA_INVALID",
+                    "HASH_MISMATCH",
+                    "REPLAY_DETECTED",
+                    "PAYLOAD_TOO_LARGE",
+                    "DEADLINE_EXCEEDED",
+                    "BUDGET_EXHAUSTED",
+                    "PROTOCOL_MISMATCH",
+                    "ARTIFACT_UNAVAILABLE",
+                    "PEER_CRASHED",
+                    "INTERNAL_ERROR"
+                  ]
+                },
+                "retryable": {
+                  "type": "boolean"
+                },
+                "safeDetail": {
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

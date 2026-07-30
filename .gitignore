@@ -1,0 +1,19 @@
+# Local browser automation state
+.playwright-cli/
+
+# Language/build caches
+node_modules/
+dist/
+coverage/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store
+*.swp

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/harness-lineage-record.schema.json",
+  "title": "Append-Only HarnessLineageRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "protocolId",
+    "harnessVersionId",
+    "parentHarnessVersionId",
+    "rollbackTargetHarnessVersionId",
+    "mutationProposalId",
+    "attributionResultId",
+    "createdBy",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "parentHarnessVersionId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rollbackTargetHarnessVersionId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mutationProposalId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attributionResultId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

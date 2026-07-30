@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-fixture.schema.json",
+  "title": "HarnessFaultBench Fixture Package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "specVersion",
+    "fixtureId",
+    "splitRole",
+    "difficulty",
+    "knownGoodHarnessVersionId",
+    "faultyHarnessVersionId",
+    "faults",
+    "taskInput",
+    "initialState",
+    "fakeProviderTable",
+    "fakeToolTable",
+    "expected",
+    "causalInterventions",
+    "authorship",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "specVersion": {
+      "const": "hfb-fixture-spec-1.0.0"
+    },
+    "fixtureId": {
+      "type": "string",
+      "pattern": "^hfb-v0-[a-z0-9-]+$"
+    },
+    "splitRole": {
+      "type": "string",
+      "enum": [
+        "mine",
+        "gate",
+        "sealed_test"
+      ]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "knownGoodHarnessVersionId": {
+      "$ref": "../common.schema.json#/$defs/harnessVersionId"
+    },
+    "faultyHarnessVersionId": {
+      "$ref": "../common.schema.json#/$defs/harnessVersionId"
+    },
+    "faults": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentId",
+          "componentType",
+          "typeEntryId",
+          "mechanismCode",
+          "patch"
+        ],
+        "properties": {
+          "componentId": {
+            "$ref": "../common.schema.json#/$defs/entityId"
+          },
+          "componentType": {
+            "type": "string",
+            "enum": [
+              "SystemPrompt",
+              "ContextPolicy",
+              "MemoryRetrievalPolicy",
+              "Skill",
+              "WorkflowPolicy",
+              "RoutingPolicy",
+              "SubagentPrompt",
+              "ToolDescription"
+            ]
+          },
+          "typeEntryId": {
+            "$ref": "../common.schema.json#/$defs/entityId"
+          },
+          "mechanismCode": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{2,95}$"
+          },
+          "patch": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "path"
+              ],
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "add",
+                    "remove",
+                    "replace",
+                    "move"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "pattern": "^(/([^~/]|~[01])*)+$"
+                },
+                "from": {
+                  "type": "string",
+                  "pattern": "^(/([^~/]|~[01])*)+$"
+                },
+                "value": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "taskInput": {
+      "$ref": "../common.schema.json#/$defs/artifactRef"
+    },
+    "initialState": {
+      "$ref": "../common.schema.json#/$defs/artifactRef"
+    },
+    "fakeProviderTable": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "requiredContextFactIds",
+          "lastToolStatus",
+          "action",
+          "nextState"
+        ],
+        "properties": {
+          "state": {
+            "$ref": "../common.schema.json#/$defs/entityId"
+          },
+          "requiredContextFactIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "../common.schema.json#/$defs/entityId"
+            }
+          },
+          "lastToolStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "ok",
+              "error",
+              "denied"
+            ]
+          },
+          "action": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "targetId",
+              "argumentFixtureId"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "emit_text",
+                  "request_tool",
+                  "request_subagent",
+                  "complete"
+                ]
+              },
+              "targetId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 96
+              },
+              "argumentFixtureId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 96
+              }
+            }
+          },
+          "nextState": {
+            "$ref": "../common.schema.json#/$defs/entityId"
+          }
+        }
+      }
+    },
+    "fakeToolTable": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "toolId",
+          "argumentFixtureId",
+          "status",
+          "result"
+        ],
+        "properties": {
+          "toolId": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write",
+              "edit",
+              "bash",
+              "git_status",
+              "git_diff"
+            ]
+          },
+          "argumentFixtureId": {
+            "$ref": "../common.schema.json#/$defs/entityId"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error",
+              "denied"
+            ]
+          },
+          "result": {
+            "$ref": "../common.schema.json#/$defs/artifactRef"
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knownGoodPassed",
+        "faultyPassed",
+        "knownGoodEventChainHash",
+        "faultyEventChainHash",
+        "faultyTerminalReason"
+      ],
+      "properties": {
+        "knownGoodPassed": {
+          "const": true
+        },
+        "faultyPassed": {
+          "const": false
+        },
+        "knownGoodEventChainHash": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "faultyEventChainHash": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "faultyTerminalReason": {
+          "$ref": "../common.schema.json#/$defs/entityId"
+        }
+      }
+    },
+    "causalInterventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "restoreNonePassed",
+        "restoreEachSingleFaultPassed",
+        "restoreAllFaultsPassed",
+        "restoreNonGroundTruthComponentPassed",
+        "replayCount",
+        "replayHashesIdentical"
+      ],
+      "properties": {
+        "restoreNonePassed": {
+          "const": false
+        },
+        "restoreEachSingleFaultPassed": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "boolean"
+          }
+        },
+        "restoreAllFaultsPassed": {
+          "const": true
+        },
+        "restoreNonGroundTruthComponentPassed": {
+          "const": false
+        },
+        "replayCount": {
+          "const": 3
+        },
+        "replayHashesIdentical": {
+          "const": true
+        }
+      }
+    },
+    "authorship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorId",
+        "reviewerId",
+        "authoredAt",
+        "reviewedAt",
+        "authorHadCandidateResultAccess",
+        "reviewerHadCandidateResultAccess"
+      ],
+      "properties": {
+        "authorId": {
+          "$ref": "../common.schema.json#/$defs/entityId"
+        },
+        "reviewerId": {
+          "$ref": "../common.schema.json#/$defs/entityId"
+        },
+        "authoredAt": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "reviewedAt": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "authorHadCandidateResultAccess": {
+          "const": false
+        },
+        "reviewerHadCandidateResultAccess": {
+          "const": false
+        }
+      }
+    },
+    "contentHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}

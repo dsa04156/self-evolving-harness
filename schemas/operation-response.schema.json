@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/operation-response.schema.json",
+  "title": "OperationsControlPlaneResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "operation",
+    "subjectId",
+    "state",
+    "evidence",
+    "nextAllowedActions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "start",
+        "submit",
+        "observe",
+        "interrupt",
+        "resume",
+        "recover",
+        "validate",
+        "finalize",
+        "retire",
+        "events",
+        "artifacts"
+      ]
+    },
+    "subjectId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "created",
+        "initialized",
+        "running",
+        "waiting",
+        "blocked",
+        "recovering",
+        "validating",
+        "completed",
+        "retired"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receiptId",
+          "receiptHash"
+        ],
+        "properties": {
+          "receiptId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "receiptHash": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "nextAllowedActions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "submit",
+          "observe",
+          "interrupt",
+          "resume",
+          "recover",
+          "validate",
+          "finalize",
+          "retire",
+          "events",
+          "artifacts"
+        ]
+      }
+    }
+  }
+}
+

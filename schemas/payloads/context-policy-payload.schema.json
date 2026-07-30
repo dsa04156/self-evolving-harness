@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/context-policy-payload.schema.json",
+  "title": "SEH Context Policy Payload v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "totalTokenLimit",
+    "sources",
+    "overflowPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.context-policy.v1"
+    },
+    "totalTokenLimit": {
+      "type": "integer",
+      "minimum": 256,
+      "maximum": 1048576
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "priority",
+          "maxTokens",
+          "selection"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "task_input",
+              "system_prompt",
+              "tool_catalog",
+              "session_events",
+              "tool_results",
+              "selected_memory",
+              "selected_skills",
+              "verification_feedback"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1048576
+          },
+          "selection": {
+            "type": "string",
+            "enum": [
+              "all_in_order",
+              "latest_first",
+              "earliest_first",
+              "deterministic_rank"
+            ]
+          }
+        }
+      }
+    },
+    "overflowPolicy": {
+      "type": "string",
+      "enum": [
+        "drop_lowest_priority",
+        "truncate_oldest_with_receipt",
+        "block"
+      ]
+    }
+  }
+}

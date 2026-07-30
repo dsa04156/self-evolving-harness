@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/failure-pattern.schema.json",
+  "title": "FailurePattern",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "failurePatternId",
+    "protocolId",
+    "harnessVersionId",
+    "datasetRole",
+    "sourceReceiptIds",
+    "recordedObservations",
+    "mechanismInference",
+    "createdBy",
+    "createdAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "failurePatternId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "datasetRole": {
+      "const": "mine"
+    },
+    "sourceReceiptIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "recordedObservations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministicSignature",
+        "taskCount",
+        "failureCount",
+        "sourceEventIds",
+        "verifierOutcomeEventIds",
+        "originTrustLevels"
+      ],
+      "properties": {
+        "deterministicSignature": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "taskCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceEventIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "verifierOutcomeEventIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "originTrustLevels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "untrusted_input",
+              "sandbox_observation",
+              "authenticated_principal",
+              "trusted_evaluator",
+              "trusted_control"
+            ]
+          }
+        }
+      }
+    },
+    "mechanismInference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "metadata"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "metadata": {
+          "$ref": "./common.schema.json#/$defs/inferenceMetadata"
+        }
+      }
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

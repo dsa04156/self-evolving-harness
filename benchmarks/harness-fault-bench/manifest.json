@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "benchmarkId": "harness-fault-bench-v0",
+  "status": "fixture-contract-frozen-candidate-pending-gate1r-fixtures-not-implemented",
+  "protocolVersion": "draft-1",
+  "frozenAt": "2026-07-30",
+  "purpose": "Deterministic ground-truth attribution of injected harness component defects.",
+  "singleFaultFamilies": [
+    "SystemPrompt",
+    "ContextPolicy",
+    "MemoryRetrievalPolicy",
+    "Skill",
+    "WorkflowPolicy",
+    "RoutingPolicyOrSubagentPrompt",
+    "ToolDescription"
+  ],
+  "casesPerFamily": {
+    "mine": 4,
+    "gate": 2,
+    "sealedTest": 2
+  },
+  "multiCauseSealedTestCases": 14,
+  "totals": {
+    "mine": 28,
+    "gate": 14,
+    "sealedSingleFault": 14,
+    "sealedMultiCause": 14,
+    "overall": 70
+  },
+  "fixtureRequirements": [
+    "known-good component bundle",
+    "deterministic injected mutation",
+    "fake provider script",
+    "fake tool environment",
+    "expected event and verifier outcome",
+    "evaluator-only attribution ground truth",
+    "content commitment"
+  ],
+  "metrics": {
+    "gateSingleFaultTop1Minimum": 0.7,
+    "gateSingleFaultTop3Minimum": 0.9,
+    "finalOnlyMultiCauseRecallAt2Minimum": 0.7
+  },
+  "multiCauseUse": "final-confirmatory-reporting-only; prohibited from candidate creation, selection, promotion, threshold tuning, and rollback policy"
+}

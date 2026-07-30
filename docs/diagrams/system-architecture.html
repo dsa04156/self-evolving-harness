@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Standalone Self-Evolving Harness — Six-Layer Architecture</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --page: #f5f7fa;
+      --paper: #ffffff;
+      --ink: #162033;
+      --muted: #5b667a;
+      --line: #aeb8c8;
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --amber: #c86b08;
+      --amber-soft: #fff3df;
+      --trust: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 1180px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: 1160px;
+      margin: 32px auto;
+      padding: 32px 40px 40px;
+      background: var(--paper);
+      border: 1px solid #dbe1ea;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
+    .dek { margin: 0 0 24px; color: var(--muted); font-size: 15px; }
+    svg { display: block; width: 1080px; height: 760px; }
+    .connector { fill: none; stroke: var(--line); stroke-width: 2; }
+    .control { fill: none; stroke: var(--amber); stroke-width: 2; stroke-dasharray: 7 6; }
+    .box { fill: #fff; stroke: #b8c1cf; stroke-width: 1.5; }
+    .box.primary { fill: var(--blue-soft); stroke: var(--blue); }
+    .box.evolution { fill: var(--amber-soft); stroke: var(--amber); }
+    .box.trust { fill: var(--trust); stroke: var(--trust); }
+    .kicker { font-size: 12px; font-weight: 750; letter-spacing: .08em; fill: var(--blue); }
+    .kicker.amber { fill: var(--amber); }
+    .kicker.light { fill: #b8c8ff; }
+    .title { font-size: 18px; font-weight: 720; fill: var(--ink); }
+    .title.light { fill: #fff; }
+    .copy { font-size: 13px; fill: var(--muted); }
+    .copy.light { fill: #d7deea; }
+    .edge-label { font-size: 12px; font-weight: 650; fill: #657186; }
+    .callout { fill: #fff; stroke: var(--blue); stroke-width: 1.5; }
+    .callout.amber { stroke: var(--amber); }
+    .callout-title { font-size: 14px; font-weight: 720; fill: var(--ink); }
+    .caption { font-size: 12px; fill: #69758a; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Standalone Self-Evolving Harness</h1>
+  <p class="dek">Six owned layers, two separate lifecycles, and one immutable decision boundary.</p>
+  <svg viewBox="0 0 1080 760" role="img" aria-labelledby="diagram-title diagram-desc">
+    <title id="diagram-title">Six-layer architecture</title>
+    <desc id="diagram-desc">The runtime kernel uses versioned components and operations. Evidence feeds a separate evolution plane. The immutable trust plane controls evaluation and promotion.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#aeb8c8"/>
+      </marker>
+      <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+        <path d="M0,0 L10,5 L0,10 z" fill="#c86b08"/>
+      </marker>
+    </defs>
+
+    <g aria-hidden="true">
+      <path class="connector" marker-end="url(#arrow)" d="M360 198 V228 H304 V252"/>
+      <path class="connector" marker-end="url(#arrow)" d="M720 198 V228 H776 V252"/>
+      <path class="connector" marker-end="url(#arrow)" d="M304 372 V412"/>
+      <path class="connector" marker-end="url(#arrow)" d="M776 372 V412"/>
+      <path class="connector" marker-end="url(#arrow)" d="M664 312 H416"/>
+      <path class="connector" marker-end="url(#arrow)" d="M416 472 H664"/>
+      <path class="control" marker-end="url(#arrow-amber)" d="M776 532 V572"/>
+      <path class="control" marker-end="url(#arrow-amber)" d="M912 632 H976 V140 H900"/>
+      <path class="connector" d="M540 96 V72 H120 V112"/>
+      <path class="connector" d="M540 96 V72 H960 V112"/>
+    </g>
+
+    <g>
+      <rect class="callout" x="24" y="112" width="280" height="72" rx="8"/>
+      <text class="callout-title" x="44" y="140">Task Execution Lifecycle</text>
+      <text class="copy" x="44" y="162">Session-local retry · recovery · verification</text>
+
+      <rect class="callout amber" x="776" y="112" width="280" height="72" rx="8"/>
+      <text class="callout-title" x="796" y="140">Harness Evolution Lifecycle</text>
+      <text class="copy" x="796" y="162">New version · independent gate · decision</text>
+
+      <rect class="box primary" x="360" y="96" width="360" height="102" rx="8"/>
+      <text class="kicker" x="384" y="124">LAYER 1</text>
+      <text class="title" x="384" y="151">Agent Runtime Kernel</text>
+      <text class="copy" x="384" y="174">provider · context · loop · tools · sessions · subagents</text>
+
+      <rect class="box" x="192" y="252" width="224" height="120" rx="8"/>
+      <text class="kicker" x="216" y="280">LAYER 2</text>
+      <text class="title" x="216" y="307">Component Plane</text>
+      <text class="copy" x="216" y="332">typed DAG · content hashes</text>
+      <text class="copy" x="216" y="352">versions · provenance</text>
+
+      <rect class="box" x="664" y="252" width="224" height="120" rx="8"/>
+      <text class="kicker" x="688" y="280">LAYER 3</text>
+      <text class="title" x="688" y="307">Operations Plane</text>
+      <text class="copy" x="688" y="332">state · owner · checkpoint</text>
+      <text class="copy" x="688" y="352">recover · validate · finalize</text>
+
+      <rect class="box" x="192" y="412" width="224" height="120" rx="8"/>
+      <text class="kicker" x="216" y="440">LAYER 4</text>
+      <text class="title" x="216" y="467">Evidence Plane</text>
+      <text class="copy" x="216" y="492">observations · verifier outcomes</text>
+      <text class="copy" x="216" y="512">inferences · receipts · audit</text>
+
+      <rect class="box evolution" x="664" y="412" width="224" height="120" rx="8"/>
+      <text class="kicker amber" x="688" y="440">LAYER 5</text>
+      <text class="title" x="688" y="467">Evolution Plane</text>
+      <text class="copy" x="688" y="492">mine · attribute · mutate</text>
+      <text class="copy" x="688" y="512">candidate · canary · lineage</text>
+
+      <rect class="box trust" x="120" y="572" width="792" height="120" rx="8"/>
+      <text class="kicker light" x="148" y="602">LAYER 6 · OUTSIDE CANDIDATE AUTHORITY</text>
+      <text class="title light" x="148" y="632">Immutable Trust Plane</text>
+      <text class="copy light" x="148" y="658">evaluator · split vault · permissions · safety · budgets · model identity</text>
+      <text class="copy light" x="148" y="680">protocol pins · promoter · audit verifier · authenticated principals</text>
+
+      <text class="edge-label" x="430" y="220">resolved graph</text>
+      <text class="edge-label" x="742" y="220">owned session</text>
+      <text class="edge-label" x="448" y="304">pins exact hashes</text>
+      <text class="edge-label" x="478" y="464">trace corpus</text>
+      <text class="edge-label" x="790" y="560">candidate result</text>
+      <text class="caption" x="120" y="728">Worktrees isolate file lineage. OS identities, mounts, network policy, and the evaluator boundary isolate authority.</text>
+    </g>
+  </svg>
+</main>
+</body>
+</html>

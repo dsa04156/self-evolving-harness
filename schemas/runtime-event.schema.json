@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/runtime-event.schema.json",
+  "title": "RuntimeEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "protocolId",
+    "sessionId",
+    "harnessVersionId",
+    "runtimeStateSnapshotId",
+    "sequence",
+    "occurredAt",
+    "monotonicNanos",
+    "producer",
+    "origin",
+    "epistemicClass",
+    "eventType",
+    "payload",
+    "payloadHash",
+    "previousEventHash",
+    "eventHash",
+    "artifactRefs",
+    "redaction",
+    "inference"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "eventId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "sessionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "runtimeStateSnapshotId": {
+      "type": "string",
+      "pattern": "^rss-sha256:[a-f0-9]{64}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "monotonicNanos": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originClass",
+        "originId",
+        "trustLevel"
+      ],
+      "properties": {
+        "originClass": {
+          "type": "string",
+          "enum": [
+            "user",
+            "model",
+            "tool",
+            "runtime",
+            "operations",
+            "provider",
+            "evaluator",
+            "promoter"
+          ]
+        },
+        "originId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "trustLevel": {
+          "type": "string",
+          "enum": [
+            "untrusted_input",
+            "sandbox_observation",
+            "authenticated_principal",
+            "trusted_evaluator",
+            "trusted_control"
+          ]
+        }
+      }
+    },
+    "epistemicClass": {
+      "type": "string",
+      "enum": [
+        "recorded_observation",
+        "verifier_outcome",
+        "inference"
+      ]
+    },
+    "eventType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,95}$"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "payloadHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "previousEventHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "eventHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "artifactRefs": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/artifactRef"
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containsKnownSecrets",
+        "appliedRuleIds",
+        "scannerHash"
+      ],
+      "properties": {
+        "containsKnownSecrets": {
+          "const": false
+        },
+        "appliedRuleIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "scannerHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "inference": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/inferenceMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "epistemicClass": {
+            "const": "inference"
+          }
+        },
+        "required": [
+          "epistemicClass"
+        ]
+      },
+      "then": {
+        "properties": {
+          "inference": {
+            "$ref": "./common.schema.json#/$defs/inferenceMetadata"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "inference": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

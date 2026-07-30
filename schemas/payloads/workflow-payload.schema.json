@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/payloads/workflow-payload.schema.json",
+  "title": "SEH Capability-Limited Workflow Payload v1",
+  "description": "A finite state graph with closed action and trigger vocabularies. It contains no expressions or executable code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "language",
+    "entryState",
+    "states",
+    "transitions",
+    "terminalStates"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "language": {
+      "const": "seh.workflow.v1"
+    },
+    "entryState": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stateId",
+          "actions"
+        ],
+        "properties": {
+          "stateId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+          },
+          "actions": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action",
+                "targetId"
+              ],
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "construct_context",
+                    "model_turn",
+                    "retrieve_memory",
+                    "invoke_skill",
+                    "request_tool",
+                    "spawn_subagent",
+                    "wait_job",
+                    "verify",
+                    "emit_completion",
+                    "emit_block"
+                  ]
+                },
+                "targetId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 96
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "trigger",
+          "guard",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "action_succeeded",
+              "action_failed",
+              "tool_result",
+              "job_completed",
+              "job_failed",
+              "verification_passed",
+              "verification_failed",
+              "budget_exhausted",
+              "permission_denied"
+            ]
+          },
+          "guard": {
+            "type": "string",
+            "enum": [
+              "always",
+              "retry_remaining",
+              "no_retry_remaining",
+              "evidence_complete",
+              "evidence_incomplete"
+            ]
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+          }
+        }
+      }
+    },
+    "terminalStates": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]{1,63}$"
+      }
+    }
+  }
+}

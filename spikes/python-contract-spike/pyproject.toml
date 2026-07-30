@@ -1,0 +1,23 @@
+# NON-AUTHORITATIVE PRE-CONTRACT SPIKE; DO NOT PACKAGE OR IMPORT.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evoharness"
+version = "0.1.0"
+description = "A standalone coding-agent runtime with a first-class, bounded harness evolution lifecycle."
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "Self-Evolving Harness contributors"}]
+dependencies = []
+
+[project.scripts]
+evoharness = "evoharness.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"

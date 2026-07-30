@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate1-draft-0",
+  "createdAt": "2026-07-30T18:00:00+09:00",
+  "status": "ready_for_review_not_transmitted",
+  "packet": {
+    "path": "architect/PACKET_01_RESEARCH_AND_ARCHITECTURE.md",
+    "sha256": "dae5250f170c9b6370e6110c8fce92a3e64301910c293fb44dba24cb3eaf213a",
+    "characterCount": 19929
+  },
+  "frozenInputs": {
+    "splitManifest": {
+      "path": "benchmarks/splits.json",
+      "sha256": "b1cdb99b79ca8ae35954920c58c32d0834bd632363380f7fac9ea9bd63f0c523"
+    },
+    "budgetDraft": {
+      "path": "configs/evaluation-budget.yaml",
+      "sha256": "aa13d33530b2641f13ed4ea98cf3e7f520676960202bc55148139f52faf8666b"
+    }
+  },
+  "evidence": {
+    "sourceLedger": {
+      "path": "docs/research/source-ledger.md",
+      "sha256": "c232e486dd91a29102749e1499a98e3acb1431c63b3502baa069242a4cab67ee"
+    },
+    "priorArtMatrix": {
+      "path": "docs/research/prior-art-matrix.md",
+      "sha256": "dde5dd5131328540836108dc1063f0f9b831f19f5ed54f7ce0412337245bb939"
+    },
+    "executionPaths": {
+      "path": "docs/research/execution-paths.md",
+      "sha256": "3ffe5b24ff4e55a4928d35716fc4049c9684b4caebccb915fe2e176ad95d541d"
+    },
+    "gapAnalysis": {
+      "path": "docs/research/gap-analysis.md",
+      "sha256": "1e3f3c459dc04b977e6fe026a4706b6a5618086aad1adefade939c7a741e5623"
+    },
+    "licenseLedger": {
+      "path": "docs/research/license-ledger.md",
+      "sha256": "d047ecd46f17743f7186ad41045bede73b0c94def8f5660952ce2bcc79116e47"
+    }
+  },
+  "bundles": {
+    "algorithm": "sha256(concat(path_utf8, NUL, file_bytes, NUL) for lexically_sorted_paths)",
+    "schemas": {
+      "glob": "schemas/*.schema.json",
+      "fileCount": 11,
+      "sha256": "5768731c8001e08a11e1a04ff6aed544420b444db056c852b8555bbeb2fb4904"
+    },
+    "architecture": {
+      "glob": "docs/architecture/*.md",
+      "fileCount": 9,
+      "sha256": "fce35f77385427e464256cf0a9e916dbd3a22dbfa8b5dd3cad23e9f34792f02a"
+    },
+    "diagrams": {
+      "glob": "docs/diagrams/*.html",
+      "fileCount": 5,
+      "sha256": "4774213eecf993835d971509503500d8859fd22867b1274495d15739086af90c"
+    }
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "sealedTestAccess": false,
+    "externalRepositoryWrite": false
+  }
+}

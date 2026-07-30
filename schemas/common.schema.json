@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/common.schema.json",
+  "title": "Common Contract Definitions",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "componentManifestId": {
+      "type": "string",
+      "pattern": "^cm-sha256:[a-f0-9]{64}$"
+    },
+    "harnessVersionId": {
+      "type": "string",
+      "pattern": "^hv-sha256:[a-f0-9]{64}$"
+    },
+    "protocolId": {
+      "type": "string",
+      "pattern": "^protocol-sha256:[a-f0-9]{64}$"
+    },
+    "typeRegistryId": {
+      "type": "string",
+      "pattern": "^ctr-sha256:[a-f0-9]{64}$"
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]*$"
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "principalRole": {
+      "type": "string",
+      "enum": [
+        "runtime",
+        "operations_owner",
+        "proposer",
+        "evaluator",
+        "promoter",
+        "audit_store",
+        "model_provider_proxy",
+        "benchmark_author",
+        "protocol_author",
+        "human_operator",
+        "fake_provider"
+      ]
+    },
+    "principalIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principalId",
+        "role",
+        "identityDigest",
+        "implementationDigest",
+        "instanceId"
+      ],
+      "properties": {
+        "principalId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "role": {
+          "$ref": "#/$defs/principalRole"
+        },
+        "identityDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "implementationDigest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "instanceId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "modelIdentityHash": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contentHash",
+        "mediaType",
+        "sizeBytes"
+      ],
+      "properties": {
+        "contentHash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "application/vnd.seh.policy+json",
+            "application/vnd.seh.workflow+json",
+            "application/vnd.seh.skill+json",
+            "text/plain; charset=utf-8",
+            "text/markdown; charset=utf-8",
+            "application/octet-stream"
+          ]
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "redacted": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "componentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "componentId",
+        "componentManifestId",
+        "typeEntryId",
+        "semanticVersion",
+        "manifestHash"
+      ],
+      "properties": {
+        "componentId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "componentManifestId": {
+          "$ref": "#/$defs/componentManifestId"
+        },
+        "typeEntryId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "semanticVersion": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "manifestHash": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "inferenceMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceEventIds",
+        "sourceReceiptIds",
+        "confidence",
+        "alternativeExplanations",
+        "producerIdentity"
+      ],
+      "properties": {
+        "sourceEventIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/entityId"
+          }
+        },
+        "sourceReceiptIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/entityId"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alternativeExplanations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "producerIdentity": {
+          "$ref": "#/$defs/principalIdentity"
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "auditLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolId",
+        "logId",
+        "sequence",
+        "recordHash",
+        "previousRecordHash"
+      ],
+      "properties": {
+        "protocolId": {
+          "$ref": "#/$defs/protocolId"
+        },
+        "logId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recordHash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "previousRecordHash": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyId",
+        "algorithm",
+        "signature"
+      ],
+      "properties": {
+        "keyId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{80,128}$"
+        }
+      }
+    },
+    "budgetUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelRequestAttempts",
+        "completedModelCalls",
+        "failedModelCalls",
+        "cancelledModelCalls",
+        "inputTokens",
+        "outputTokens",
+        "reasoningTokens",
+        "cachedInputTokens",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "toolCalls",
+        "feedbackEvents",
+        "wallClockMillis"
+      ],
+      "properties": {
+        "modelRequestAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completedModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cancelledModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoningTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cachedInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalChargedTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerCostMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "toolCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feedbackEvents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wallClockMillis": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "datasetRole": {
+      "type": "string",
+      "enum": [
+        "mine",
+        "gate",
+        "sealed_test",
+        "withheld_public_test",
+        "temporal_holdout",
+        "deterministic",
+        "pilot"
+      ]
+    }
+  }
+}
