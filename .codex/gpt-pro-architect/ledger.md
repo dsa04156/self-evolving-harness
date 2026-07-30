@@ -3,7 +3,7 @@
 | Round | Packet | SHA-256 | External response | Decision |
 |---:|---|---|---|---|
 | 1 | `architect/PACKET_01_RESEARCH_AND_ARCHITECTURE.md` | `dae5250f170c9b6370e6110c8fce92a3e64301910c293fb44dba24cb3eaf213a` | `responses/response-1.md` (`8a0c1be94f0962eaaf06610a0107e28f0047adb72ada87eebbc51b972afdedce`) | REVISE |
-| 1R | `architect/PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | `877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242` | pending | pending |
+| 1R | `architect/PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | `877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242` | `responses/response-1r.md` (`22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd`) | REVISE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -49,3 +49,27 @@ response path, interpreted decision, required revisions, and the commit containi
 - local precheck: `PASS schemas=29 type_registry=valid splits=28/14/14/14+45/10/34 spike=quarantined markdown_links=10`
 - authorized transport: same exact project conversation and browser target only
 - status: prepared, not yet transmitted
+
+## Round 1R — 2026-07-30
+
+- sent: `.codex/gpt-pro-architect/packets/packet-1r.md`
+- transport: Oracle CLI 0.16.1, browser engine, requested `gpt-5-pro`
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-gate1-packet-2`
+- browser endpoint / target: `127.0.0.1:9222` / `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing tab, no local Chrome launch, no cookie copy, archive disabled
+- attach-metadata attempt: failed before transmission because Oracle did not own the profile metadata
+- fallback: recorded direct-CDP exact-tab path; dry-run passed and live run completed
+- model evidence: requested `gpt-5-pro`; browser reported requested/resolved `Pro`, already selected;
+  server-side model identity remains vendor-opaque
+- raw response: `.codex/gpt-pro-architect/responses/response-1r.md`
+- response hash: `22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd`
+- architect decision: `REVISE`
+- accepted without a remaining blocker: novelty boundary, immutable manifest split, authoritative registry,
+  closed payloads, runtime snapshots, principal/TCB target, matched B5/B6 controls, terminology, and
+  claim discipline
+- remaining authorized corrections: qualification/deployment separation, abnormal session termination,
+  B6-RAW, protocol-lifetime gate governance, deterministic high-cost formula, corrected multi-cause
+  graph, and explicit H4 disposition
+- still prohibited: runtime/evaluator/isolation implementation, provider or benchmark execution,
+  gate/final access, promotion/rollback execution, and performance/security claims

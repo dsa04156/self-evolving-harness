@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packetId": "architect-gate1r-draft-1",
   "createdAt": "2026-07-30T19:19:00+09:00",
-  "status": "ready_for_review_not_transmitted",
+  "status": "reviewed_revise",
   "supersedesPacketSha256": "dae5250f170c9b6370e6110c8fce92a3e64301910c293fb44dba24cb3eaf213a",
   "respondsToDecisionSha256": "8a0c1be94f0962eaaf06610a0107e28f0047adb72ada87eebbc51b972afdedce",
   "packet": {
@@ -62,10 +62,17 @@
     }
   },
   "externalActions": {
-    "architectTransmission": false,
+    "architectTransmission": true,
     "paidProviderCall": false,
     "benchmarkExecution": false,
     "gateOrFinalAccess": false,
     "externalRepositoryWrite": false
+  },
+  "review": {
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "oracleSessionId": "self-evolving-harness-gate1-packet-2",
+    "decision": "REVISE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-1r.md",
+    "responseSha256": "22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd"
   }
 }
