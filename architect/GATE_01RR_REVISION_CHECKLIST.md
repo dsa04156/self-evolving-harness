@@ -1,6 +1,6 @@
 # Gate 1RR Contract-Correction Checklist
 
-Status: **LOCAL CORRECTIONS IN VALIDATION**
+Status: **READY FOR EXTERNAL RESUBMISSION**
 Source decision: `.codex/gpt-pro-architect/responses/response-1r.md`
 Decision: `REVISE`
 Protocol candidate remains: `draft-1`
@@ -20,7 +20,7 @@ authorize implementation.
 | RR7 | Define a deterministic higher-cost exception. | phase-budget ledger; cost-gate and promotion schemas; evaluation budget | signed common-task counts/tokens produce exact integer inequalities; failures and missing usage are charged without discretion | complete; static precheck passed |
 | RR8 | Correct and enumerate the fourteen-edge multi-cause graph. | fixture specification; graph instance/schema; split manifest | seven families have degree four overall and degree two in each of two seven-edge strata; IDs equal the unchanged split list | complete; static precheck passed |
 | RR9 | Explicitly dispose of H4. | hypotheses, budget config, claim/statistical contracts | exploratory only; second model frozen before outcomes, no retuning/reselection/evolution, or H4 is withdrawn before results | complete; static precheck passed |
-| RR10 | Submit only the changed contracts and replacement hashes. | `PACKET_01RR_CONTRACT_CORRECTIONS.md` and exact transport copy | local precheck passes; packet hash is recorded; same exact Architect conversation returns `APPROVE`, `REVISE`, or `BLOCK` | pending |
+| RR10 | Submit only the changed contracts and replacement hashes. | `PACKET_01RR_CONTRACT_CORRECTIONS.md` and exact transport copy | local precheck passes; packet hash is recorded; same exact Architect conversation returns `APPROVE`, `REVISE`, or `BLOCK` | packet ready; external decision pending |
 
 ## Scope lock
 

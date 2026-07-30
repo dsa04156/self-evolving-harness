@@ -73,3 +73,18 @@ response path, interpreted decision, required revisions, and the commit containi
   graph, and explicit H4 disposition
 - still prohibited: runtime/evaluator/isolation implementation, provider or benchmark execution,
   gate/final access, promotion/rollback execution, and performance/security claims
+
+## Round 1RR preparation — 2026-07-30
+
+- packet: `.codex/gpt-pro-architect/packets/packet-1rr.md`
+- authoritative project copy: `architect/PACKET_01RR_CONTRACT_CORRECTIONS.md`
+- packet hash: `eee5ab4dad190fd6eb220c69895932de89935c59abfd6ae11c0ad8cebd48b500`
+- packet size: 18,392 characters / 18,426 bytes
+- correction commit: `f3c3cb88c00257700b8c58181c25aa0ed7ccb47e`
+- manifest: `architect/PACKET_01RR_MANIFEST.json`
+- local precheck: `PASS schemas=33 type_registry=valid splits=28/14/14/14+45/10/34
+  multicause_graph=14_edges_degree4 lifecycle=qualified_deployed_terminated gate=one_shot
+  h3=B6_vs_B6-RAW spike=quarantined markdown_links=10`
+- scope: only the ten Gate 1R contract corrections and replacement hashes; no diagrams
+- authorized transport: same exact project conversation and browser target only
+- status: prepared, not yet transmitted
