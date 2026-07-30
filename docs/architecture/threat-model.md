@@ -1,6 +1,6 @@
 # Threat Model
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 Scope: standalone runtime, component/evolution registries, local candidate execution, evaluation, and
 promotion
 
@@ -8,7 +8,7 @@ promotion
 
 | Asset | Required property |
 |---|---|
-| production whole-harness pointer and rollback target | authentic approved composition, atomic CAS, availability, exact resolution |
+| production whole-harness target/rollback tuple | authentic approved composition, atomic CAS, availability, exact null/deploy/swap resolution |
 | component/type/protocol manifests | stable content identity, authentic protocol provenance |
 | evaluator, verifier, permission/safety/budget/model/promotion/tool/optimizer pins | denied candidate write, digest integrity, protocol separation |
 | benchmark tasks, split, verifier details, temporal authoring | role-appropriate confidentiality, frozen semantics, contamination disclosure |
@@ -60,7 +60,7 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Proposer reads gate/test/verifier or infers it adaptively | absent mounts, opaque handles, deny egress, fixed one-shot release fields/count | path/canary/error/side-channel probes; feedback cap exhaustion | aggregate leakage; public-model contamination |
 | Final test affects qualification/deployment/tuning/rollback | metric-to-split authorization and promoter rejection | final-role result supplied to promoter is rejected | human may launch a new exploratory protocol after seeing results |
 | Gate aggregate influences a later confirmatory protocol | one-shot gate capability; promoter/audit-only evidence until final closure; fresh gate after human release | pre-final recipient and second-unlock probes rejected | gate is consumed even if the run is disappointing |
-| Abnormal session is killed without auditable cleanup | `terminating → terminated`, reason enum, descendant/capability revocation, process reap, sealed accounting/evidence | every reason, crash-during-termination, orphan and resume tests | malicious host outside TCB |
+| Abnormal session is killed or its cause changes during cleanup | `terminating → terminated`, immutable transaction descriptor, direct initiating-record reference, descendant/capability revocation, process reap, sealed accounting/evidence | every reason, descriptor-drift/conflicting-final, crash-during-termination, orphan and resume tests | malicious host outside TCB |
 | Temporal tasks are tailored to candidate | blinded independent authors, frozen inclusion rules/hashes/verifiers, no result access | authorship/access log review | author priors and small sample |
 | Public Terminal-Bench is misrepresented as sealed | “withheld public test” label and contamination report | terminology/static report check | unknown pretraining exposure |
 | Tool path traversal, symlink race, device/FIFO/socket, hardlink, ADS | descriptor-relative access, special/link rejection, fresh namespace | cross-platform malicious filesystem corpus | kernel/filesystem defects |

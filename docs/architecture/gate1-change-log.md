@@ -1,8 +1,9 @@
-# Gate 1 → Gate 1R → Gate 1RR Change Log and Open Fields
+# Gate 1 → Gate 1R → Gate 1RR → Gate 1RRR Change Log and Open Fields
 
-Status: `draft-1`; external Gate 1 and Gate 1R decisions `REVISE`; Gate 1RR pending
+Status: `draft-1`; external Gate 1, Gate 1R, and Gate 1RR decisions `REVISE`; Gate 1RRR pending
 Architect responses: `.codex/gpt-pro-architect/responses/response-1.md`,
-`.codex/gpt-pro-architect/responses/response-1r.md`
+`.codex/gpt-pro-architect/responses/response-1r.md`,
+`.codex/gpt-pro-architect/responses/response-1rr.md`
 
 ## Corrective changes
 
@@ -41,7 +42,7 @@ Architect responses: `.codex/gpt-pro-architect/responses/response-1.md`,
 - Canary is offline replay or isolated synthetic only.
 - Git/worktrees and SQLite projections are explicitly non-authoritative.
 - Negative, rejected, invalid, budget-exhausted and rolled-back candidates remain retained.
-- Bootstrap rollback lineage is external to content identity.
+- Deployment lineage and the null bootstrap pointer are external to content identity.
 - The invalid external-architect topic collision remains archived and explicitly unusable as evidence.
 
 ## Gate 1R → Gate 1RR corrections
@@ -59,6 +60,17 @@ Architect responses: `.codex/gpt-pro-architect/responses/response-1.md`,
   overall and degree two per family within each stratum.
 - H4 remains exploratory under a pre-outcome second-model freeze and forbids retuning, reselection, or
   second-model evolution.
+
+## Gate 1RR → Gate 1RRR corrections
+
+- Initialization now has one executable predicate: an approved target and a null rollback target;
+  rollback is illegal until the first successful deploy.
+- Each pointer state and CAS expectation includes the complete target and rollback-target tuples.
+  Deploy copies the prior target into the rollback slot; rollback atomically swaps the two tuples, so
+  repeated rollback is deterministic.
+- Abnormal termination now uses one immutable transaction descriptor shared byte-for-byte by the
+  initiating and final records. Direct initiator reference, original state/principal/reason continuity,
+  completion-only additions, and duplicate/conflicting-final rejection are validator invariants.
 
 ## Fields intentionally unresolved until authorized pilot/implementation
 

@@ -1,6 +1,6 @@
 # Immutable Trust Plane
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 
 ## Security objective
 
@@ -100,7 +100,7 @@ feasibility is claimed.
 
 The operation is invalid if any protocol ID, manifest/closure/artifact hash, signature, peer identity,
 schema, sequence/nonce, dataset capability, runtime-state snapshot, environment attestation, budget
-ledger, evaluator result, qualification decision, deployment decision, rollback target, termination
-receipt, or audit link is missing or mismatched.
+ledger, evaluator result, qualification decision, deployment decision, action-required rollback target,
+termination transaction/receipt, or audit link is missing or mismatched.
 Defaults are not inferred and candidate-produced inference cannot satisfy a deterministic or promotion
 gate.

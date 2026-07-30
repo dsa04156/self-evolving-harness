@@ -1,6 +1,6 @@
 # Session, Harness Qualification, and Deployment State
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 
 The session lifecycle, harness qualification lifecycle, and channel deployment history are independent.
 A transition in one never implies a transition in another.
@@ -54,10 +54,34 @@ The mandatory termination reason is exactly one of:
 - `unrecoverable_recovery`; or
 - `host_enforced_shutdown`.
 
-`terminating → terminated` is valid only when the supervisor has revoked all descendant leases and
-capabilities, stopped and reaped backend jobs/process groups, sealed provider/tool/feedback accounting,
-and appended a final evidence receipt. If the initiating process crashes, the operations owner resumes
-the termination transaction; it may not return the session to another state.
+The initiating `toState=terminating` record creates one immutable termination descriptor:
+
+```text
+D = (
+  terminationTransactionId,
+  initiatingRecordId,
+  preTerminationState,
+  initiatingPrincipal,
+  reason
+)
+```
+
+For the initiating record, `initiatingRecordId == recordId`,
+`preTerminationState == fromState`, `initiatingPrincipal == transitionedBy`, and
+`reason == terminationReason`. Every non-termination record has a null descriptor.
+
+The sole `terminating → terminated` record directly references the initiating record through
+`D.initiatingRecordId` and repeats `D` byte-for-byte. It must preserve protocol, session, harness,
+runtime-state snapshot, original pre-termination state, initiating principal, and reason. Its top-level
+`terminationReason` equals `D.reason`. It may add only termination-completion evidence: revocation and
+process/job-reap status, sealed accounting evidence, final receipt references, the new record/transition
+actor and time, audit link, and attestation. Existing initiating evidence cannot be removed or changed.
+
+The audit validator permits exactly one initiating and at most one final record for each
+`(sessionId, terminationTransactionId)`. A missing initiator, non-direct reference, descriptor mismatch,
+reason change, duplicate/conflicting final, or any other field drift fails validation. If the initiating
+process crashes, the operations owner may be the final record's transition actor, but the descriptor's
+initiating principal remains unchanged. The transaction may not return the session to another state.
 
 Session invariants:
 
@@ -66,6 +90,7 @@ Session invariants:
 - retry is `validating → running` or an inner-loop iteration, never a new harness;
 - a `retired` or `terminated` session cannot resume;
 - retry after abnormal termination creates a new session with a new session ID and explicit causal link;
+- one termination transaction has one immutable cause and at most one terminal completion;
 - identical inputs, fake provider/tool outputs, seed, and snapshot yield the same event-chain head;
 - an out-of-band container kill without a matching termination record invalidates the session result.
 
@@ -111,27 +136,53 @@ themselves keep it deployable.
 ## Protocol-v1 deployment state
 
 Protocol v1 permits exactly one channel named `production`. Its state is only the latest valid
-`DeploymentPointerRecord`; no manifest or lifecycle projection stores deployment state.
+`DeploymentPointerRecord`; no manifest or lifecycle projection stores deployment state. The complete
+pointer state is:
+
+```text
+P_g = (
+  generation = g,
+  target = (harnessVersionId, manifestHash, qualificationDecisionId) | null,
+  rollbackTarget = (harnessVersionId, manifestHash, qualificationDecisionId) | null,
+  pointerRecordHash
+)
+```
+
+`expectedBefore` repeats the complete prior tuple, including both target and rollback target. The
+decision and applied record repeat the complete next tuple. The validator resolves every tuple member
+under the same protocol and recomputes both manifest hashes and approval references.
 
 | Operation | CAS precondition | Result |
 |---|---|---|
-| `initialize` | generation `-1`, null target/hash | generation `0` points to an approved target and records a distinct approved rollback anchor |
-| `deploy` | exact current generation, target, and pointer-record hash | next generation points to an approved exact manifest; prior target remains approved and becomes rollback target |
-| `rollback` | exact current generation, target, and pointer-record hash | next generation points to the recorded approved rollback target; displaced target remains approved |
-| `decommission` | exact current generation, target, and pointer-record hash | next generation has a null target; no harness lifecycle transition is implied |
+| `initialize` | `P_-1`: generation `-1`; target, rollback target, and record hash all null | `P_0`: approved target `A`; rollback target null |
+| `deploy(C)` | exact `P_g` with non-null target `A` | `P_g+1`: target `C`; rollback target exactly prior target `A` |
+| `rollback` | exact `P_g` with target `A` and non-null rollback target `B` | `P_g+1`: target exactly `B`; rollback target exactly `A` |
+| `decommission` | exact `P_g` with non-null target | `P_g+1`: target and rollback target null; no qualification transition |
 
-Every operation requires a signed `DeploymentDecision`, exact target and rollback-target manifest
-hashes, protocol match, separate approved qualification-decision references for both retained targets,
-and complete audit linkage. Rollback is a channel-scoped CAS event, not a global state. Replacing or
-rolling back a pointer never retires either harness.
+Protocol v1 therefore uses a **null initialization anchor**. Rollback is prohibited after initialize
+until one successful deploy has created a non-null rollback target. There is no separate
+composition-equivalent bootstrap anchor and no equivalence predicate.
 
-Initialization uses two separately identified, composition-equivalent manifests: an approved bootstrap
-target and an approved rollback anchor. Both follow the qualification path; initialization has no
-state-skipping exception.
+`deploy` and `rollback` require approved, protocol-compatible exact tuples. The rollback rule is a
+deterministic swap:
+
+```text
+new.target = prior.rollbackTarget
+new.rollbackTarget = prior.target
+```
+
+Repeated rollback therefore toggles the two most recent deployed targets; older targets remain in
+append-only history but are not silently selected. `initialize` records
+`priorTargetDisposition=none`; every later operation records
+`priorTargetDisposition=retained_approved`. Replacing, rolling back, or decommissioning never retires a
+prior target.
 
 Concurrent operations serialize at the deployment registry. A stale generation, prior hash, target,
-qualification decision, or protocol fails closed. There is no implicit rebase and no per-component
-activation.
+rollback target, qualification decision, or protocol fails closed. Every successful operation has
+`new.generation = prior.generation + 1`. There is no implicit rebase, null-to-rollback coercion, or
+per-component activation. The applied pointer record must equal its signed `DeploymentDecision` in
+protocol, channel, action, complete `expectedBefore`, generation, target tuple, and rollback-target
+tuple; any mismatch fails before append.
 
 ## Cross-lifecycle prohibitions
 

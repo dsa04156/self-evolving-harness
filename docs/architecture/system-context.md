@@ -1,6 +1,6 @@
 # System Context and Six-Layer Architecture
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 Protocol: `draft-1`
 
 ## Decision
@@ -90,8 +90,9 @@ records are authoritative only after their hash and schema validate.
 8. Worktrees isolate candidate file histories; only the sandbox/permission layer isolates authority.
 9. All model calls, including proposer, summarizer, attribution, judge, reflection, and subagent calls,
    debit the common evaluation ledger.
-10. The production pointer always has a valid approved rollback target whose content is independently
-    resolvable.
+10. The production pointer has a null rollback target only immediately after initialization or
+    decommission; deploy installs the exact prior target as rollback target, and rollback swaps both
+    complete approved tuples.
 11. Any trust-plane, benchmark, budget, model, environment, schema, or statistical-plan change creates a
     new protocol ID; confirmatory records never mix protocol IDs.
 12. Abnormal termination revokes descendants/capabilities, stops jobs, seals accounting/evidence, and
@@ -99,10 +100,10 @@ records are authoritative only after their hash and schema validate.
 
 ## Bootstrap
 
-The registry starts with two separately identified but composition-equivalent, independently `approved`
-manifests: a retained bootstrap rollback anchor and a deployment target. Their external lineage record
-links them. The first signed production-pointer initialization selects the target and records the anchor
-as rollback target; neither manifest embeds deployment state or a rollback pointer.
+The registry starts with one approved deployment target. The first signed production-pointer
+initialization selects it and records a null rollback target. Rollback is illegal until a later
+successful deploy records the exact prior target tuple; neither manifest embeds deployment state or a
+rollback pointer.
 
 ## Deferred implementation decision
 

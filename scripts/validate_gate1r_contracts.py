@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static Gate 1RR contract precheck.
+"""Static Gate 1RRR contract precheck.
 
 This is design-artifact validation, not runtime/evaluator implementation evidence.
 """
@@ -345,7 +345,30 @@ def validate_manifest_separation() -> None:
         "rollbackTargetQualificationDecisionId",
     ):
         assert field in deployment["required"]
-    initialization_rule = deployment["allOf"][1]
+    assert deployment["properties"]["schemaVersion"]["const"] == 3
+    expected_tuple_fields = set(
+        load_json(SCHEMA_ROOT / "deployment-decision.schema.json")["$defs"][
+            "pointerExpectation"
+        ]["required"]
+    )
+    assert expected_tuple_fields == {
+        "generation",
+        "harnessVersionId",
+        "manifestHash",
+        "targetQualificationDecisionId",
+        "rollbackTargetHarnessVersionId",
+        "rollbackTargetManifestHash",
+        "rollbackTargetQualificationDecisionId",
+        "pointerRecordHash",
+    }
+    null_anchor_rule = deployment["allOf"][1]
+    for field in (
+        "rollbackTargetHarnessVersionId",
+        "rollbackTargetManifestHash",
+        "rollbackTargetQualificationDecisionId",
+    ):
+        assert null_anchor_rule["then"]["properties"][field]["type"] == "null"
+    initialization_rule = deployment["allOf"][2]
     assert initialization_rule["then"]["properties"]["expectedBefore"][
         "properties"
     ]["generation"]["const"] == -1
@@ -358,6 +381,8 @@ def validate_manifest_separation() -> None:
     assert initialization_rule["else"]["properties"][
         "priorTargetDisposition"
     ]["const"] == "retained_approved"
+    rollback_rule = deployment["allOf"][3]
+    assert rollback_rule["if"]["properties"]["operation"]["const"] == "rollback"
 
     protocol = load_json(SCHEMA_ROOT / "protocol-manifest.schema.json")
     assert protocol["properties"]["schemaVersion"]["const"] == 2
@@ -410,6 +435,7 @@ def validate_lifecycle_contracts() -> None:
         assert forbidden not in promotion["properties"]
 
     deployment_decision = load_json(SCHEMA_ROOT / "deployment-decision.schema.json")
+    assert deployment_decision["properties"]["schemaVersion"]["const"] == 2
     assert deployment_decision["properties"]["channelId"]["const"] == "production"
     for field in (
         "rollbackTargetHarnessVersionId",
@@ -417,15 +443,182 @@ def validate_lifecycle_contracts() -> None:
         "rollbackTargetQualificationDecisionId",
     ):
         assert field in deployment_decision["required"]
-    decision_initialization_rule = deployment_decision["allOf"][1]
+    decision_initialization_rule = deployment_decision["allOf"][2]
     assert decision_initialization_rule["then"]["properties"]["expectedBefore"][
         "properties"
     ]["generation"]["const"] == -1
     assert decision_initialization_rule["then"]["properties"]["target"][
         "properties"
     ]["generation"]["const"] == 0
+    decision_rollback_rule = deployment_decision["allOf"][3]
+    assert decision_rollback_rule["if"]["properties"]["action"]["const"] == (
+        "rollback"
+    )
+
+    # Executable model of the frozen cross-object rules. This is a static
+    # contract precheck, not deployment machinery.
+    harness_a = ("hv-a", "sha-a", "approve-a")
+    harness_c = ("hv-c", "sha-c", "approve-c")
+
+    def transition(
+        prior: tuple[int, tuple[str, str, str] | None, tuple[str, str, str] | None],
+        operation: str,
+        target: tuple[str, str, str] | None = None,
+    ):
+        generation, prior_target, prior_rollback = prior
+        if operation == "initialize":
+            assert generation == -1 and prior_target is None and prior_rollback is None
+            assert target is not None
+            return (0, target, None)
+        assert generation >= 0 and prior_target is not None
+        if operation == "deploy":
+            assert target is not None
+            return (generation + 1, target, prior_target)
+        if operation == "rollback":
+            assert prior_rollback is not None
+            return (generation + 1, prior_rollback, prior_target)
+        if operation == "decommission":
+            return (generation + 1, None, None)
+        raise AssertionError(f"unknown deployment operation: {operation}")
+
+    initialized = transition((-1, None, None), "initialize", harness_a)
+    assert initialized == (0, harness_a, None)
+    try:
+        transition(initialized, "rollback")
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("rollback before first deploy must fail")
+    deployed = transition(initialized, "deploy", harness_c)
+    assert deployed == (1, harness_c, harness_a)
+    rolled_back = transition(deployed, "rollback")
+    assert rolled_back == (2, harness_a, harness_c)
+    assert transition(rolled_back, "rollback") == (3, harness_c, harness_a)
+    assert transition(rolled_back, "decommission") == (3, None, None)
+
+    # The signed decision and appended pointer record must encode the same
+    # complete transition. Schema validation fixes each record's shape; this
+    # cross-object predicate fixes equality and action semantics.
+    prior_pointer = {
+        "generation": 1,
+        "harnessVersionId": harness_c[0],
+        "manifestHash": harness_c[1],
+        "targetQualificationDecisionId": harness_c[2],
+        "rollbackTargetHarnessVersionId": harness_a[0],
+        "rollbackTargetManifestHash": harness_a[1],
+        "rollbackTargetQualificationDecisionId": harness_a[2],
+        "pointerRecordHash": "pointer-hash-1",
+    }
+    rollback_decision = {
+        "deploymentDecisionId": "deploy-decision-2",
+        "protocolId": "protocol-1",
+        "action": "rollback",
+        "channelId": "production",
+        "expectedBefore": dict(prior_pointer),
+        "target": {
+            "generation": 2,
+            "harnessVersionId": harness_a[0],
+            "manifestHash": harness_a[1],
+        },
+        "targetQualificationDecisionId": harness_a[2],
+        "rollbackTargetHarnessVersionId": harness_c[0],
+        "rollbackTargetManifestHash": harness_c[1],
+        "rollbackTargetQualificationDecisionId": harness_c[2],
+    }
+    rollback_record = {
+        "deploymentDecisionId": "deploy-decision-2",
+        "protocolId": "protocol-1",
+        "operation": "rollback",
+        "channelId": "production",
+        "expectedBefore": dict(prior_pointer),
+        "after": dict(rollback_decision["target"]),
+        "targetQualificationDecisionId": harness_a[2],
+        "rollbackTargetHarnessVersionId": harness_c[0],
+        "rollbackTargetManifestHash": harness_c[1],
+        "rollbackTargetQualificationDecisionId": harness_c[2],
+    }
+
+    def deployment_pair_valid(
+        decision: dict[str, Any], record: dict[str, Any]
+    ) -> bool:
+        if decision["deploymentDecisionId"] != record["deploymentDecisionId"]:
+            return False
+        if decision["protocolId"] != record["protocolId"]:
+            return False
+        if decision["channelId"] != record["channelId"]:
+            return False
+        if decision["action"] != record["operation"]:
+            return False
+        if decision["expectedBefore"] != record["expectedBefore"]:
+            return False
+        if decision["target"] != record["after"]:
+            return False
+        for field in (
+            "targetQualificationDecisionId",
+            "rollbackTargetHarnessVersionId",
+            "rollbackTargetManifestHash",
+            "rollbackTargetQualificationDecisionId",
+        ):
+            if decision[field] != record[field]:
+                return False
+
+        prior = decision["expectedBefore"]
+        prior_target = (
+            prior["harnessVersionId"],
+            prior["manifestHash"],
+            prior["targetQualificationDecisionId"],
+        )
+        prior_rollback = (
+            (
+                prior["rollbackTargetHarnessVersionId"],
+                prior["rollbackTargetManifestHash"],
+                prior["rollbackTargetQualificationDecisionId"],
+            )
+            if prior["rollbackTargetHarnessVersionId"] is not None
+            else None
+        )
+        requested_target = (
+            decision["target"]["harnessVersionId"],
+            decision["target"]["manifestHash"],
+            decision["targetQualificationDecisionId"],
+        )
+        try:
+            expected = transition(
+                (prior["generation"], prior_target, prior_rollback),
+                decision["action"],
+                requested_target,
+            )
+        except AssertionError:
+            return False
+        expected_generation, expected_target, expected_rollback = expected
+        actual_target = requested_target
+        actual_rollback = (
+            (
+                decision["rollbackTargetHarnessVersionId"],
+                decision["rollbackTargetManifestHash"],
+                decision["rollbackTargetQualificationDecisionId"],
+            )
+            if decision["rollbackTargetHarnessVersionId"] is not None
+            else None
+        )
+        return (
+            decision["target"]["generation"] == expected_generation
+            and actual_target == expected_target
+            and actual_rollback == expected_rollback
+        )
+
+    assert deployment_pair_valid(rollback_decision, rollback_record)
+    non_swapping_record = dict(rollback_record)
+    non_swapping_record["rollbackTargetHarnessVersionId"] = harness_a[0]
+    assert not deployment_pair_valid(rollback_decision, non_swapping_record)
+    non_swapping_decision = dict(rollback_decision)
+    non_swapping_decision["rollbackTargetHarnessVersionId"] = harness_a[0]
+    non_swapping_record = dict(rollback_record)
+    non_swapping_record["rollbackTargetHarnessVersionId"] = harness_a[0]
+    assert not deployment_pair_valid(non_swapping_decision, non_swapping_record)
 
     session = load_json(SCHEMA_ROOT / "session-lifecycle-record.schema.json")
+    assert session["properties"]["schemaVersion"]["const"] == 2
     session_states = set(session["properties"]["toState"]["enum"])
     assert {"terminating", "terminated"} <= session_states
     reasons = set(
@@ -442,6 +635,21 @@ def validate_lifecycle_contracts() -> None:
         "unrecoverable_recovery",
         "host_enforced_shutdown",
     }
+    assert "terminationTransaction" in session["required"]
+    transaction = session["properties"]["terminationTransaction"]["oneOf"][1]
+    assert set(transaction["required"]) == {
+        "terminationTransactionId",
+        "initiatingRecordId",
+        "preTerminationState",
+        "initiatingPrincipal",
+        "reason",
+    }
+    assert session["allOf"][0]["then"]["properties"][
+        "terminationTransaction"
+    ]["type"] == "object"
+    assert session["allOf"][0]["else"]["properties"][
+        "terminationTransaction"
+    ]["type"] == "null"
     session_pairs: dict[str | None, set[str]] = {}
     for branch in session["oneOf"]:
         pair = branch["properties"]
@@ -472,6 +680,114 @@ def validate_lifecycle_contracts() -> None:
         "completed": {"retired", "terminating"},
         "terminating": {"terminated"},
     }
+
+    # Cross-record continuity examples. The production validator must resolve
+    # the referenced record and enforce the same comparisons.
+    initiating_descriptor = {
+        "terminationTransactionId": "ttx-1",
+        "initiatingRecordId": "slr-1",
+        "preTerminationState": "running",
+        "initiatingPrincipal": "operations-owner-1",
+        "reason": "process_crash",
+    }
+    initiating_record = {
+        "recordId": "slr-1",
+        "protocolId": "protocol-1",
+        "sessionId": "session-1",
+        "harnessVersionId": "harness-1",
+        "runtimeStateSnapshotId": "snapshot-1",
+        "fromState": "running",
+        "toState": "terminating",
+        "terminationReason": "process_crash",
+        "terminationTransaction": initiating_descriptor,
+        "evidenceReceiptIds": ["receipt-init"],
+        "transitionedBy": "operations-owner-1",
+    }
+    final_record = {
+        "recordId": "slr-2",
+        "protocolId": "protocol-1",
+        "sessionId": "session-1",
+        "harnessVersionId": "harness-1",
+        "runtimeStateSnapshotId": "snapshot-1",
+        "fromState": "terminating",
+        "toState": "terminated",
+        "terminationReason": "process_crash",
+        "terminationTransaction": dict(initiating_descriptor),
+        "evidenceReceiptIds": ["receipt-init", "receipt-final"],
+    }
+
+    def termination_pair_valid(initiating: dict[str, Any], final: dict[str, Any]) -> bool:
+        descriptor = initiating["terminationTransaction"]
+        if descriptor["initiatingRecordId"] != initiating["recordId"]:
+            return False
+        if descriptor["preTerminationState"] != initiating["fromState"]:
+            return False
+        if descriptor["initiatingPrincipal"] != initiating["transitionedBy"]:
+            return False
+        if descriptor["reason"] != initiating["terminationReason"]:
+            return False
+        if final["terminationTransaction"] != descriptor:
+            return False
+        if final["terminationReason"] != descriptor["reason"]:
+            return False
+        for field in (
+            "protocolId",
+            "sessionId",
+            "harnessVersionId",
+            "runtimeStateSnapshotId",
+        ):
+            if final[field] != initiating[field]:
+                return False
+        if not set(initiating["evidenceReceiptIds"]) <= set(
+            final["evidenceReceiptIds"]
+        ):
+            return False
+        return final["fromState"] == "terminating" and final["toState"] == "terminated"
+
+    assert termination_pair_valid(initiating_record, final_record)
+    conflicting_final = dict(final_record)
+    conflicting_final["terminationReason"] = "security_violation"
+    assert not termination_pair_valid(initiating_record, conflicting_final)
+    conflicting_descriptor = dict(final_record)
+    conflicting_descriptor["terminationTransaction"] = dict(
+        initiating_descriptor, reason="security_violation"
+    )
+    assert not termination_pair_valid(initiating_record, conflicting_descriptor)
+    conflicting_origin = dict(final_record)
+    conflicting_origin["terminationTransaction"] = dict(
+        initiating_descriptor, preTerminationState="waiting"
+    )
+    assert not termination_pair_valid(initiating_record, conflicting_origin)
+    conflicting_principal = dict(final_record)
+    conflicting_principal["terminationTransaction"] = dict(
+        initiating_descriptor, initiatingPrincipal="operations-owner-2"
+    )
+    assert not termination_pair_valid(initiating_record, conflicting_principal)
+
+    def termination_completion_set_valid(
+        initiating: dict[str, Any], finals: list[dict[str, Any]]
+    ) -> bool:
+        return len(finals) <= 1 and all(
+            termination_pair_valid(initiating, item)
+            for item in finals
+        )
+
+    assert termination_completion_set_valid(initiating_record, [final_record])
+    assert not termination_completion_set_valid(
+        initiating_record, [final_record, dict(final_record)]
+    ), "duplicate terminal completion must fail"
+
+    state_contract = (
+        ROOT / "docs/architecture/state-machines.md"
+    ).read_text(encoding="utf-8")
+    for fragment in (
+        "new.target = prior.rollbackTarget",
+        "new.rollbackTarget = prior.target",
+        "Rollback is prohibited after initialize",
+        "repeats `D` byte-for-byte",
+        "duplicate/conflicting final",
+    ):
+        assert fragment in state_contract, f"missing lifecycle invariant: {fragment}"
     operations = load_json(SCHEMA_ROOT / "operation-response.schema.json")
     assert "terminate" in operations["properties"]["operation"]["enum"]
     assert {"terminating", "terminated"} <= set(
@@ -534,6 +850,8 @@ def validate_required_artifacts() -> None:
         "benchmarks/harness-fault-bench/multicause-graph.json",
         "architect/GATE_01R_REVISION_CHECKLIST.md",
         "architect/GATE_01RR_REVISION_CHECKLIST.md",
+        "architect/GATE_01RRR_REVISION_CHECKLIST.md",
+        "docs/evaluation/gate1rrr-validation.md",
     ]
     for relative in required:
         assert (ROOT / relative).exists(), f"missing required artifact: {relative}"
@@ -576,6 +894,8 @@ def main() -> int:
         "splits=28/14/14/14+45/10/34",
         "multicause_graph=14_edges_degree4",
         "lifecycle=qualified_deployed_terminated",
+        "deployment=null_anchor_swap",
+        "termination=transaction_bound",
         "gate=one_shot",
         "h3=B6_vs_B6-RAW",
         "spike=quarantined",

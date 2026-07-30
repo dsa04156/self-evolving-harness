@@ -15,6 +15,7 @@
     "fromState",
     "toState",
     "terminationReason",
+    "terminationTransaction",
     "termination",
     "evidenceReceiptIds",
     "transitionedBy",
@@ -24,7 +25,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "recordId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -95,6 +96,62 @@
             "unrecoverable_recovery",
             "host_enforced_shutdown"
           ]
+        }
+      ]
+    },
+    "terminationTransaction": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "terminationTransactionId",
+            "initiatingRecordId",
+            "preTerminationState",
+            "initiatingPrincipal",
+            "reason"
+          ],
+          "properties": {
+            "terminationTransactionId": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            },
+            "initiatingRecordId": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            },
+            "preTerminationState": {
+              "type": "string",
+              "enum": [
+                "created",
+                "initialized",
+                "running",
+                "waiting",
+                "blocked",
+                "recovering",
+                "validating",
+                "completed"
+              ]
+            },
+            "initiatingPrincipal": {
+              "$ref": "./common.schema.json#/$defs/principalIdentity"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "initialization_failure",
+                "user_cancellation",
+                "budget_exhaustion",
+                "deadline_expiry",
+                "verifier_failure",
+                "security_violation",
+                "process_crash",
+                "unrecoverable_recovery",
+                "host_enforced_shutdown"
+              ]
+            }
+          }
         }
       ]
     },
@@ -173,12 +230,18 @@
         "properties": {
           "terminationReason": {
             "type": "string"
+          },
+          "terminationTransaction": {
+            "type": "object"
           }
         }
       },
       "else": {
         "properties": {
           "terminationReason": {
+            "type": "null"
+          },
+          "terminationTransaction": {
             "type": "null"
           }
         }

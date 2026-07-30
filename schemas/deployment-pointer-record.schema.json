@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/deployment-pointer-record.schema.json",
   "title": "Atomic Whole-Harness DeploymentPointerRecord",
-  "description": "Protocol v1 has one production channel. This append-only CAS record is the only representation of deployment or rollback; it never changes harness qualification state.",
+  "description": "The complete production-channel post-state: generation, target tuple, rollback-target tuple, and exact prior tuple used by CAS. Rollback uses deterministic swap semantics.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -26,7 +26,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "recordId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -56,44 +56,16 @@
       "$ref": "./common.schema.json#/$defs/entityId"
     },
     "targetQualificationDecisionId": {
-      "oneOf": [
-        {
-          "$ref": "./common.schema.json#/$defs/entityId"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "./deployment-decision.schema.json#/$defs/nullableEntityId"
     },
     "rollbackTargetHarnessVersionId": {
-      "oneOf": [
-        {
-          "$ref": "./common.schema.json#/$defs/harnessVersionId"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "./deployment-decision.schema.json#/$defs/nullableHarnessVersionId"
     },
     "rollbackTargetManifestHash": {
-      "oneOf": [
-        {
-          "$ref": "./common.schema.json#/$defs/sha256"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "./deployment-decision.schema.json#/$defs/nullableSha256"
     },
     "rollbackTargetQualificationDecisionId": {
-      "oneOf": [
-        {
-          "$ref": "./common.schema.json#/$defs/entityId"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "./deployment-decision.schema.json#/$defs/nullableEntityId"
     },
     "priorTargetDisposition": {
       "type": "string",
@@ -141,15 +113,6 @@
           },
           "targetQualificationDecisionId": {
             "type": "null"
-          },
-          "rollbackTargetHarnessVersionId": {
-            "type": "null"
-          },
-          "rollbackTargetManifestHash": {
-            "type": "null"
-          },
-          "rollbackTargetQualificationDecisionId": {
-            "type": "null"
           }
         }
       },
@@ -167,7 +130,39 @@
           },
           "targetQualificationDecisionId": {
             "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "initialize",
+              "decommission"
+            ]
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "rollbackTargetHarnessVersionId": {
+            "type": "null"
           },
+          "rollbackTargetManifestHash": {
+            "type": "null"
+          },
+          "rollbackTargetQualificationDecisionId": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
           "rollbackTargetHarnessVersionId": {
             "$ref": "./common.schema.json#/$defs/harnessVersionId"
           },
@@ -201,6 +196,21 @@
               "harnessVersionId": {
                 "type": "null"
               },
+              "manifestHash": {
+                "type": "null"
+              },
+              "targetQualificationDecisionId": {
+                "type": "null"
+              },
+              "rollbackTargetHarnessVersionId": {
+                "type": "null"
+              },
+              "rollbackTargetManifestHash": {
+                "type": "null"
+              },
+              "rollbackTargetQualificationDecisionId": {
+                "type": "null"
+              },
               "pointerRecordHash": {
                 "type": "null"
               }
@@ -228,6 +238,12 @@
               "harnessVersionId": {
                 "$ref": "./common.schema.json#/$defs/harnessVersionId"
               },
+              "manifestHash": {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              "targetQualificationDecisionId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
               "pointerRecordHash": {
                 "$ref": "./common.schema.json#/$defs/sha256"
               }
@@ -235,6 +251,35 @@
           },
           "priorTargetDisposition": {
             "const": "retained_approved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "rollback"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "expectedBefore": {
+            "properties": {
+              "rollbackTargetHarnessVersionId": {
+                "$ref": "./common.schema.json#/$defs/harnessVersionId"
+              },
+              "rollbackTargetManifestHash": {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              "rollbackTargetQualificationDecisionId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              }
+            }
           }
         }
       }

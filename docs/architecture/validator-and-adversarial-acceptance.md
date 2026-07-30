@@ -1,6 +1,6 @@
 # Validator and Adversarial Acceptance Criteria
 
-Status: Gate 1RR design contract; tests are specified but not implemented or executed
+Status: Gate 1RRR correction candidate; Gate 2 tests are specified but not implemented or executed
 
 JSON Schema is necessary but insufficient. Gate 2 requires deterministic cross-object validators,
 authenticated-process tests, and OS-boundary adversarial evidence.
@@ -42,13 +42,21 @@ chooses defaults, canonicalizes silently, or converts an inference into a truste
 - producer role/key is authorized for the event/record type;
 - qualification transition follows the table and has no `active`/`rolled_back` state;
 - approval inputs reference exact candidate/protocol/snapshot and only mine/gate/deterministic roles;
-- deployment CAS expected generation/prior hash/target equal the production pointer and target is one
-  approved whole harness;
+- deployment CAS expected generation/prior hash/target/rollback tuples equal the complete production
+  pointer and every non-null tuple is one approved whole harness;
+- the applied pointer record equals its signed decision in protocol, channel, action, complete
+  `expectedBefore`, generation, target tuple, and rollback-target tuple;
+- initialize produces an approved target with null rollback target; rollback is rejected while that
+  target is null;
+- deploy sets `new.rollbackTarget = prior.target`; rollback enforces the exact two-way target swap;
 - replacing/rolling back a pointer leaves both manifests approved and retained;
 - retirement fails while any production, rollback, live-session/descendant, pending-transaction, or
   deployment-eligibility hold exists;
 - every abnormal session reaches `terminated` only after revocation, job/process reap, and sealed
-  accounting/evidence;
+  accounting/evidence, under a byte-identical termination descriptor that directly references its
+  initiating record;
+- termination reason/origin/principal drift, missing initiator, duplicate final, and conflicting final
+  records are rejected;
 - one-shot gate unlock, recipient, release-time, evidence/feedback distinction, and fresh-gate rules obey
   the frozen policy;
 - provider/tool/feedback/phase totals equal event-level ledger sums, including failures/cancellations;
@@ -94,12 +102,17 @@ chooses defaults, canonicalizes silently, or converts an inference into a truste
 - every legal and illegal session/qualification transition;
 - every abnormal reason from all nonterminal session states, crash during termination, complete
   descendant/capability revocation, process/job reap, sealed accounting, and resume rejection;
+- initiating/final transaction-descriptor equality, direct initiating-record reference, immutable
+  original state/principal/reason, authorized completion-only additions, and duplicate-final rejection;
 - missing/skipped/duplicated/out-of-order/cross-protocol lifecycle records;
 - mixed component deployment and per-component pointer rejection;
 - stale/concurrent generation/prior-pointer/parent CAS rejection;
 - approval does not change the production pointer; failed static/evaluation/gate/canary cannot approve;
 - deploy/rollback/decommission use separate decisions and exact production CAS expectations;
-- rollback target deletion/substitution rejection and exact content-hash restoration;
+- null-anchor rollback-before-first-deploy rejection;
+- deploy copies the exact prior target tuple into rollback target;
+- rollback swaps exact target/rollback tuples, repeated rollback toggles deterministically, and
+  deletion/substitution/hash/qualification mismatch is rejected;
 - rejected, invalid, exhausted, and deployment-rollback-involved candidate retention.
 
 ### Evidence and accounting

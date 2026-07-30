@@ -1,6 +1,6 @@
 # Task Execution Loop
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 
 ## Contract
 
@@ -38,8 +38,8 @@ improvement.
 At any nonterminal state, initialization failure, cancellation, budget exhaustion, deadline expiry,
 verifier failure, security violation, crash, unrecoverable recovery, or host shutdown instead enters
 `terminating`. The operations owner revokes descendant leases/capabilities, stops process groups and
-backend jobs, seals accounting/evidence, and enters terminal `terminated`. Resume is forbidden; a retry
-requires a new session.
+backend jobs, seals accounting/evidence, and enters terminal `terminated` under the same immutable
+termination transaction descriptor and reason. Resume is forbidden; a retry requires a new session.
 
 ## Event and item discipline
 

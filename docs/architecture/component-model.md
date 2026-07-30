@@ -1,6 +1,6 @@
 # Versioned Harness Component Model
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 
 ## Authority split
 
@@ -123,20 +123,22 @@ Qualification ends at `approved`. A signed `PromotionDecision` may move the exac
 Protocol v1 has exactly one channel, `production`. There is no per-component pointer and no global
 `active` harness state. Deployment requires:
 
-1. an `approved` exact target manifest and its qualification decision;
+1. an `approved` exact target manifest and qualification decision for every non-decommission operation;
 2. a signed `DeploymentDecision`;
-3. current production generation, pointer hash, and target equal to the CAS expectation;
-4. an approved, protocol-compatible rollback target whose manifest hash, qualification-decision
-   reference, and complete closure are retained; and
-5. recomputed target and rollback hashes.
+3. current production generation, pointer hash, target tuple, and rollback-target tuple equal to the
+   complete CAS expectation;
+4. the action-specific null/deploy/swap rule for the next rollback-target tuple; and
+5. recomputed hashes plus approved, protocol-compatible qualification references wherever a tuple is
+   non-null.
 
-The deployment registry appends one record and increments the generation. `deploy` retains the prior
-target as approved and records it as rollback target. `rollback` is another channel-scoped CAS to that
-target and does not change either version's qualification. Existing sessions and descendants remain
-pinned.
+The deployment registry appends one record and increments the generation. `initialize` sets an approved
+target and a null rollback target. `deploy` retains the prior target as approved and records that exact
+tuple as rollback target. `rollback` atomically swaps the prior target and rollback-target tuples and
+does not change either version's qualification. Existing sessions and descendants remain pinned.
 
-The initial pointer requires two separately approved, composition-equivalent manifests: a bootstrap
-target and a rollback anchor. Neither skips the qualification lifecycle.
+Protocol v1 uses a null initialization anchor. Rollback is rejected until a successful deploy has
+created the first non-null rollback target; no second bootstrap manifest or behavioral-equivalence
+predicate exists.
 
 `retired` means ineligible for new sessions/deployments, not deleted. Retirement is rejected while a
 version is the production target, rollback target, live-session pin, descendant pin, pending transaction,
@@ -151,6 +153,8 @@ or subject to a hold requiring deployment eligibility.
 - A candidate cannot become `approved` without evaluation of the exact whole composition.
 - An approved candidate is not deployed until a separate production-channel CAS succeeds.
 - A stale production generation causes deployment failure; implicit rebase is forbidden.
+- A rollback post-state is exactly `target=prior.rollbackTarget` and
+  `rollbackTarget=prior.target`; repeated rollback deterministically swaps the pair.
 - Replacement and rollback do not retire or globally disable either manifest.
 - Git commits and worktrees provide isolation and lineage convenience only. Manifest hashes and trusted
   records are authoritative.

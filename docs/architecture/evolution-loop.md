@@ -1,6 +1,6 @@
 # Harness Evolution Loop
 
-Status: Gate 1RR design contract
+Status: Gate 1RRR correction candidate
 
 ## Contract
 
@@ -117,7 +117,8 @@ Rollback is a production-channel event, not a harness qualification state or fil
 1. verifies the current pointer and approved recorded rollback target;
 2. re-resolves and hashes both exact manifests and decisions;
 3. signs a rollback `DeploymentDecision`;
-4. appends one whole-harness CAS record;
+4. appends one whole-harness CAS record whose new target is the prior rollback target and whose new
+   rollback target is the displaced prior target;
 5. records trigger evidence and before/after IDs without retiring either version;
 6. starts new sessions only on the restored production target.
 
