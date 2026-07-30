@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packetId": "architect-gate2-runtime-trust-draft-1",
   "createdAt": "2026-07-30T21:54:10+09:00",
-  "status": "prepared",
+  "status": "reviewed_revise",
   "respondsToPacketSha256": "9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d",
   "respondsToDecisionSha256": "32b7b0841baff34177dcc39ac3092873df32d5c7cb48519ca3548cb64e3c3b82",
   "implementationCommit": "91dd84f555740fe2819f6d6e1436d7030c6ce596",
@@ -43,11 +43,23 @@
     "evaluatorSha256": "90c516a091bd39e72dd35f605d0d32c40098db48249e66cbec4bdb4e4d8bc434"
   },
   "externalActions": {
-    "architectTransmission": false,
+    "architectTransmission": true,
     "paidProviderCall": false,
     "benchmarkExecution": false,
     "gateOrFinalAccess": false,
     "externalRepositoryWrite": false
   },
-  "review": null
+  "review": {
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "oracleSessionId": "self-evolving-harness-gate2-packet",
+    "oracleSessionDisposition": "failed_before_transmission_due_attach_metadata",
+    "fallback": "manual direct CDP to the pinned existing target; one submission; no new window or tab",
+    "decision": "REVISE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-2.md",
+    "responseSha256": "e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1",
+    "responseCharacterCount": 13115,
+    "responseByteCount": 13127,
+    "harvest": "Saved latest terminal assistant innerText plus one LF; browser-computed and local SHA-256 matched exactly."
+  }
 }

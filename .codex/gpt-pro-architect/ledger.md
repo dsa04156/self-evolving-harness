@@ -6,6 +6,7 @@
 | 1R | `architect/PACKET_01R_RESEARCH_AND_ARCHITECTURE.md` | `877981e4f07254c8048ecaf63e4757b1670c5d0bb2c9cc33414bdc21e08fe242` | `responses/response-1r.md` (`22074e55905067d30bf025634f28e4e73ffec0427d1c442a6c81b3e88919f6cd`) | REVISE |
 | 1RR | `architect/PACKET_01RR_CONTRACT_CORRECTIONS.md` | `eee5ab4dad190fd6eb220c69895932de89935c59abfd6ae11c0ad8cebd48b500` | `responses/response-1rr.md` (`d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303`) | REVISE |
 | 1RRR | `architect/PACKET_01RRR_NARROW_CONTRACT_CORRECTIONS.md` | `9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d` | `responses/response-1rrr.md` (`32b7b0841baff34177dcc39ac3092873df32d5c7cb48519ca3548cb64e3c3b82`) | APPROVE |
+| 2 | `architect/PACKET_02_RUNTIME_AND_TRUST.md` | `f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d` | `responses/response-2.md` (`e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1`) | REVISE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -171,3 +172,31 @@ response path, interpreted decision, required revisions, and the commit containi
 - scope: redacted runtime/trust summary, test totals, limitations, and hashes only
 - authorized transport: same exact project conversation, endpoint, and browser target only
 - status: prepared, not yet transmitted
+
+## Round 2 — 2026-07-30
+
+- sent: `.codex/gpt-pro-architect/packets/packet-2.md`
+- transport: Oracle CLI 0.16.1 dry-run followed by manual direct CDP fallback
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-gate2-packet`, failed before transmission because the
+  pre-existing Chrome had no Oracle attach metadata
+- browser endpoint / target: `127.0.0.1:9222` / `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- fallback submission count: one; composer changed from empty to one submitted user message
+- archive policy: never
+- model evidence: Oracle requested and dry-run resolved `gpt-5-pro`; fallback reused the same
+  previously Pro-selected tab; current picker label was not independently exposed; server identity
+  remains vendor-opaque
+- raw response: `.codex/gpt-pro-architect/responses/response-2.md`
+- raw-response verification: browser and local bytes both 13,115 characters / 13,127 bytes with
+  SHA-256 `e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1`
+- architect decision: `REVISE`
+- accepted: standalone systems-contribution boundary, substantial deterministic runtime/evolution
+  implementation, reproducibility evidence as local evidence, and strict claim discipline
+- blocking corrections: component identity, capability preimage, shared canonical domain, real OS
+  principals/key custody, peer-credential Unix evaluator transport, enforceable tool cancellation,
+  retirement and transaction recovery, and exact evaluator filesystem input
+- deferrable: session-definition signature/coverage proof and matched-budget scheduler/pilot freeze
+- authorized next: blocking corrections and deterministic Gate 2R verification only
+- still prohibited: real-provider smoke, benchmark/gate/final/temporal/withheld-public access,
+  paid-provider work, live deployment, push/release, and empirical/security/generalization claims

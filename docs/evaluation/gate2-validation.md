@@ -1,6 +1,6 @@
 # Gate 2 Runtime and Trust Validation
 
-Status: pre-submission evidence report; Gate 2 has not been approved
+Status: external Gate 2 decision `REVISE`
 
 Date: 2026-07-30  
 Commit under test: `91dd84f555740fe2819f6d6e1436d7030c6ce596`
@@ -10,6 +10,11 @@ Commit under test: `91dd84f555740fe2819f6d6e1436d7030c6ce596`
 This report covers the local, deterministic implementation authorized by the Gate 1RRR decision. It
 does not cover a paid provider call, benchmark evolution, `D_gate`, final/temporal/withheld data,
 external deployment, or a performance, security, generalization, or self-improvement claim.
+
+The external review is preserved at
+`.codex/gpt-pro-architect/responses/response-2.md`. It accepted the standalone systems-contribution
+boundary and claim discipline, but rejected Gate 2 because eight non-waivable implementation and trust
+obligations remain incomplete.
 
 ## Reproduction
 
@@ -125,9 +130,10 @@ src/evolution/promotion.ts           d513cf0baa1fc6850501c9fe861f8f499cb89c9eb69
 src/evolution/deployment.ts          68bc483c69f9533e0e0febe6366deb934d5eb8af8231e84272f61014604d08a2
 ```
 
-## Local conclusion
+## Gate 2 conclusion
 
 The runtime and governed evolution path are sufficient for deterministic development evidence. The
 implementation does not yet satisfy its own strict Gate 2 security acceptance because the
-principal/UID/socket boundary is emulated. Gate 2 should remain unapproved until an external architect
-accepts a concrete correction plan and the resulting adversarial evidence.
+principal/UID/socket boundary is emulated. The external architect returned `REVISE` and authorized only
+the correction set in `architect/GATE_02_REVISION_CHECKLIST.md` plus deterministic resubmission
+evidence.

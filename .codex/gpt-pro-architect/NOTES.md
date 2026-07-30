@@ -64,3 +64,20 @@ any paid-provider request.
 - Gate 2 bounded local implementation and deterministic verification may begin.
 - Paid-provider calls, benchmark evolution, gate/final/temporal/withheld-public access, live deployment,
   push/release, and publication/performance/security claims remain prohibited.
+
+## Durable Gate 2 decision
+
+- External decision: `REVISE`; novelty viability and claim discipline remain accepted.
+- Blocking corrections are: versioned two-stage component identity; manifest-bound capability
+  preimage; one cross-language canonical domain with golden corpus; real OS principal/key separation;
+  evaluator transport over authenticated peer-credential Unix sockets; enforceable tool/descendant
+  cancellation; retirement holds plus restart-safe termination/evaluation transactions; and exact
+  evaluator filesystem snapshot binding or dirty-worktree rejection.
+- A complete session-definition signature is deferrable until Gate 3 if mechanical signed field
+  coverage is proven.
+- The B0-B6 matched-budget scheduler and pilot numeric freeze are deferrable at Gate 2 but become
+  blocking before any empirical evolution or benchmark work.
+- Real-provider smoke remains blocked until the full Gate 2 blocking set passes, Gate 2 is resubmitted,
+  and the external architect explicitly approves it.
+- Benchmark/gate/final/temporal/withheld-public access, paid-provider work, live deployment,
+  push/release, and performance/security/generalization/self-improvement claims remain prohibited.
