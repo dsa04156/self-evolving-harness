@@ -75,6 +75,7 @@
         "sealed",
         "release_reserved",
         "materialization_started",
+        "cleanup_started",
         "cleaned"
       ]
     },

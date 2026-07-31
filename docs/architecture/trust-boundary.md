@@ -174,6 +174,43 @@ while holding the lease is replaced only in the next expired epoch. This remains
 result: the new role mount table and a full evaluator/task execution have not been exercised as a fresh
 multi-process OS-isolation claim, and no benchmark evaluator was run.
 
+## Fixed-inert encrypted custody lifecycle
+
+The synthetic custody rehearsal exercises encrypted handling of one fixed 64-byte inert payload. It
+does not contain benchmark semantics. The vault owns the AES-256-GCM key, envelope, descriptor,
+one-time capability, CAS journal, and cleanup authority. The evaluator receives only a read-only tmpfs
+plaintext mount after `begin_materialization` is durable.
+
+The delivery guarantee is frozen in the AAD, descriptor, capability, and every transition as
+`at_most_once_abort_on_uncertain_delivery`. The successful lifecycle is:
+
+```text
+sealed
+→ release_reserved
+→ materialization_started
+→ cleanup_started
+→ cleaned
+```
+
+A durable reservation whose response or next step is uncertain cannot be resumed into plaintext
+delivery. Recovery instead records `reservation_abandoned`, deletes key/envelope/plaintext material,
+completes the one cleanup history, and permanently consumes the capability. Cleanup is itself
+two-phase: `begin_cleanup` is durable before deletion, and `cleanup` is durable only after all private
+files are absent. This makes crashes after plaintext deletion, after key/envelope deletion, and after
+the final append recoverable without rematerialization.
+
+Cryptographic rejection is also durable. The journal records `deny_materialization` after a valid
+one-time request has begun materialization but envelope/schema/authentication validation fails. It
+then follows `begin_cleanup → cleanup`. Capability-binding failures record `deny_release` without
+starting materialization.
+
+The live OS suite covers five crash boundaries, four fresh signed consumed-capability replays, and
+21 adversarial cases across ciphertext, tag, nonce, every AAD-bound material identity, cross-scenario
+envelope swapping, and vault-signed/evaluator-signed capability substitutions. The independent
+verifier reconstructs all signed histories and the final-audit sets. This is finite local evidence
+under the declared Linux/rootless TCB, not a production confidentiality or security-certification
+claim.
+
 ## Trust assumptions and residual limits
 
 The Linux host/kernel/container runtime and bootstrapping administrator are trusted for isolation. A

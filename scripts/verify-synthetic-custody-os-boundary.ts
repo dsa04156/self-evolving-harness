@@ -9,15 +9,18 @@ import path from "node:path";
 import {
   PrincipalRegistry,
   SchemaRegistry,
+  asHarnessError,
   canonicalBytes,
   canonicalize,
   parseStrictJson,
   sha256,
   verifyEvaluatorVaultContract,
   verifySyntheticCustodyCapability,
+  verifySyntheticCustodyCapabilityAttestation,
   verifySyntheticCustodyDescriptor,
   verifySyntheticCustodyEvaluatorReceipt,
   verifySyntheticCustodyReleaseRequest,
+  verifySyntheticCustodyReleaseRequestAttestation,
   verifySyntheticCustodyTransition,
   type Attestation,
   type EvaluatorVaultContract,
@@ -60,6 +63,38 @@ const SCENARIOS = [
   "timeout",
   "capability_rejection",
   "response_loss",
+] as const;
+
+const CRASH_BOUNDARIES = [
+  "after_reservation_commit",
+  "after_materialization_start",
+  "after_plaintext_delete",
+  "after_private_delete",
+  "after_cleanup_commit",
+] as const;
+
+const ADVERSARIAL_ATTACKS = [
+  "envelope.ciphertext",
+  "envelope.authentication_tag",
+  "envelope.nonce",
+  "envelope.aad_custody_id",
+  "envelope.aad_protocol_id",
+  "envelope.aad_contract_id",
+  "envelope.aad_contract_hash",
+  "envelope.aad_task_handle",
+  "envelope.aad_author_commitment",
+  "envelope.aad_included_transition",
+  "envelope.aad_admitted_state",
+  "envelope.aad_unlock_capability",
+  "envelope.aad_plaintext_commitment",
+  "envelope.aad_payload_length",
+  "envelope.aad_delivery_guarantee",
+  "envelope.envelope_swap",
+  "capability.custodyId",
+  "capability.admittedVaultStateHead",
+  "capability.authorCommitmentHash",
+  "capability.taskHandleCommitment",
+  "capability.unlockCapabilityHash",
 ] as const;
 
 type BoundaryRole = keyof typeof ROLE_UIDS;
@@ -187,11 +222,81 @@ interface Scenario {
     readonly failureCode: "REPLAY_DETECTED";
     readonly plaintextFilePresent: false;
   } | null;
+  readonly freshCapabilityReuse: readonly {
+    readonly condition:
+      | "normal_completion"
+      | "response_loss"
+      | "vault_restart"
+      | "cleanup_completion";
+    readonly correctlySignedFreshRequest: true;
+    readonly request: SyntheticCustodyReleaseRequest;
+    readonly requestHash: string;
+    readonly senderSequence: number;
+    readonly nonce: string;
+    readonly failureCode: "REPLAY_DETECTED";
+    readonly newlyCommitted: false;
+    readonly transitionCountBefore: number;
+    readonly transitionCountAfter: number;
+    readonly reservationCount: 1;
+    readonly materializationCount: number;
+    readonly secondReservationAppended: false;
+    readonly secondMaterializationBegan: false;
+  }[];
   readonly residuals: {
     readonly keyFilePresent: false;
     readonly ciphertextFilePresent: false;
     readonly plaintextFilePresent: false;
   };
+}
+
+interface CrashCase {
+  readonly boundary:
+    | "after_reservation_commit"
+    | "after_materialization_start"
+    | "after_plaintext_delete"
+    | "after_private_delete"
+    | "after_cleanup_commit";
+  readonly deliveryGuarantee:
+    "at_most_once_abort_on_uncertain_delivery";
+  readonly cleanupReason: string;
+  readonly crashObserved: true;
+  readonly crashReturnCode: number;
+  readonly evaluatorPlaintextMounted: false;
+  readonly evaluatorReceiptProduced: false;
+  readonly descriptor: SyntheticCustodyDescriptor;
+  readonly transitions:
+    readonly SyntheticCustodyTransition[];
+  readonly terminalTransitionHash: string;
+  readonly beginCleanupCount: 1;
+  readonly cleanupCount: 1;
+  readonly materializationCount: number;
+  readonly duplicateMaterializationCount: 0;
+  readonly leakageScan: LeakageScan;
+  readonly roleReceipts: readonly RoleReceipt[];
+  readonly residuals: Scenario["residuals"];
+}
+
+interface AdversarialCase {
+  readonly attackId: string;
+  readonly attackClass: string;
+  readonly targetField: string;
+  readonly correctlySignedRequest: true;
+  readonly request: SyntheticCustodyReleaseRequest;
+  readonly crossScenarioSwap: boolean;
+  readonly evaluatorPlaintextMounted: false;
+  readonly evaluatorReceiptProduced: false;
+  readonly denialCode: string;
+  readonly denialTransitionHash: string;
+  readonly cleanupReason:
+    | "cryptographic_rejection"
+    | "capability_rejection";
+  readonly cleanupTransitionHash: string;
+  readonly descriptor: SyntheticCustodyDescriptor;
+  readonly transitions:
+    readonly SyntheticCustodyTransition[];
+  readonly leakageScan: LeakageScan;
+  readonly roleReceipts: readonly RoleReceipt[];
+  readonly residuals: Scenario["residuals"];
 }
 
 interface Evidence {
@@ -215,6 +320,9 @@ interface Evidence {
     readonly inputFiles: readonly string[];
   };
   readonly scenarios: readonly Scenario[];
+  readonly crashCases: readonly CrashCase[];
+  readonly adversarialCases:
+    readonly AdversarialCase[];
   readonly scorerProjection: CommitmentProjection;
   readonly promoterProjection: CommitmentProjection;
   readonly finalAudit: FinalAudit;
@@ -407,6 +515,124 @@ function verifyRoleProbe(input: {
   );
 }
 
+function verifyDescriptorBindings(input: {
+  readonly descriptor: SyntheticCustodyDescriptor;
+  readonly evidence: Evidence;
+  readonly schemas: SchemaRegistry;
+}): void {
+  for (const key of [
+    "taskHandleCommitment",
+    "authorCommitmentHash",
+    "includedTransitionHash",
+    "admittedVaultStateHead",
+    "unlockCapabilityHash",
+  ] as const) {
+    assert.equal(
+      input.descriptor[key],
+      input.evidence.binding[key],
+    );
+  }
+  assert.equal(
+    input.descriptor.deliveryGuarantee,
+    "at_most_once_abort_on_uncertain_delivery",
+  );
+  verifySyntheticCustodyDescriptor({
+    record: input.descriptor,
+    contract: input.evidence.contract,
+    schemas: input.schemas,
+  });
+}
+
+function verifyTransitionSequence(input: {
+  readonly transitions:
+    readonly SyntheticCustodyTransition[];
+  readonly descriptor: SyntheticCustodyDescriptor;
+  readonly evidence: Evidence;
+  readonly schemas: SchemaRegistry;
+}): void {
+  let priorTransitionHash: string | null = null;
+  let priorState: string | null = null;
+  for (const [index, transition] of
+    input.transitions.entries()) {
+    assert.equal(
+      transition.priorTransitionHash,
+      priorTransitionHash,
+    );
+    assert.equal(
+      transition.deliveryGuarantee,
+      "at_most_once_abort_on_uncertain_delivery",
+    );
+    if (index === 0) {
+      assert.equal(transition.action, "seal");
+      assert.equal(transition.stateBefore, null);
+    } else {
+      assert.equal(transition.stateBefore, priorState);
+    }
+    verifySyntheticCustodyTransition({
+      record: transition,
+      descriptor: input.descriptor,
+      priorTransitionHash,
+      priorJournalHead: transition.priorJournalHead,
+      contract: input.evidence.contract,
+      schemas: input.schemas,
+    });
+    priorTransitionHash = transition.recordHash;
+    priorState = transition.stateAfter;
+  }
+}
+
+function verifyLeakageScan(input: {
+  readonly scan: LeakageScan;
+  readonly descriptor: SyntheticCustodyDescriptor;
+  readonly evidence: Evidence;
+  readonly schemas: SchemaRegistry;
+}): void {
+  verifySignedHashRecord({
+    record: input.scan,
+    expected:
+      input.evidence.contract.principalMatrix.vault,
+    identity: input.scan.scannedBy,
+    schemas: input.schemas,
+    schemaId: LEAKAGE_SCAN_SCHEMA_ID,
+  });
+  assert.equal(
+    input.scan.descriptorHash,
+    input.descriptor.recordHash,
+  );
+  assert.equal(
+    input.scan.plaintextCommitment,
+    input.descriptor.plaintextCommitment,
+  );
+  assert.equal(
+    input.scan.keyCommitment,
+    input.descriptor.keyCommitment,
+  );
+  for (const count of [
+    input.scan.repositoryPayloadMatches,
+    input.scan.repositoryKeyMatches,
+    input.scan.retainedStatePayloadMatches,
+    input.scan.retainedStateKeyMatches,
+    input.scan.logPayloadMatches,
+    input.scan.logKeyMatches,
+    input.scan.processArgumentPayloadMatches,
+    input.scan.processArgumentKeyMatches,
+  ]) {
+    assert.equal(count, 0);
+  }
+  assert.equal(
+    input.scan.keyFilePresentAfterCleanup,
+    false,
+  );
+  assert.equal(
+    input.scan.ciphertextFilePresentAfterCleanup,
+    false,
+  );
+  assert.equal(
+    input.scan.plaintextFilePresentAfterCleanup,
+    false,
+  );
+}
+
 function verifyScenario(input: {
   readonly scenario: Scenario;
   readonly evidence: Evidence;
@@ -419,18 +645,9 @@ function verifyScenario(input: {
     request,
   } = scenario;
   assert.equal(scenario.custodyId, descriptor.custodyId);
-  for (const key of [
-    "taskHandleCommitment",
-    "authorCommitmentHash",
-    "includedTransitionHash",
-    "admittedVaultStateHead",
-    "unlockCapabilityHash",
-  ] as const) {
-    assert.equal(descriptor[key], evidence.binding[key]);
-  }
-  verifySyntheticCustodyDescriptor({
-    record: descriptor,
-    contract: evidence.contract,
+  verifyDescriptorBindings({
+    descriptor,
+    evidence,
     schemas,
   });
   verifySyntheticCustodyCapability({
@@ -448,42 +665,29 @@ function verifyScenario(input: {
     schemas,
   });
 
-  let priorTransitionHash: string | null = null;
-  let priorState: string | null = null;
-  for (const [index, transition] of
-    scenario.transitions.entries()) {
-    assert.equal(
-      transition.priorTransitionHash,
-      priorTransitionHash,
-    );
-    if (index === 0) {
-      assert.equal(transition.action, "seal");
-      assert.equal(transition.stateBefore, null);
-    } else {
-      assert.equal(transition.stateBefore, priorState);
-    }
-    verifySyntheticCustodyTransition({
-      record: transition,
-      descriptor,
-      priorTransitionHash,
-      priorJournalHead: transition.priorJournalHead,
-      contract: evidence.contract,
-      schemas,
-    });
-    priorTransitionHash = transition.recordHash;
-    priorState = transition.stateAfter;
-  }
+  verifyTransitionSequence({
+    transitions: scenario.transitions,
+    descriptor,
+    evidence,
+    schemas,
+  });
   const actions = scenario.transitions.map(
     (transition) => transition.action,
   );
   assert.deepEqual(
     actions,
     scenario.scenario === "capability_rejection"
-      ? ["seal", "deny_release", "cleanup"]
+      ? [
+          "seal",
+          "deny_release",
+          "begin_cleanup",
+          "cleanup",
+        ]
       : [
           "seal",
           "reserve_release",
           "begin_materialization",
+          "begin_cleanup",
           "cleanup",
         ],
   );
@@ -540,25 +744,12 @@ function verifyScenario(input: {
     scenario.consumerReceipt !== null,
   );
 
-  verifySignedHashRecord({
-    record: scenario.leakageScan,
-    expected: evidence.contract.principalMatrix.vault,
-    identity: scenario.leakageScan.scannedBy,
+  verifyLeakageScan({
+    scan: scenario.leakageScan,
+    descriptor,
+    evidence,
     schemas,
-    schemaId: LEAKAGE_SCAN_SCHEMA_ID,
   });
-  assert.equal(
-    scenario.leakageScan.descriptorHash,
-    descriptor.recordHash,
-  );
-  assert.equal(
-    scenario.leakageScan.plaintextCommitment,
-    descriptor.plaintextCommitment,
-  );
-  assert.equal(
-    scenario.leakageScan.keyCommitment,
-    descriptor.keyCommitment,
-  );
 
   for (const receipt of scenario.roleReceipts) {
     verifyRoleReceipt({ receipt, evidence, schemas });
@@ -591,6 +782,238 @@ function verifyScenario(input: {
   } else {
     assert.equal(scenario.roleDenials, null);
     assert.equal(scenario.exactRetry, null);
+  }
+  for (const reuse of scenario.freshCapabilityReuse) {
+    assert.equal(
+      reuse.request.requestHash,
+      reuse.requestHash,
+    );
+    assert.equal(
+      reuse.request.senderSequence,
+      reuse.senderSequence,
+    );
+    assert.equal(reuse.request.nonce, reuse.nonce);
+    verifySyntheticCustodyReleaseRequest({
+      record: reuse.request,
+      descriptor,
+      now: reuse.request.requestedAt,
+      contract: evidence.contract,
+      schemas,
+    });
+    assert.equal(
+      reuse.transitionCountBefore,
+      reuse.transitionCountAfter,
+    );
+    assert.equal(reuse.reservationCount, 1);
+    assert.ok(reuse.materializationCount <= 1);
+  }
+}
+
+function verifyCrashCase(input: {
+  readonly crash: CrashCase;
+  readonly evidence: Evidence;
+  readonly schemas: SchemaRegistry;
+}): void {
+  const { crash, evidence, schemas } = input;
+  verifyDescriptorBindings({
+    descriptor: crash.descriptor,
+    evidence,
+    schemas,
+  });
+  verifyTransitionSequence({
+    transitions: crash.transitions,
+    descriptor: crash.descriptor,
+    evidence,
+    schemas,
+  });
+  const expectedReason = {
+    after_reservation_commit:
+      "reservation_abandoned",
+    after_materialization_start:
+      "materialization_prewrite_abandoned",
+    after_plaintext_delete:
+      "cleanup_interrupted_after_plaintext_delete",
+    after_private_delete:
+      "cleanup_interrupted_after_private_delete",
+    after_cleanup_commit:
+      "cleanup_acknowledgement_loss",
+  } as const;
+  assert.equal(
+    crash.cleanupReason,
+    expectedReason[crash.boundary],
+  );
+  const expectedActions =
+    crash.boundary === "after_reservation_commit"
+      ? [
+          "seal",
+          "reserve_release",
+          "begin_cleanup",
+          "cleanup",
+        ]
+      : [
+          "seal",
+          "reserve_release",
+          "begin_materialization",
+          "begin_cleanup",
+          "cleanup",
+        ];
+  assert.deepEqual(
+    crash.transitions.map(
+      (transition) => transition.action,
+    ),
+    expectedActions,
+  );
+  assert.equal(crash.crashReturnCode === 0, false);
+  assert.equal(
+    crash.materializationCount,
+    crash.boundary === "after_reservation_commit"
+      ? 0
+      : 1,
+  );
+  assert.equal(
+    crash.terminalTransitionHash,
+    crash.transitions.at(-1)!.recordHash,
+  );
+  assert.equal(
+    crash.transitions.at(-1)!.cleanupReason,
+    crash.cleanupReason,
+  );
+  verifyLeakageScan({
+    scan: crash.leakageScan,
+    descriptor: crash.descriptor,
+    evidence,
+    schemas,
+  });
+  assert.deepEqual(crash.residuals, {
+    keyFilePresent: false,
+    ciphertextFilePresent: false,
+    plaintextFilePresent: false,
+  });
+  for (const receipt of crash.roleReceipts) {
+    verifyRoleReceipt({ receipt, evidence, schemas });
+  }
+}
+
+function verifyAdversarialCase(input: {
+  readonly attack: AdversarialCase;
+  readonly evidence: Evidence;
+  readonly schemas: SchemaRegistry;
+}): void {
+  const { attack, evidence, schemas } = input;
+  verifyDescriptorBindings({
+    descriptor: attack.descriptor,
+    evidence,
+    schemas,
+  });
+  verifySyntheticCustodyReleaseRequestAttestation({
+    record: attack.request,
+    contract: evidence.contract,
+    schemas,
+  });
+  verifySyntheticCustodyCapabilityAttestation({
+    record: attack.request.capability,
+    contract: evidence.contract,
+    schemas,
+  });
+  const capabilityAttack =
+    attack.attackId.startsWith("capability.");
+  if (capabilityAttack) {
+    let failureCode: string | null = null;
+    try {
+      verifySyntheticCustodyReleaseRequest({
+        record: attack.request,
+        descriptor: attack.descriptor,
+        now: attack.request.requestedAt,
+        contract: evidence.contract,
+        schemas,
+      });
+    } catch (error) {
+      failureCode = asHarnessError(error).code;
+    }
+    assert.equal(
+      failureCode,
+      "AUTHORIZATION_DENIED",
+    );
+  } else {
+    verifySyntheticCustodyReleaseRequest({
+      record: attack.request,
+      descriptor: attack.descriptor,
+      now: attack.request.requestedAt,
+      contract: evidence.contract,
+      schemas,
+    });
+  }
+  verifyTransitionSequence({
+    transitions: attack.transitions,
+    descriptor: attack.descriptor,
+    evidence,
+    schemas,
+  });
+  assert.deepEqual(
+    attack.transitions.map(
+      (transition) => transition.action,
+    ),
+    capabilityAttack
+      ? [
+          "seal",
+          "deny_release",
+          "begin_cleanup",
+          "cleanup",
+        ]
+      : [
+          "seal",
+          "reserve_release",
+          "begin_materialization",
+          "deny_materialization",
+          "begin_cleanup",
+          "cleanup",
+        ],
+  );
+  const denial = attack.transitions.find(
+    (transition) =>
+      transition.action ===
+        (capabilityAttack
+          ? "deny_release"
+          : "deny_materialization"),
+  );
+  assert.ok(denial);
+  assert.equal(
+    denial.recordHash,
+    attack.denialTransitionHash,
+  );
+  assert.equal(denial.reasonCode, attack.denialCode);
+  assert.equal(
+    attack.transitions.at(-1)!.recordHash,
+    attack.cleanupTransitionHash,
+  );
+  assert.equal(
+    attack.transitions.at(-1)!.cleanupReason,
+    attack.cleanupReason,
+  );
+  assert.equal(
+    attack.cleanupReason,
+    capabilityAttack
+      ? "capability_rejection"
+      : "cryptographic_rejection",
+  );
+  assert.equal(
+    attack.crossScenarioSwap,
+    attack.attackId === "envelope.envelope_swap" ||
+      attack.attackId === "capability.custodyId",
+  );
+  verifyLeakageScan({
+    scan: attack.leakageScan,
+    descriptor: attack.descriptor,
+    evidence,
+    schemas,
+  });
+  assert.deepEqual(attack.residuals, {
+    keyFilePresent: false,
+    ciphertextFilePresent: false,
+    plaintextFilePresent: false,
+  });
+  for (const receipt of attack.roleReceipts) {
+    verifyRoleReceipt({ receipt, evidence, schemas });
   }
 }
 
@@ -677,6 +1100,43 @@ async function main(): Promise<void> {
   for (const scenario of evidence.scenarios) {
     verifyScenario({ scenario, evidence, schemas });
   }
+  assert.deepEqual(
+    evidence.crashCases.map(
+      (entry) => entry.boundary,
+    ),
+    CRASH_BOUNDARIES,
+  );
+  for (const crash of evidence.crashCases) {
+    verifyCrashCase({ crash, evidence, schemas });
+  }
+  assert.deepEqual(
+    evidence.adversarialCases.map(
+      (entry) => entry.attackId,
+    ),
+    ADVERSARIAL_ATTACKS,
+  );
+  for (const attack of evidence.adversarialCases) {
+    verifyAdversarialCase({
+      attack,
+      evidence,
+      schemas,
+    });
+  }
+  assert.deepEqual(
+    evidence.scenarios
+      .flatMap(
+        (scenario) =>
+          scenario.freshCapabilityReuse,
+      )
+      .map((reuse) => reuse.condition)
+      .sort(),
+    [
+      "cleanup_completion",
+      "normal_completion",
+      "response_loss",
+      "vault_restart",
+    ],
+  );
 
   verifySignedHashRecord({
     record: evidence.scorerProjection,
@@ -735,17 +1195,23 @@ async function main(): Promise<void> {
   assert.deepEqual(
     evidence.finalAudit.descriptorHashes,
     sortedUnique(
-      evidence.scenarios.map(
-        (scenario) => scenario.descriptor.recordHash,
-      ),
+      [
+        ...evidence.scenarios,
+        ...evidence.crashCases,
+        ...evidence.adversarialCases,
+      ].map((item) => item.descriptor.recordHash),
     ),
   );
   assert.deepEqual(
     evidence.finalAudit.transitionHashes,
     sortedUnique(
-      evidence.scenarios.flatMap(
-        (scenario) =>
-          scenario.transitions.map(
+      [
+        ...evidence.scenarios,
+        ...evidence.crashCases,
+        ...evidence.adversarialCases,
+      ].flatMap(
+        (item) =>
+          item.transitions.map(
             (transition) => transition.recordHash,
           ),
       ),
@@ -754,10 +1220,11 @@ async function main(): Promise<void> {
   assert.deepEqual(
     evidence.finalAudit.leakageScanHashes,
     sortedUnique(
-      evidence.scenarios.map(
-        (scenario) =>
-          scenario.leakageScan.recordHash,
-      ),
+      [
+        ...evidence.scenarios,
+        ...evidence.crashCases,
+        ...evidence.adversarialCases,
+      ].map((item) => item.leakageScan.recordHash),
     ),
   );
   assert.deepEqual(
@@ -822,6 +1289,9 @@ async function main(): Promise<void> {
       verified: true,
       evidenceHash,
       scenarioCount: evidence.scenarios.length,
+      crashCaseCount: evidence.crashCases.length,
+      adversarialCaseCount:
+        evidence.adversarialCases.length,
       transitionCount:
         evidence.finalAudit.transitionHashes.length,
       roleReceiptCount:

@@ -10,17 +10,18 @@ demonstrate general harness self-improvement.
   protocol author.
 - The eight-principal prototype is local and development-only; it is not a production deployment
   design.
-- The evaluator-vault round contains synthetic commitments only. Durable body-free task-state recovery,
-  cross-process lease contention, stale-epoch fencing, and commit-before-release crash boundaries are
-  exercised, but the frozen role mounts and a full evaluator/task-body flow were not newly exercised
-  under separate OS identities.
+- The evaluator-vault and synthetic-custody rounds contain only synthetic commitments and fixed inert
+  bytes. Durable state, cross-process leases, eight role mounts, read-only tmpfs materialization,
+  at-most-once abort, live substitution denial, and cleanup recovery are exercised; no real
+  task/verifier/label body was used, so this is not evidence of benchmark confidentiality.
 - The current synthetic fixture corpus is public and cannot become independent evaluation data.
 - The bounded mutation prototype does not establish that attribution improves generalization.
 - The external Architect is a governance reviewer, not the immutable benchmark evaluator.
 - Exact cross-model transfer, statistical power, provider variance, and cost tradeoffs remain
   unevaluated.
-- OxyGent and other newly identified systems still require exact-SHA source-path tracing before the
-  prior-art ledger can claim coverage.
+- OxyGent is traced at exact commit `cd96268de5814dfb4e0444cfd687f97508cf996a` through its owned MAS
+  call path, ReAct/parallel/reflexion agents, live-prompt versioning, and prompt optimization route.
+  Uninspected or unreleased OxyGent behavior remains unknown, and no OxyGent source is reused here.
 
 All artifacts in the governed public snapshot and their transitive derivatives remain
 `publicDevelopment=true` and `authorizedForResearchEvidence=false`. A new protocol ID, copied file,

@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "recordType",
+    "deliveryGuarantee",
     "custodyId",
     "protocolId",
     "contractId",
@@ -36,6 +37,9 @@
     },
     "recordType": {
       "const": "synthetic_custody_descriptor"
+    },
+    "deliveryGuarantee": {
+      "const": "at_most_once_abort_on_uncertain_delivery"
     },
     "custodyId": {
       "$ref": "./common.schema.json#/$defs/entityId"

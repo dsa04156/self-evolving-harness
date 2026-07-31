@@ -69,8 +69,11 @@
       "enum": [
         "seal_custody",
         "sign_release",
+        "sign_substituted_release",
         "reserve_release",
         "materialize",
+        "tamper_private_envelope",
+        "forge_substituted_capability",
         "consume",
         "cleanup",
         "recover_cleanup",

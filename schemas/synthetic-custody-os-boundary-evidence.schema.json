@@ -17,6 +17,8 @@
     "binding",
     "reviewerBoundary",
     "scenarios",
+    "crashCases",
+    "adversarialCases",
     "scorerProjection",
     "promoterProjection",
     "finalAudit",
@@ -240,6 +242,92 @@
       "minItems": 6,
       "maxItems": 6
     },
+    "crashCases": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_reservation_commit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_materialization_start"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_plaintext_delete"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_private_delete"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_cleanup_commit"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "adversarialCases": {
+      "type": "array",
+      "minItems": 21,
+      "maxItems": 21,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/adversarialCase"
+      }
+    },
     "scorerProjection": {
       "$ref": "./synthetic-custody-commitment-projection.schema.json"
     },
@@ -414,6 +502,83 @@
         }
       ]
     },
+    "freshReuse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "correctlySignedFreshRequest",
+        "request",
+        "requestHash",
+        "senderSequence",
+        "nonce",
+        "failureCode",
+        "newlyCommitted",
+        "transitionCountBefore",
+        "transitionCountAfter",
+        "reservationCount",
+        "materializationCount",
+        "secondReservationAppended",
+        "secondMaterializationBegan"
+      ],
+      "properties": {
+        "condition": {
+          "type": "string",
+          "enum": [
+            "normal_completion",
+            "response_loss",
+            "vault_restart",
+            "cleanup_completion"
+          ]
+        },
+        "correctlySignedFreshRequest": {
+          "const": true
+        },
+        "request": {
+          "$ref": "./synthetic-custody-release-request.schema.json"
+        },
+        "requestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "senderSequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nonce": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 160
+        },
+        "failureCode": {
+          "const": "REPLAY_DETECTED"
+        },
+        "newlyCommitted": {
+          "const": false
+        },
+        "transitionCountBefore": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "transitionCountAfter": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "reservationCount": {
+          "const": 1
+        },
+        "materializationCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "secondReservationAppended": {
+          "const": false
+        },
+        "secondMaterializationBegan": {
+          "const": false
+        }
+      }
+    },
     "residuals": {
       "type": "object",
       "additionalProperties": false,
@@ -571,6 +736,7 @@
         "roleReceipts",
         "roleDenials",
         "exactRetry",
+        "freshCapabilityReuse",
         "residuals"
       ],
       "properties": {
@@ -642,6 +808,227 @@
         },
         "exactRetry": {
           "$ref": "#/$defs/exactRetry"
+        },
+        "freshCapabilityReuse": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/freshReuse"
+          }
+        },
+        "residuals": {
+          "$ref": "#/$defs/residuals"
+        }
+      }
+    },
+    "crashCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary",
+        "deliveryGuarantee",
+        "cleanupReason",
+        "crashObserved",
+        "crashReturnCode",
+        "evaluatorPlaintextMounted",
+        "evaluatorReceiptProduced",
+        "descriptor",
+        "transitions",
+        "terminalTransitionHash",
+        "beginCleanupCount",
+        "cleanupCount",
+        "materializationCount",
+        "duplicateMaterializationCount",
+        "leakageScan",
+        "roleReceipts",
+        "residuals"
+      ],
+      "properties": {
+        "boundary": {
+          "type": "string",
+          "enum": [
+            "after_reservation_commit",
+            "after_materialization_start",
+            "after_plaintext_delete",
+            "after_private_delete",
+            "after_cleanup_commit"
+          ]
+        },
+        "deliveryGuarantee": {
+          "const": "at_most_once_abort_on_uncertain_delivery"
+        },
+        "cleanupReason": {
+          "type": "string",
+          "enum": [
+            "reservation_abandoned",
+            "materialization_prewrite_abandoned",
+            "cleanup_interrupted_after_plaintext_delete",
+            "cleanup_interrupted_after_private_delete",
+            "cleanup_acknowledgement_loss"
+          ]
+        },
+        "crashObserved": {
+          "const": true
+        },
+        "crashReturnCode": {
+          "type": "integer",
+          "not": {
+            "const": 0
+          }
+        },
+        "evaluatorPlaintextMounted": {
+          "const": false
+        },
+        "evaluatorReceiptProduced": {
+          "const": false
+        },
+        "descriptor": {
+          "$ref": "./synthetic-custody-descriptor.schema.json"
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-transition.schema.json"
+          }
+        },
+        "terminalTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "beginCleanupCount": {
+          "const": 1
+        },
+        "cleanupCount": {
+          "const": 1
+        },
+        "materializationCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "duplicateMaterializationCount": {
+          "const": 0
+        },
+        "leakageScan": {
+          "$ref": "./synthetic-custody-leakage-scan.schema.json"
+        },
+        "roleReceipts": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-role-receipt.schema.json"
+          }
+        },
+        "residuals": {
+          "$ref": "#/$defs/residuals"
+        }
+      }
+    },
+    "adversarialCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attackId",
+        "attackClass",
+        "targetField",
+        "correctlySignedRequest",
+        "request",
+        "crossScenarioSwap",
+        "evaluatorPlaintextMounted",
+        "evaluatorReceiptProduced",
+        "denialCode",
+        "denialTransitionHash",
+        "cleanupReason",
+        "cleanupTransitionHash",
+        "descriptor",
+        "transitions",
+        "leakageScan",
+        "roleReceipts",
+        "residuals"
+      ],
+      "properties": {
+        "attackId": {
+          "type": "string",
+          "pattern": "^(envelope|capability)\\.[A-Za-z0-9_]+$"
+        },
+        "attackClass": {
+          "type": "string",
+          "enum": [
+            "cipher_envelope_tamper",
+            "aad_identity_substitution",
+            "descriptor_envelope_swap",
+            "capability_object_substitution",
+            "capability_identity_substitution"
+          ]
+        },
+        "targetField": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "correctlySignedRequest": {
+          "const": true
+        },
+        "request": {
+          "$ref": "./synthetic-custody-release-request.schema.json"
+        },
+        "crossScenarioSwap": {
+          "type": "boolean"
+        },
+        "evaluatorPlaintextMounted": {
+          "const": false
+        },
+        "evaluatorReceiptProduced": {
+          "const": false
+        },
+        "denialCode": {
+          "type": "string",
+          "enum": [
+            "AUTHENTICATION_FAILED",
+            "AUTHORIZATION_DENIED",
+            "HASH_MISMATCH",
+            "SCHEMA_INVALID"
+          ]
+        },
+        "denialTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "cleanupReason": {
+          "type": "string",
+          "enum": [
+            "cryptographic_rejection",
+            "capability_rejection"
+          ]
+        },
+        "cleanupTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "descriptor": {
+          "$ref": "./synthetic-custody-descriptor.schema.json"
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-transition.schema.json"
+          }
+        },
+        "leakageScan": {
+          "$ref": "./synthetic-custody-leakage-scan.schema.json"
+        },
+        "roleReceipts": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-role-receipt.schema.json"
+          }
         },
         "residuals": {
           "$ref": "#/$defs/residuals"

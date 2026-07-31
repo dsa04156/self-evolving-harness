@@ -8,6 +8,7 @@ import {
   open,
   readFile,
   readdir,
+  rename,
   rm,
   stat,
 } from "node:fs/promises";
@@ -17,8 +18,11 @@ import {
   HarnessError,
   PrincipalSigner,
   SchemaRegistry,
+  SYNTHETIC_CUSTODY_CAPABILITY_SCHEMA_ID,
+  SYNTHETIC_CUSTODY_RELEASE_REQUEST_SCHEMA_ID,
   SyntheticCustodyJournal,
   canonicalBytes,
+  asHarnessError,
   createEncryptedSyntheticCustody,
   createSyntheticCustodyCapability,
   createSyntheticCustodyEvaluatorReceipt,
@@ -27,6 +31,7 @@ import {
   fixedInertSyntheticPayload,
   parseStrictJson,
   sha256,
+  sha256Bytes,
   type Attestation,
   type EvaluatorVaultContract,
   type JsonValue,
@@ -102,6 +107,9 @@ type WorkerMode =
   | "consume"
   | "cleanup"
   | "recover_cleanup"
+  | "tamper_private_envelope"
+  | "forge_substituted_capability"
+  | "sign_substituted_release"
   | "scorer_projection"
   | "promoter_projection"
   | "finalize_audit";
@@ -125,6 +133,34 @@ interface WorkerConfiguration {
     | "crash_after_read"
     | "timeout";
   readonly crashAfterPlaintextWrite?: boolean;
+  readonly crashAfterReservationCommit?: boolean;
+  readonly crashAfterMaterializationStart?: boolean;
+  readonly crashAfterPlaintextDelete?: boolean;
+  readonly crashAfterPrivateDelete?: boolean;
+  readonly crashAfterCleanupCommit?: boolean;
+  readonly tamperKind?:
+    | "ciphertext"
+    | "authentication_tag"
+    | "nonce"
+    | "aad_custody_id"
+    | "aad_protocol_id"
+    | "aad_contract_id"
+    | "aad_contract_hash"
+    | "aad_task_handle"
+    | "aad_author_commitment"
+    | "aad_included_transition"
+    | "aad_admitted_state"
+    | "aad_unlock_capability"
+    | "aad_plaintext_commitment"
+    | "aad_payload_length"
+    | "aad_delivery_guarantee"
+    | "envelope_swap";
+  readonly substitutionField?:
+    | "custodyId"
+    | "admittedVaultStateHead"
+    | "authorCommitmentHash"
+    | "taskHandleCommitment"
+    | "unlockCapabilityHash";
 }
 
 interface SyntheticCustodyRoleReceipt {
@@ -259,6 +295,17 @@ async function writeJson(
     path.join(OUTPUT, name),
     canonicalBytes(value),
   );
+}
+
+async function replaceJsonFile(
+  file: string,
+  value: JsonValue,
+): Promise<void> {
+  const temporary = `${file}.replace-${process.pid}`;
+  await rm(temporary, { force: true });
+  await writeBytes(temporary, canonicalBytes(value));
+  await rename(temporary, file);
+  await syncDirectory(path.dirname(file));
 }
 
 async function loadConfiguration(): Promise<WorkerConfiguration> {
@@ -402,6 +449,7 @@ async function writeOperationResult(input: {
     | "sealed"
     | "release_reserved"
     | "materialization_started"
+    | "cleanup_started"
     | "cleaned";
 }): Promise<void> {
   const result = {
@@ -628,6 +676,304 @@ async function signRelease(
   });
 }
 
+function changedText(value: string): string {
+  const first = value[0] === "A" ? "B" : "A";
+  return `${first}${value.slice(1)}`;
+}
+
+async function tamperPrivateEnvelope(
+  config: WorkerConfiguration,
+  signer: PrincipalSigner,
+  schemas: SchemaRegistry,
+): Promise<void> {
+  const [contract, descriptor] = await Promise.all([
+    loadContract(),
+    readInput<SyntheticCustodyDescriptor>(
+      "descriptor.json",
+    ),
+  ]);
+  const kind = requireString(
+    config.tamperKind,
+    "tamperKind",
+  ) as NonNullable<WorkerConfiguration["tamperKind"]>;
+  const file = path.join(
+    objectRoot(descriptor.custodyId),
+    "envelope.json",
+  );
+  const original =
+    await readJson<SyntheticCustodyEnvelope>(file);
+  let mutated: Record<string, unknown>;
+  if (kind === "envelope_swap") {
+    const swapped = createEncryptedSyntheticCustody({
+      custodyId:
+        `${descriptor.custodyId}.swap-source`,
+      taskHandleCommitment:
+        descriptor.taskHandleCommitment,
+      authorCommitmentHash:
+        descriptor.authorCommitmentHash,
+      includedTransitionHash:
+        descriptor.includedTransitionHash,
+      admittedVaultStateHead:
+        descriptor.admittedVaultStateHead,
+      unlockCapabilityHash:
+        descriptor.unlockCapabilityHash,
+      payload: fixedInertSyntheticPayload(),
+      createdAt: config.timestamp,
+      signer,
+      contract,
+      schemas,
+    });
+    mutated =
+      swapped.envelope as unknown as Record<
+        string,
+        unknown
+      >;
+    swapped.key.fill(0);
+  } else {
+    mutated = structuredClone(
+      original,
+    ) as unknown as Record<string, unknown>;
+    const aad = mutated["aad"] as Record<
+      string,
+      unknown
+    >;
+    const replacementHash = sha256(
+      ["synthetic-custody-tamper", kind] as unknown as JsonValue,
+    );
+    switch (kind) {
+      case "ciphertext":
+        mutated["ciphertext"] = changedText(
+          String(mutated["ciphertext"]),
+        );
+        break;
+      case "authentication_tag":
+        mutated["authenticationTag"] = changedText(
+          String(mutated["authenticationTag"]),
+        );
+        break;
+      case "nonce":
+        mutated["nonce"] = changedText(
+          String(mutated["nonce"]),
+        );
+        break;
+      case "aad_custody_id":
+        aad["custodyId"] =
+          "synthetic-custody.tampered";
+        break;
+      case "aad_protocol_id":
+        aad["protocolId"] =
+          `protocol-sha256:${"e".repeat(64)}`;
+        break;
+      case "aad_contract_id":
+        aad["contractId"] =
+          "synthetic-custody.tampered-contract";
+        break;
+      case "aad_contract_hash":
+        aad["contractHash"] = replacementHash;
+        break;
+      case "aad_task_handle":
+        aad["taskHandleCommitment"] =
+          replacementHash;
+        break;
+      case "aad_author_commitment":
+        aad["authorCommitmentHash"] =
+          replacementHash;
+        break;
+      case "aad_included_transition":
+        aad["includedTransitionHash"] =
+          replacementHash;
+        break;
+      case "aad_admitted_state":
+        aad["admittedVaultStateHead"] =
+          replacementHash;
+        break;
+      case "aad_unlock_capability":
+        aad["unlockCapabilityHash"] =
+          replacementHash;
+        break;
+      case "aad_plaintext_commitment":
+        aad["plaintextCommitment"] =
+          replacementHash;
+        break;
+      case "aad_payload_length":
+        aad["payloadLength"] = 63;
+        break;
+      case "aad_delivery_guarantee":
+        aad["deliveryGuarantee"] =
+          "tampered_delivery_guarantee";
+        break;
+    }
+  }
+  await replaceJsonFile(
+    file,
+    mutated as JsonValue,
+  );
+  await createRoleReceipt({
+    config,
+    schemas,
+    signer,
+    contract,
+    inputCommitments: [
+      descriptor.recordHash,
+      original.envelopeHash,
+    ],
+    outputCommitments: [
+      sha256(mutated as JsonValue),
+    ],
+  });
+}
+
+async function forgeSubstitutedCapability(
+  config: WorkerConfiguration,
+  signer: PrincipalSigner,
+  schemas: SchemaRegistry,
+): Promise<void> {
+  const [contract, descriptor, capability] =
+    await Promise.all([
+      loadContract(),
+      readInput<SyntheticCustodyDescriptor>(
+        "descriptor.json",
+      ),
+      readInput<SyntheticCustodyCapability>(
+        "capability.json",
+      ),
+    ]);
+  const field = requireString(
+    config.substitutionField,
+    "substitutionField",
+  ) as NonNullable<
+    WorkerConfiguration["substitutionField"]
+  >;
+  const {
+    capabilityHash: _capabilityHash,
+    publicPrincipal: _publicPrincipal,
+    attestation: _attestation,
+    ...originalCore
+  } = capability;
+  const core = {
+    ...originalCore,
+    [field]:
+      field === "custodyId"
+        ? "synthetic-custody.substituted"
+        : sha256(
+            [
+              "synthetic-custody-substitution",
+              field,
+            ] as unknown as JsonValue,
+          ),
+  };
+  const publicPrincipal = signer.exportPublic();
+  const body = {
+    ...core,
+    capabilityHash: sha256(
+      core as unknown as JsonValue,
+    ),
+    publicPrincipal,
+  };
+  const substituted = {
+    ...body,
+    attestation: signer.attest(
+      body as unknown as JsonValue,
+    ),
+  } as SyntheticCustodyCapability;
+  schemas.validate(
+    SYNTHETIC_CUSTODY_CAPABILITY_SCHEMA_ID,
+    substituted as unknown as JsonValue,
+  );
+  await writeJson(
+    "capability.json",
+    substituted as unknown as JsonValue,
+  );
+  await createRoleReceipt({
+    config,
+    schemas,
+    signer,
+    contract,
+    inputCommitments: [
+      descriptor.recordHash,
+      capability.capabilityHash,
+    ],
+    outputCommitments: [
+      substituted.capabilityHash,
+    ],
+  });
+}
+
+async function signSubstitutedRelease(
+  config: WorkerConfiguration,
+  signer: PrincipalSigner,
+  schemas: SchemaRegistry,
+): Promise<void> {
+  const [contract, descriptor, capability] =
+    await Promise.all([
+      loadContract(),
+      readInput<SyntheticCustodyDescriptor>(
+        "descriptor.json",
+      ),
+      readInput<SyntheticCustodyCapability>(
+        "capability.json",
+      ),
+    ]);
+  const core = {
+    schemaVersion: 1 as const,
+    recordType:
+      "synthetic_custody_release_request" as const,
+    requestId: requireString(
+      config.requestId,
+      "requestId",
+    ),
+    protocolId: descriptor.protocolId,
+    contractId: descriptor.contractId,
+    contractHash: descriptor.contractHash,
+    custodyId: descriptor.custodyId,
+    descriptorHash: descriptor.recordHash,
+    capability,
+    senderSequence: requireNumber(
+      config.senderSequence,
+      "senderSequence",
+    ),
+    nonce: requireString(
+      config.requestNonce,
+      "requestNonce",
+    ),
+    requestedAt: config.timestamp,
+    actor: signer.identity,
+  };
+  const publicPrincipal = signer.exportPublic();
+  const body = {
+    ...core,
+    requestHash: sha256(
+      core as unknown as JsonValue,
+    ),
+    publicPrincipal,
+  };
+  const request = {
+    ...body,
+    attestation: signer.attest(
+      body as unknown as JsonValue,
+    ),
+  } as SyntheticCustodyReleaseRequest;
+  schemas.validate(
+    SYNTHETIC_CUSTODY_RELEASE_REQUEST_SCHEMA_ID,
+    request as unknown as JsonValue,
+  );
+  await writeJson(
+    "request.json",
+    request as unknown as JsonValue,
+  );
+  await createRoleReceipt({
+    config,
+    schemas,
+    signer,
+    contract,
+    inputCommitments: [
+      descriptor.recordHash,
+      capability.capabilityHash,
+    ],
+    outputCommitments: [request.requestHash],
+  });
+}
+
 async function reserveRelease(
   config: WorkerConfiguration,
   signer: PrincipalSigner,
@@ -652,6 +998,13 @@ async function reserveRelease(
   const disposition = await journal.reserve(
     request,
   );
+  if (
+    config.crashAfterReservationCommit === true &&
+    disposition.failure === null &&
+    disposition.newlyCommitted
+  ) {
+    process.kill(process.pid, "SIGKILL");
+  }
   await writeOperationResult({
     schemas,
     descriptor,
@@ -702,6 +1055,13 @@ async function materialize(
       occurredAt: config.timestamp,
     });
   if (
+    config.crashAfterMaterializationStart === true &&
+    disposition.failure === null &&
+    disposition.newlyCommitted
+  ) {
+    process.kill(process.pid, "SIGKILL");
+  }
+  if (
     disposition.failure !== null ||
     !disposition.newlyCommitted
   ) {
@@ -737,13 +1097,72 @@ async function materialize(
       path.join(root, "envelope.json"),
     ),
   ]);
-  const payload = decryptSyntheticCustody({
-    key,
-    envelope,
-    descriptor,
-    contract,
-    schemas,
-  });
+  let payload: Buffer;
+  try {
+    payload = decryptSyntheticCustody({
+      key,
+      envelope,
+      descriptor,
+      contract,
+      schemas,
+    });
+  } catch (error) {
+    const code = asHarnessError(error).code;
+    const materializationFailureCode = (
+      [
+        "AUTHENTICATION_FAILED",
+        "AUTHORIZATION_DENIED",
+        "SCHEMA_INVALID",
+        "HASH_MISMATCH",
+        "PROTOCOL_MISMATCH",
+      ] as const
+    ).includes(
+      code as
+        | "AUTHENTICATION_FAILED"
+        | "AUTHORIZATION_DENIED"
+        | "SCHEMA_INVALID"
+        | "HASH_MISMATCH"
+        | "PROTOCOL_MISMATCH",
+    )
+      ? (code as
+          | "AUTHENTICATION_FAILED"
+          | "AUTHORIZATION_DENIED"
+          | "SCHEMA_INVALID"
+          | "HASH_MISMATCH"
+          | "PROTOCOL_MISMATCH")
+      : "AUTHENTICATION_FAILED";
+    const denied =
+      await journal.recordMaterializationDenial({
+        request,
+        failureCode: materializationFailureCode,
+        occurredAt: config.timestamp,
+      });
+    await writeOperationResult({
+      schemas,
+      descriptor,
+      disposition: denied,
+      materializationCreated: false,
+      currentState:
+        (await journal.state()) ??
+        denied.transition.stateAfter,
+    });
+    await createRoleReceipt({
+      config,
+      schemas,
+      signer,
+      contract,
+      inputCommitments: [
+        descriptor.recordHash,
+        request.requestHash,
+      ],
+      outputCommitments: [
+        denied.transition.recordHash,
+        denied.journalHead,
+      ],
+    });
+    key.fill(0);
+    return;
+  }
   await mkdir(MATERIALIZATION, {
     recursive: true,
     mode: 0o700,
@@ -958,6 +1377,102 @@ async function countProcessArgumentMatches(
   return matches;
 }
 
+function byteCommitment(
+  bytes: Uint8Array,
+): string {
+  return `sha256:${sha256Bytes(bytes)}`;
+}
+
+function encodedCandidates(
+  bytes: Buffer,
+  length: number,
+): readonly Buffer[] {
+  const candidates: Buffer[] = [];
+  if (bytes.length === length) candidates.push(bytes);
+  const text = bytes.toString("utf8");
+  for (const match of text.matchAll(
+    /(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{43})(?=$|[^A-Za-z0-9_-])/gu,
+  )) {
+    const decoded = Buffer.from(match[1]!, "base64url");
+    if (decoded.length === length) candidates.push(decoded);
+  }
+  for (const match of text.matchAll(
+    /(?:^|[^a-f0-9])([a-f0-9]{64})(?=$|[^a-f0-9])/gu,
+  )) {
+    const decoded = Buffer.from(match[1]!, "hex");
+    if (decoded.length === length) candidates.push(decoded);
+  }
+  return candidates;
+}
+
+async function countCommitmentMatches(
+  root: string,
+  length: number,
+  commitment: string,
+): Promise<number> {
+  let matches = 0;
+  for (const file of await listFiles(root)) {
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(file);
+    } catch (error) {
+      const code =
+        (error as NodeJS.ErrnoException).code;
+      if (
+        code === "EACCES" ||
+        code === "EPERM" ||
+        code === "ENOENT"
+      ) {
+        continue;
+      }
+      throw error;
+    }
+    if (
+      encodedCandidates(bytes, length).some(
+        (candidate) =>
+          byteCommitment(candidate) === commitment,
+      )
+    ) {
+      matches += 1;
+    }
+  }
+  return matches;
+}
+
+async function countProcessArgumentCommitmentMatches(
+  length: number,
+  commitment: string,
+): Promise<number> {
+  let matches = 0;
+  const entries = await readdir("/proc", {
+    withFileTypes: true,
+  });
+  for (const entry of entries) {
+    if (
+      !entry.isDirectory() ||
+      !/^[0-9]+$/u.test(entry.name)
+    ) {
+      continue;
+    }
+    try {
+      const bytes = await readFile(
+        `/proc/${entry.name}/cmdline`,
+      );
+      if (
+        encodedCandidates(bytes, length).some(
+          (candidate) =>
+            byteCommitment(candidate) === commitment,
+        )
+      ) {
+        matches += 1;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return matches;
+}
+
 function signHashRecord<T extends object>(
   core: T,
   signer: PrincipalSigner,
@@ -1006,40 +1521,61 @@ async function cleanup(
     }
   }
   const root = objectRoot(descriptor.custodyId);
-  const [key, envelope] = await Promise.all([
-    readFile(path.join(root, "key.bin")),
-    readJson<SyntheticCustodyEnvelope>(
-      path.join(root, "envelope.json"),
-    ),
-  ]);
-  let payload: Buffer;
-  if (await exists(plaintextPath())) {
-    payload = await readFile(plaintextPath());
-  } else {
-    payload = decryptSyntheticCustody({
-      key,
-      envelope,
-      descriptor,
-      contract,
-      schemas,
-    });
+  const key = (await exists(path.join(root, "key.bin")))
+    ? await readFile(path.join(root, "key.bin"))
+    : null;
+  const payload = (await exists(plaintextPath()))
+    ? await readFile(plaintextPath())
+    : fixedInertSyntheticPayload();
+  if (
+    byteCommitment(payload) !==
+    descriptor.plaintextCommitment
+  ) {
+    throw new HarnessError(
+      "HASH_MISMATCH",
+      "Synthetic custody cleanup payload commitment mismatch",
+    );
   }
-  await rm(plaintextPath(), { force: true });
-  await rm(root, { recursive: true, force: true });
+  if (
+    key !== null &&
+    byteCommitment(key) !== descriptor.keyCommitment
+  ) {
+    throw new HarnessError(
+      "HASH_MISMATCH",
+      "Synthetic custody cleanup key commitment mismatch",
+    );
+  }
   const journal = loadJournal({
     descriptor,
     contract,
     signer,
     schemas,
   });
-  const disposition = await journal.cleanup({
-    reason: requireString(
-      config.cleanupReason,
-      "cleanupReason",
-    ) as SyntheticCustodyCleanupReason,
+  const cleanupReason = requireString(
+    config.cleanupReason,
+    "cleanupReason",
+  ) as SyntheticCustodyCleanupReason;
+  await journal.beginCleanup({
+    reason: cleanupReason,
     occurredAt: config.timestamp,
     ...(request === undefined ? {} : { request }),
   });
+  await rm(plaintextPath(), { force: true });
+  if (config.crashAfterPlaintextDelete === true) {
+    process.kill(process.pid, "SIGKILL");
+  }
+  await rm(root, { recursive: true, force: true });
+  if (config.crashAfterPrivateDelete === true) {
+    process.kill(process.pid, "SIGKILL");
+  }
+  const disposition = await journal.completeCleanup({
+    reason: cleanupReason,
+    occurredAt: config.timestamp,
+    ...(request === undefined ? {} : { request }),
+  });
+  if (config.crashAfterCleanupCommit === true) {
+    process.kill(process.pid, "SIGKILL");
+  }
   const [
     repositoryPayloadMatches,
     repositoryKeyMatches,
@@ -1051,13 +1587,36 @@ async function cleanup(
     processArgumentKeyMatches,
   ] = await Promise.all([
     countMatches(REPOSITORY_SCAN, payload),
-    countMatches(REPOSITORY_SCAN, key),
+    key === null
+      ? countCommitmentMatches(
+          REPOSITORY_SCAN,
+          32,
+          descriptor.keyCommitment,
+        )
+      : countMatches(REPOSITORY_SCAN, key),
     countMatches(RETAINED, payload),
-    countMatches(RETAINED, key),
+    key === null
+      ? countCommitmentMatches(
+          RETAINED,
+          32,
+          descriptor.keyCommitment,
+        )
+      : countMatches(RETAINED, key),
     countMatches(LOGS, payload),
-    countMatches(LOGS, key),
+    key === null
+      ? countCommitmentMatches(
+          LOGS,
+          32,
+          descriptor.keyCommitment,
+        )
+      : countMatches(LOGS, key),
     countProcessArgumentMatches(payload),
-    countProcessArgumentMatches(key),
+    key === null
+      ? countProcessArgumentCommitmentMatches(
+          32,
+          descriptor.keyCommitment,
+        )
+      : countProcessArgumentMatches(key),
   ]);
   const scanCore = {
     schemaVersion: 1 as const,
@@ -1130,7 +1689,7 @@ async function cleanup(
     ],
   });
   payload.fill(0);
-  key.fill(0);
+  key?.fill(0);
 }
 
 async function commitmentProjection(
@@ -1284,8 +1843,11 @@ function expectedRole(mode: WorkerMode): BoundaryRole {
     case "materialize":
     case "cleanup":
     case "recover_cleanup":
+    case "tamper_private_envelope":
+    case "forge_substituted_capability":
       return "vault";
     case "sign_release":
+    case "sign_substituted_release":
     case "consume":
       return "evaluator";
     case "scorer_projection":
@@ -1323,11 +1885,32 @@ async function main(): Promise<void> {
     case "sign_release":
       await signRelease(config, signer, schemas);
       break;
+    case "sign_substituted_release":
+      await signSubstitutedRelease(
+        config,
+        signer,
+        schemas,
+      );
+      break;
     case "reserve_release":
       await reserveRelease(config, signer, schemas);
       break;
     case "materialize":
       await materialize(config, signer, schemas);
+      break;
+    case "tamper_private_envelope":
+      await tamperPrivateEnvelope(
+        config,
+        signer,
+        schemas,
+      );
+      break;
+    case "forge_substituted_capability":
+      await forgeSubstitutedCapability(
+        config,
+        signer,
+        schemas,
+      );
       break;
     case "consume":
       await consume(config, signer, schemas);

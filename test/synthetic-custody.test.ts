@@ -9,6 +9,7 @@ import test from "node:test";
 
 import {
   SchemaRegistry,
+  SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
   SyntheticCustodyJournal,
   createEncryptedSyntheticCustody,
   createEvaluatorVaultContract,
@@ -137,6 +138,10 @@ test(
       }),
       payload,
     );
+    assert.equal(
+      sealed.descriptor.deliveryGuarantee,
+      SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
+    );
     const tamperedEnvelope: SyntheticCustodyEnvelope = {
       ...sealed.envelope,
       authenticationTag:
@@ -239,6 +244,12 @@ test(
       cleanup.transition.plaintextCleanupConfirmed,
       true,
     );
+    assert.deepEqual(
+      (await journal.readTransitions())
+        .slice(-2)
+        .map((transition) => transition.action),
+      ["begin_cleanup", "cleanup"],
+    );
     const exactReservation =
       await journal.reserve(request);
     assert.equal(
@@ -263,6 +274,152 @@ test(
           "begin_materialization",
       ).length,
       1,
+    );
+    const freshReplayRequest =
+      createSyntheticCustodyReleaseRequest({
+        requestId:
+          "synthetic-custody.normal.request.fresh-replay",
+        descriptor: sealed.descriptor,
+        capability,
+        senderSequence: 1,
+        nonce:
+          "synthetic-custody-request-fresh-replay-nonce",
+        requestedAt: timestamp(8),
+        signer: actors.evaluator,
+        contract,
+        schemas,
+      });
+    const transitionsBeforeFreshReplay =
+      await journal.readTransitions();
+    const freshReplay = await journal.reserve(
+      freshReplayRequest,
+    );
+    assert.equal(
+      freshReplay.failure?.code,
+      "REPLAY_DETECTED",
+    );
+    assert.equal(freshReplay.newlyCommitted, false);
+    assert.equal(
+      freshReplay.transition.recordHash,
+      reservation.transition.recordHash,
+    );
+    assert.equal(
+      (await journal.readTransitions()).length,
+      transitionsBeforeFreshReplay.length,
+    );
+  },
+);
+
+test(
+  "uncertain delivery aborts a durable reservation without materializing plaintext",
+  async (t) => {
+    const root = await mkdtemp(
+      path.join(
+        os.tmpdir(),
+        "seh-synthetic-custody-abort-",
+      ),
+    );
+    t.after(async () => {
+      await rm(root, { recursive: true, force: true });
+    });
+    const schemas = await SchemaRegistry.load(
+      path.resolve("schemas"),
+    );
+    const actors = principals();
+    const contract = createEvaluatorVaultContract({
+      contractId:
+        "synthetic-custody.abort.contract.v1",
+      protocolId:
+        `protocol-sha256:${"c".repeat(64)}`,
+      principalMatrix: actors.matrix,
+      frozenAt: timestamp(0),
+      signer: actors.protocol,
+      schemas,
+    });
+    const sealed = createEncryptedSyntheticCustody({
+      custodyId: "synthetic-custody.abort",
+      taskHandleCommitment: sha256Text(
+        "abort-handle",
+      ),
+      authorCommitmentHash:
+        sha256Text("abort-author"),
+      includedTransitionHash:
+        sha256Text("abort-included"),
+      admittedVaultStateHead:
+        sha256Text("abort-vault-head"),
+      unlockCapabilityHash:
+        sha256Text("abort-unlock"),
+      payload: fixedInertSyntheticPayload(),
+      createdAt: timestamp(1),
+      signer: actors.vault,
+      contract,
+      schemas,
+    });
+    const capability =
+      createSyntheticCustodyCapability({
+        capabilityId:
+          "synthetic-custody.abort.capability",
+        descriptor: sealed.descriptor,
+        issuedAt: timestamp(2),
+        expiresAt: timestamp(20),
+        nonce:
+          "synthetic-custody-abort-capability-nonce",
+        signer: actors.vault,
+        contract,
+        schemas,
+      });
+    const request =
+      createSyntheticCustodyReleaseRequest({
+        requestId:
+          "synthetic-custody.abort.request",
+        descriptor: sealed.descriptor,
+        capability,
+        senderSequence: 0,
+        nonce:
+          "synthetic-custody-abort-request-nonce",
+        requestedAt: timestamp(3),
+        signer: actors.evaluator,
+        contract,
+        schemas,
+      });
+    const journal = new SyntheticCustodyJournal({
+      root,
+      descriptor: sealed.descriptor,
+      contract,
+      signer: actors.vault,
+      schemas,
+    });
+    await journal.initialize(timestamp(1));
+    await journal.reserve(request);
+    const cleanupStarted = await journal.beginCleanup({
+      reason: "reservation_abandoned",
+      occurredAt: timestamp(4),
+      request,
+    });
+    assert.equal(
+      cleanupStarted.transition.stateAfter,
+      "cleanup_started",
+    );
+    const restarted = new SyntheticCustodyJournal({
+      root,
+      descriptor: sealed.descriptor,
+      contract,
+      signer: actors.vault,
+      schemas,
+    });
+    const cleanup = await restarted.completeCleanup({
+      reason: "reservation_abandoned",
+      occurredAt: timestamp(5),
+      request,
+    });
+    assert.equal(cleanup.transition.stateAfter, "cleaned");
+    assert.equal(
+      (await restarted.readTransitions()).some(
+        (transition) =>
+          transition.action ===
+          "begin_materialization",
+      ),
+      false,
     );
   },
 );

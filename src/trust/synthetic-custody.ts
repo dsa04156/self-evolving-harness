@@ -50,11 +50,14 @@ export const SYNTHETIC_CUSTODY_EVALUATOR_RECEIPT_SCHEMA_ID =
   `${SCHEMA_BASE_URL}synthetic-custody-evaluator-receipt.schema.json`;
 
 export const SYNTHETIC_CUSTODY_PAYLOAD_LENGTH = 64;
+export const SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE =
+  "at_most_once_abort_on_uncertain_delivery" as const;
 
 export type SyntheticCustodyState =
   | "sealed"
   | "release_reserved"
   | "materialization_started"
+  | "cleanup_started"
   | "cleaned";
 
 export type SyntheticCustodyAction =
@@ -62,6 +65,8 @@ export type SyntheticCustodyAction =
   | "reserve_release"
   | "begin_materialization"
   | "deny_release"
+  | "deny_materialization"
+  | "begin_cleanup"
   | "cleanup";
 
 export type SyntheticCustodyCleanupReason =
@@ -70,11 +75,19 @@ export type SyntheticCustodyCleanupReason =
   | "vault_crash_recovery"
   | "timeout"
   | "capability_rejection"
-  | "response_loss";
+  | "response_loss"
+  | "reservation_abandoned"
+  | "materialization_prewrite_abandoned"
+  | "cryptographic_rejection"
+  | "cleanup_interrupted_after_plaintext_delete"
+  | "cleanup_interrupted_after_private_delete"
+  | "cleanup_acknowledgement_loss";
 
 export interface SyntheticCustodyAad {
   readonly schemaVersion: 1;
   readonly recordType: "synthetic_custody_aad";
+  readonly deliveryGuarantee:
+    typeof SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE;
   readonly custodyId: string;
   readonly protocolId: string;
   readonly contractId: string;
@@ -104,6 +117,8 @@ export interface SyntheticCustodyEnvelope {
 export interface SyntheticCustodyDescriptor {
   readonly schemaVersion: 1;
   readonly recordType: "synthetic_custody_descriptor";
+  readonly deliveryGuarantee:
+    typeof SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE;
   readonly custodyId: string;
   readonly protocolId: string;
   readonly contractId: string;
@@ -133,6 +148,8 @@ export interface SyntheticCustodyDescriptor {
 export interface SyntheticCustodyCapability {
   readonly schemaVersion: 1;
   readonly recordType: "synthetic_custody_capability";
+  readonly deliveryGuarantee:
+    typeof SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE;
   readonly capabilityId: string;
   readonly custodyId: string;
   readonly protocolId: string;
@@ -140,6 +157,7 @@ export interface SyntheticCustodyCapability {
   readonly contractHash: string;
   readonly descriptorHash: string;
   readonly taskHandleCommitment: string;
+  readonly authorCommitmentHash: string;
   readonly includedTransitionHash: string;
   readonly admittedVaultStateHead: string;
   readonly unlockCapabilityHash: string;
@@ -180,6 +198,8 @@ export interface SyntheticCustodyReleaseRequest {
 export interface SyntheticCustodyTransition {
   readonly schemaVersion: 1;
   readonly recordType: "synthetic_custody_transition";
+  readonly deliveryGuarantee:
+    typeof SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE;
   readonly transitionId: string;
   readonly protocolId: string;
   readonly contractId: string;
@@ -187,6 +207,7 @@ export interface SyntheticCustodyTransition {
   readonly custodyId: string;
   readonly descriptorHash: string;
   readonly taskHandleCommitment: string;
+  readonly authorCommitmentHash: string;
   readonly includedTransitionHash: string;
   readonly admittedVaultStateHead: string;
   readonly unlockCapabilityHash: string;
@@ -511,6 +532,8 @@ export function createEncryptedSyntheticCustody(input: {
   const aad: SyntheticCustodyAad = {
     schemaVersion: 1,
     recordType: "synthetic_custody_aad",
+    deliveryGuarantee:
+      SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
     custodyId: input.custodyId,
     protocolId: input.contract.protocolId,
     contractId: input.contract.contractId,
@@ -566,6 +589,8 @@ export function createEncryptedSyntheticCustody(input: {
   const core: DescriptorCore = {
     schemaVersion: 1,
     recordType: "synthetic_custody_descriptor",
+    deliveryGuarantee:
+      SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
     custodyId: input.custodyId,
     protocolId: input.contract.protocolId,
     contractId: input.contract.contractId,
@@ -706,6 +731,8 @@ export function decryptSyntheticCustody(input: {
   const expectedAad: SyntheticCustodyAad = {
     schemaVersion: 1,
     recordType: "synthetic_custody_aad",
+    deliveryGuarantee:
+      SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
     custodyId: input.descriptor.custodyId,
     protocolId: input.descriptor.protocolId,
     contractId: input.descriptor.contractId,
@@ -810,6 +837,8 @@ export function createSyntheticCustodyCapability(input: {
   const core: CapabilityCore = {
     schemaVersion: 1,
     recordType: "synthetic_custody_capability",
+    deliveryGuarantee:
+      SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
     capabilityId: input.capabilityId,
     custodyId: input.descriptor.custodyId,
     protocolId: input.descriptor.protocolId,
@@ -818,6 +847,8 @@ export function createSyntheticCustodyCapability(input: {
     descriptorHash: input.descriptor.recordHash,
     taskHandleCommitment:
       input.descriptor.taskHandleCommitment,
+    authorCommitmentHash:
+      input.descriptor.authorCommitmentHash,
     includedTransitionHash:
       input.descriptor.includedTransitionHash,
     admittedVaultStateHead:
@@ -869,38 +900,19 @@ export function verifySyntheticCustodyCapability(input: {
   readonly contract: EvaluatorVaultContract;
   readonly schemas: SchemaRegistry;
 }): void {
-  input.schemas.validate(
-    SYNTHETIC_CUSTODY_CAPABILITY_SCHEMA_ID,
-    input.record as unknown as JsonValue,
-  );
+  verifySyntheticCustodyCapabilityAttestation({
+    record: input.record,
+    contract: input.contract,
+    schemas: input.schemas,
+  });
   verifySyntheticCustodyDescriptor({
     record: input.descriptor,
     contract: input.contract,
     schemas: input.schemas,
   });
-  const core = capabilityCore(input.record);
-  assertCondition(
-    input.record.capabilityHash ===
-      sha256(core as unknown as JsonValue),
-    "HASH_MISMATCH",
-    "Synthetic custody capability hash mismatch",
-  );
-  assertCondition(
-    samePrincipal(
-      input.record.publicPrincipal,
-      input.contract.principalMatrix.vault,
-    ) &&
-      canonicalize(
-        input.record.issuedBy as unknown as JsonValue,
-      ) ===
-        canonicalize(
-          input.contract.principalMatrix.vault
-            .identity as unknown as JsonValue,
-        ),
-    "AUTHENTICATION_FAILED",
-    "Synthetic custody capability is not vault-issued",
-  );
   const bindingMatches =
+    input.record.deliveryGuarantee ===
+      input.descriptor.deliveryGuarantee &&
     input.record.custodyId ===
       input.descriptor.custodyId &&
     input.record.protocolId ===
@@ -913,6 +925,8 @@ export function verifySyntheticCustodyCapability(input: {
       input.descriptor.recordHash &&
     input.record.taskHandleCommitment ===
       input.descriptor.taskHandleCommitment &&
+    input.record.authorCommitmentHash ===
+      input.descriptor.authorCommitmentHash &&
     input.record.includedTransitionHash ===
       input.descriptor.includedTransitionHash &&
     input.record.admittedVaultStateHead ===
@@ -947,6 +961,39 @@ export function verifySyntheticCustodyCapability(input: {
         ),
     "AUTHORIZATION_DENIED",
     "Synthetic custody capability is not currently valid",
+  );
+}
+
+export function verifySyntheticCustodyCapabilityAttestation(input: {
+  readonly record: SyntheticCustodyCapability;
+  readonly contract: EvaluatorVaultContract;
+  readonly schemas: SchemaRegistry;
+}): void {
+  input.schemas.validate(
+    SYNTHETIC_CUSTODY_CAPABILITY_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  const core = capabilityCore(input.record);
+  assertCondition(
+    input.record.capabilityHash ===
+      sha256(core as unknown as JsonValue),
+    "HASH_MISMATCH",
+    "Synthetic custody capability hash mismatch",
+  );
+  assertCondition(
+    samePrincipal(
+      input.record.publicPrincipal,
+      input.contract.principalMatrix.vault,
+    ) &&
+      canonicalize(
+        input.record.issuedBy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.contract.principalMatrix.vault
+            .identity as unknown as JsonValue,
+        ),
+    "AUTHENTICATION_FAILED",
+    "Synthetic custody capability is not vault-issued",
   );
   registryWith(input.record.publicPrincipal).verify(
     input.record.issuedBy,
@@ -1034,10 +1081,11 @@ export function verifySyntheticCustodyReleaseRequest(input: {
   readonly contract: EvaluatorVaultContract;
   readonly schemas: SchemaRegistry;
 }): void {
-  input.schemas.validate(
-    SYNTHETIC_CUSTODY_RELEASE_REQUEST_SCHEMA_ID,
-    input.record as unknown as JsonValue,
-  );
+  verifySyntheticCustodyReleaseRequestAttestation({
+    record: input.record,
+    contract: input.contract,
+    schemas: input.schemas,
+  });
   verifySyntheticCustodyCapability({
     record: input.record.capability,
     descriptor: input.descriptor,
@@ -1045,13 +1093,6 @@ export function verifySyntheticCustodyReleaseRequest(input: {
     contract: input.contract,
     schemas: input.schemas,
   });
-  const core = requestCore(input.record);
-  assertCondition(
-    input.record.requestHash ===
-      sha256(core as unknown as JsonValue),
-    "HASH_MISMATCH",
-    "Synthetic custody request hash mismatch",
-  );
   assertCondition(
     input.record.protocolId ===
       input.descriptor.protocolId &&
@@ -1065,6 +1106,24 @@ export function verifySyntheticCustodyReleaseRequest(input: {
         input.descriptor.recordHash,
     "PROTOCOL_MISMATCH",
     "Synthetic custody request binding mismatch",
+  );
+}
+
+export function verifySyntheticCustodyReleaseRequestAttestation(input: {
+  readonly record: SyntheticCustodyReleaseRequest;
+  readonly contract: EvaluatorVaultContract;
+  readonly schemas: SchemaRegistry;
+}): void {
+  input.schemas.validate(
+    SYNTHETIC_CUSTODY_RELEASE_REQUEST_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  const core = requestCore(input.record);
+  assertCondition(
+    input.record.requestHash ===
+      sha256(core as unknown as JsonValue),
+    "HASH_MISMATCH",
+    "Synthetic custody request hash mismatch",
   );
   assertCondition(
     samePrincipal(
@@ -1236,8 +1295,14 @@ interface RecoveredSyntheticCustodyJournal {
   >;
   readonly materializationTransition:
     SyntheticCustodyTransition | null;
+  readonly materializationDenialTransition:
+    SyntheticCustodyTransition | null;
+  readonly cleanupStartTransition:
+    SyntheticCustodyTransition | null;
   readonly cleanupTransition:
     SyntheticCustodyTransition | null;
+  readonly successfulReservationByCapability:
+    ReadonlyMap<string, SyntheticCustodyTransition>;
 }
 
 export interface SyntheticCustodyJournalDisposition {
@@ -1299,16 +1364,26 @@ function isLegalSuccessor(
         before === "release_reserved" &&
         after === "materialization_started"
       );
+    case "begin_cleanup":
+      return (
+        after === "cleanup_started" &&
+        ((before === "sealed" &&
+          cleanupReason === "capability_rejection") ||
+          (before === "release_reserved" &&
+            cleanupReason === "reservation_abandoned") ||
+          (before === "materialization_started" &&
+            cleanupReason !== null &&
+            cleanupReason !== "capability_rejection" &&
+            cleanupReason !== "reservation_abandoned"))
+      );
     case "cleanup":
       return (
-        (before === "materialization_started" &&
-          after === "cleaned" &&
-          cleanupReason !== "capability_rejection") ||
-        (before === "sealed" &&
-          after === "cleaned" &&
-          cleanupReason === "capability_rejection")
+        before === "cleanup_started" &&
+        after === "cleaned" &&
+        cleanupReason !== null
       );
     case "deny_release":
+    case "deny_materialization":
       return false;
   }
 }
@@ -1365,6 +1440,8 @@ export function verifySyntheticCustodyTransition(input: {
         input.descriptor.recordHash &&
       input.record.taskHandleCommitment ===
         input.descriptor.taskHandleCommitment &&
+      input.record.authorCommitmentHash ===
+        input.descriptor.authorCommitmentHash &&
       input.record.includedTransitionHash ===
         input.descriptor.includedTransitionHash &&
       input.record.admittedVaultStateHead ===
@@ -1375,6 +1452,8 @@ export function verifySyntheticCustodyTransition(input: {
         input.descriptor.plaintextCommitment &&
       input.record.payloadLength ===
         input.descriptor.payloadLength &&
+      input.record.deliveryGuarantee ===
+        input.descriptor.deliveryGuarantee &&
       input.record.priorTransitionHash ===
         input.priorTransitionHash &&
       input.record.priorJournalHead ===
@@ -1503,6 +1582,22 @@ export class SyntheticCustodyJournal {
           contract: this.#contract,
           schemas: this.#schemas,
         });
+        const consumedReservation =
+          snapshot.successfulReservationByCapability.get(
+            request.capability.capabilityHash,
+          );
+        if (consumedReservation !== undefined) {
+          return {
+            transition: consumedReservation,
+            journalHead: snapshot.head!,
+            newlyCommitted: false,
+            failure: {
+              code: "REPLAY_DETECTED",
+              safeDetail:
+                "Synthetic custody capability was already consumed",
+            },
+          };
+        }
         assertCondition(
           snapshot.state === "sealed",
           "REPLAY_DETECTED",
@@ -1652,7 +1747,88 @@ export class SyntheticCustodyJournal {
     );
   }
 
-  public async cleanup(input: {
+  public async recordMaterializationDenial(input: {
+    readonly request: SyntheticCustodyReleaseRequest;
+    readonly failureCode:
+      | "AUTHENTICATION_FAILED"
+      | "AUTHORIZATION_DENIED"
+      | "SCHEMA_INVALID"
+      | "HASH_MISMATCH"
+      | "PROTOCOL_MISMATCH";
+    readonly occurredAt: string;
+  }): Promise<SyntheticCustodyJournalDisposition> {
+    verifySyntheticCustodyReleaseRequest({
+      record: input.request,
+      descriptor: this.#descriptor,
+      now: input.request.requestedAt,
+      contract: this.#contract,
+      schemas: this.#schemas,
+    });
+    const requestCommitment = sha256(
+      input.request as unknown as JsonValue,
+    );
+    for (let attempt = 0; attempt < 32; attempt += 1) {
+      const snapshot = await this.#recover();
+      if (
+        snapshot.materializationDenialTransition !==
+        null
+      ) {
+        return {
+          transition:
+            snapshot.materializationDenialTransition,
+          journalHead: snapshot.head!,
+          newlyCommitted: false,
+          failure: transitionFailure(
+            snapshot.materializationDenialTransition,
+          ),
+        };
+      }
+      const materialization =
+        snapshot.materializationTransition;
+      assertCondition(
+        materialization !== null &&
+          materialization.requestCommitment ===
+            requestCommitment &&
+          snapshot.state === "materialization_started",
+        "INVALID_STATE_TRANSITION",
+        "Synthetic custody has no matching materialization to deny",
+      );
+      const transition = this.#createTransition({
+        sequence: snapshot.entries.length,
+        priorTransitionHash:
+          snapshot.latestTransition?.recordHash ?? null,
+        priorJournalHead: snapshot.head,
+        action: "deny_materialization",
+        requestCommitment,
+        capabilityCommitment:
+          input.request.capability.capabilityHash,
+        releaseId: materialization.releaseId,
+        stateBefore: snapshot.state,
+        stateAfter: snapshot.state,
+        stateSuccessor: false,
+        decision: "denied",
+        reasonCode: input.failureCode,
+        cleanupReason: null,
+        occurredAt: input.occurredAt,
+      });
+      try {
+        return await this.#append(snapshot, transition);
+      } catch (error) {
+        if (
+          asHarnessError(error).code !== "CONFLICT"
+        ) {
+          throw error;
+        }
+      }
+    }
+    throw new HarnessError(
+      "CONFLICT",
+      "Synthetic custody materialization denial contended repeatedly",
+      { retryable: true },
+    );
+  }
+
+  public async beginCleanup(input: {
     readonly reason: SyntheticCustodyCleanupReason;
     readonly occurredAt: string;
     readonly request?:
@@ -1663,6 +1839,20 @@ export class SyntheticCustodyJournal {
       if (snapshot.cleanupTransition !== null) {
         return {
           transition: snapshot.cleanupTransition,
+          journalHead: snapshot.head!,
+          newlyCommitted: false,
+          failure: null,
+        };
+      }
+      if (snapshot.cleanupStartTransition !== null) {
+        assertCondition(
+          snapshot.cleanupStartTransition.cleanupReason ===
+            input.reason,
+          "CONFLICT",
+          "Synthetic custody cleanup reason changed after cleanup started",
+        );
+        return {
+          transition: snapshot.cleanupStartTransition,
           journalHead: snapshot.head!,
           newlyCommitted: false,
           failure: null,
@@ -1689,9 +1879,9 @@ export class SyntheticCustodyJournal {
           ?.releaseId ?? null;
       assertCondition(
         isLegalSuccessor(
-          "cleanup",
+          "begin_cleanup",
           snapshot.state,
-          "cleaned",
+          "cleanup_started",
           input.reason,
         ),
         "INVALID_STATE_TRANSITION",
@@ -1714,12 +1904,12 @@ export class SyntheticCustodyJournal {
         priorTransitionHash:
           snapshot.latestTransition?.recordHash ?? null,
         priorJournalHead: snapshot.head,
-        action: "cleanup",
+        action: "begin_cleanup",
         requestCommitment,
         capabilityCommitment,
         releaseId,
         stateBefore: snapshot.state,
-        stateAfter: "cleaned",
+        stateAfter: "cleanup_started",
         stateSuccessor: true,
         decision: "allowed",
         reasonCode: "ALLOWED",
@@ -1741,9 +1931,85 @@ export class SyntheticCustodyJournal {
     }
     throw new HarnessError(
       "CONFLICT",
-      "Synthetic custody cleanup contended repeatedly",
+      "Synthetic custody cleanup start contended repeatedly",
       { retryable: true },
     );
+  }
+
+  public async completeCleanup(input: {
+    readonly reason: SyntheticCustodyCleanupReason;
+    readonly occurredAt: string;
+    readonly request?:
+      SyntheticCustodyReleaseRequest;
+  }): Promise<SyntheticCustodyJournalDisposition> {
+    for (let attempt = 0; attempt < 32; attempt += 1) {
+      const snapshot = await this.#recover();
+      if (snapshot.cleanupTransition !== null) {
+        assertCondition(
+          snapshot.cleanupTransition.cleanupReason ===
+            input.reason,
+          "CONFLICT",
+          "Synthetic custody cleanup reason changed after cleanup completed",
+        );
+        return {
+          transition: snapshot.cleanupTransition,
+          journalHead: snapshot.head!,
+          newlyCommitted: false,
+          failure: null,
+        };
+      }
+      const cleanupStart =
+        snapshot.cleanupStartTransition;
+      assertCondition(
+        cleanupStart !== null &&
+          cleanupStart.cleanupReason === input.reason,
+        "INVALID_STATE_TRANSITION",
+        "Synthetic custody cleanup was not durably started",
+      );
+      const transition = this.#createTransition({
+        sequence: snapshot.entries.length,
+        priorTransitionHash:
+          snapshot.latestTransition?.recordHash ?? null,
+        priorJournalHead: snapshot.head,
+        action: "cleanup",
+        requestCommitment:
+          cleanupStart.requestCommitment,
+        capabilityCommitment:
+          cleanupStart.capabilityCommitment,
+        releaseId: cleanupStart.releaseId,
+        stateBefore: snapshot.state,
+        stateAfter: "cleaned",
+        stateSuccessor: true,
+        decision: "allowed",
+        reasonCode: "ALLOWED",
+        cleanupReason: input.reason,
+        occurredAt: input.occurredAt,
+      });
+      try {
+        return await this.#append(snapshot, transition);
+      } catch (error) {
+        if (
+          asHarnessError(error).code !== "CONFLICT"
+        ) {
+          throw error;
+        }
+      }
+    }
+    throw new HarnessError(
+      "CONFLICT",
+      "Synthetic custody cleanup completion contended repeatedly",
+      { retryable: true },
+    );
+  }
+
+  public async cleanup(input: {
+    readonly reason: SyntheticCustodyCleanupReason;
+    readonly occurredAt: string;
+    readonly request?:
+      SyntheticCustodyReleaseRequest;
+  }): Promise<SyntheticCustodyJournalDisposition> {
+    await this.beginCleanup(input);
+    return this.completeCleanup(input);
   }
 
   public async readTransitions(): Promise<
@@ -1787,6 +2053,8 @@ export class SyntheticCustodyJournal {
     const core: TransitionCore = {
       schemaVersion: 1,
       recordType: "synthetic_custody_transition",
+      deliveryGuarantee:
+        SYNTHETIC_CUSTODY_DELIVERY_GUARANTEE,
       transitionId:
         `custody-transition:${input.sequence
           .toString()
@@ -1798,6 +2066,8 @@ export class SyntheticCustodyJournal {
       descriptorHash: this.#descriptor.recordHash,
       taskHandleCommitment:
         this.#descriptor.taskHandleCommitment,
+      authorCommitmentHash:
+        this.#descriptor.authorCommitmentHash,
       includedTransitionHash:
         this.#descriptor.includedTransitionHash,
       admittedVaultStateHead:
@@ -1897,10 +2167,16 @@ export class SyntheticCustodyJournal {
       string,
       SyntheticCustodyTransition
     >();
+    const successfulReservationByCapability =
+      new Map<string, SyntheticCustodyTransition>();
     let state: SyntheticCustodyState | null = null;
     let latestTransition:
       SyntheticCustodyTransition | null = null;
     let materializationTransition:
+      SyntheticCustodyTransition | null = null;
+    let materializationDenialTransition:
+      SyntheticCustodyTransition | null = null;
+    let cleanupStartTransition:
       SyntheticCustodyTransition | null = null;
     let cleanupTransition:
       SyntheticCustodyTransition | null = null;
@@ -1942,13 +2218,24 @@ export class SyntheticCustodyJournal {
         state = transition.stateAfter;
       } else {
         assertCondition(
-          transition.action === "deny_release" &&
+          (transition.action === "deny_release" ||
+            transition.action ===
+              "deny_materialization") &&
             transition.decision === "denied" &&
             transition.stateAfter === state &&
-            transition.releaseId === null &&
             transition.cleanupReason === null,
           "INVALID_STATE_TRANSITION",
           "Synthetic custody non-successor is not a denial",
+        );
+        assertCondition(
+          (transition.action === "deny_release" &&
+            transition.releaseId === null) ||
+            (transition.action ===
+              "deny_materialization" &&
+              transition.releaseId !== null &&
+              state === "materialization_started"),
+          "INVALID_STATE_TRANSITION",
+          "Synthetic custody denial has the wrong release binding",
         );
       }
       if (
@@ -1967,6 +2254,23 @@ export class SyntheticCustodyJournal {
           transition.requestCommitment,
           transition,
         );
+        if (
+          transition.action === "reserve_release" &&
+          transition.decision === "allowed" &&
+          transition.capabilityCommitment !== null
+        ) {
+          assertCondition(
+            !successfulReservationByCapability.has(
+              transition.capabilityCommitment,
+            ),
+            "REPLAY_DETECTED",
+            "Synthetic custody journal consumed one capability more than once",
+          );
+          successfulReservationByCapability.set(
+            transition.capabilityCommitment,
+            transition,
+          );
+        }
       }
       if (
         transition.action ===
@@ -1979,7 +2283,37 @@ export class SyntheticCustodyJournal {
         );
         materializationTransition = transition;
       }
+      if (
+        transition.action ===
+        "deny_materialization"
+      ) {
+        assertCondition(
+          materializationDenialTransition === null &&
+            materializationTransition !== null &&
+            transition.requestCommitment ===
+              materializationTransition.requestCommitment,
+          "REPLAY_DETECTED",
+          "Synthetic custody journal contains an invalid materialization denial",
+        );
+        materializationDenialTransition =
+          transition;
+      }
+      if (transition.action === "begin_cleanup") {
+        assertCondition(
+          cleanupStartTransition === null,
+          "REPLAY_DETECTED",
+          "Synthetic custody journal contains multiple cleanup starts",
+        );
+        cleanupStartTransition = transition;
+      }
       if (transition.action === "cleanup") {
+        assertCondition(
+          cleanupStartTransition !== null &&
+            cleanupStartTransition.cleanupReason ===
+              transition.cleanupReason,
+          "INVALID_STATE_TRANSITION",
+          "Synthetic custody cleanup does not match its durable start",
+        );
         assertCondition(
           cleanupTransition === null,
           "REPLAY_DETECTED",
@@ -1998,7 +2332,10 @@ export class SyntheticCustodyJournal {
       latestTransition,
       requests,
       materializationTransition,
+      materializationDenialTransition,
+      cleanupStartTransition,
       cleanupTransition,
+      successfulReservationByCapability,
     };
   }
 }

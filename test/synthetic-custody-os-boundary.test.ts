@@ -54,6 +54,8 @@ type ScenarioName = (typeof scenarios)[number];
 interface EvidenceScenario {
   readonly scenario: ScenarioName;
   readonly descriptor: {
+    readonly deliveryGuarantee:
+      "at_most_once_abort_on_uncertain_delivery";
     readonly recordHash: string;
     readonly taskHandleCommitment: string;
     readonly authorCommitmentHash: string;
@@ -66,6 +68,7 @@ interface EvidenceScenario {
   };
   readonly capability: {
     readonly capabilityHash: string;
+    readonly authorCommitmentHash: string;
     readonly reusableDecryptionAuthority: false;
   };
   readonly request: {
@@ -134,6 +137,18 @@ interface EvidenceScenario {
     readonly failureCode: "REPLAY_DETECTED";
     readonly plaintextFilePresent: false;
   } | null;
+  readonly freshCapabilityReuse: readonly {
+    readonly condition: string;
+    readonly correctlySignedFreshRequest: true;
+    readonly failureCode: "REPLAY_DETECTED";
+    readonly newlyCommitted: false;
+    readonly transitionCountBefore: number;
+    readonly transitionCountAfter: number;
+    readonly reservationCount: 1;
+    readonly materializationCount: number;
+    readonly secondReservationAppended: false;
+    readonly secondMaterializationBegan: false;
+  }[];
   readonly residuals: {
     readonly keyFilePresent: false;
     readonly ciphertextFilePresent: false;
@@ -171,6 +186,32 @@ interface CustodyEvidence {
     readonly privateKeyPresent: false;
   };
   readonly scenarios: readonly EvidenceScenario[];
+  readonly crashCases: readonly {
+    readonly boundary: string;
+    readonly deliveryGuarantee:
+      "at_most_once_abort_on_uncertain_delivery";
+    readonly evaluatorPlaintextMounted: false;
+    readonly evaluatorReceiptProduced: false;
+    readonly beginCleanupCount: 1;
+    readonly cleanupCount: 1;
+    readonly duplicateMaterializationCount: 0;
+    readonly leakageScan:
+      EvidenceScenario["leakageScan"];
+    readonly residuals:
+      EvidenceScenario["residuals"];
+  }[];
+  readonly adversarialCases: readonly {
+    readonly attackId: string;
+    readonly correctlySignedRequest: true;
+    readonly evaluatorPlaintextMounted: false;
+    readonly evaluatorReceiptProduced: false;
+    readonly denialCode: string;
+    readonly cleanupReason: string;
+    readonly leakageScan:
+      EvidenceScenario["leakageScan"];
+    readonly residuals:
+      EvidenceScenario["residuals"];
+  }[];
   readonly scorerProjection: {
     readonly projectionClass:
       "scorer_commitments_only";
@@ -446,6 +487,10 @@ test(
     );
     for (const entry of evidence.scenarios) {
       assert.equal(
+        entry.descriptor.deliveryGuarantee,
+        "at_most_once_abort_on_uncertain_delivery",
+      );
+      assert.equal(
         entry.descriptor.taskHandleCommitment,
         evidence.binding.taskHandleCommitment,
       );
@@ -468,6 +513,10 @@ test(
       assert.equal(
         entry.capability.reusableDecryptionAuthority,
         false,
+      );
+      assert.equal(
+        entry.capability.authorCommitmentHash,
+        entry.descriptor.authorCommitmentHash,
       );
       assert.equal(entry.cleanupResult.state, "cleaned");
       assert.deepEqual(entry.residuals, {
@@ -508,6 +557,103 @@ test(
           : 1,
       );
     }
+    assert.deepEqual(
+      evidence.crashCases.map(
+        (entry) => entry.boundary,
+      ),
+      [
+        "after_reservation_commit",
+        "after_materialization_start",
+        "after_plaintext_delete",
+        "after_private_delete",
+        "after_cleanup_commit",
+      ],
+    );
+    for (const crash of evidence.crashCases) {
+      assert.equal(crash.evaluatorPlaintextMounted, false);
+      assert.equal(crash.evaluatorReceiptProduced, false);
+      assert.equal(crash.beginCleanupCount, 1);
+      assert.equal(crash.cleanupCount, 1);
+      assert.equal(
+        crash.duplicateMaterializationCount,
+        0,
+      );
+      assert.deepEqual(crash.residuals, {
+        keyFilePresent: false,
+        ciphertextFilePresent: false,
+        plaintextFilePresent: false,
+      });
+      assert.equal(
+        Object.values(crash.leakageScan).filter(
+          (value) => value === 0,
+        ).length,
+        8,
+      );
+    }
+    assert.equal(evidence.adversarialCases.length, 21);
+    assert.deepEqual(
+      evidence.adversarialCases
+        .filter((entry) =>
+          entry.attackId.startsWith("envelope."),
+        )
+        .map((entry) => entry.attackId),
+      [
+        "envelope.ciphertext",
+        "envelope.authentication_tag",
+        "envelope.nonce",
+        "envelope.aad_custody_id",
+        "envelope.aad_protocol_id",
+        "envelope.aad_contract_id",
+        "envelope.aad_contract_hash",
+        "envelope.aad_task_handle",
+        "envelope.aad_author_commitment",
+        "envelope.aad_included_transition",
+        "envelope.aad_admitted_state",
+        "envelope.aad_unlock_capability",
+        "envelope.aad_plaintext_commitment",
+        "envelope.aad_payload_length",
+        "envelope.aad_delivery_guarantee",
+        "envelope.envelope_swap",
+      ],
+    );
+    for (const attack of evidence.adversarialCases) {
+      assert.equal(attack.correctlySignedRequest, true);
+      assert.equal(
+        attack.evaluatorPlaintextMounted,
+        false,
+      );
+      assert.equal(
+        attack.evaluatorReceiptProduced,
+        false,
+      );
+      assert.ok(
+        [
+          "AUTHENTICATION_FAILED",
+          "AUTHORIZATION_DENIED",
+          "HASH_MISMATCH",
+          "SCHEMA_INVALID",
+        ].includes(attack.denialCode),
+      );
+      assert.deepEqual(attack.residuals, {
+        keyFilePresent: false,
+        ciphertextFilePresent: false,
+        plaintextFilePresent: false,
+      });
+    }
+    assert.deepEqual(
+      evidence.scenarios
+        .flatMap(
+          (entry) => entry.freshCapabilityReuse,
+        )
+        .map((entry) => entry.condition)
+        .sort(),
+      [
+        "cleanup_completion",
+        "normal_completion",
+        "response_loss",
+        "vault_restart",
+      ],
+    );
 
     const normal = scenario(evidence, "normal");
     assert.ok(normal.consumerReceipt);

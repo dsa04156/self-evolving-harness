@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "recordType",
+    "deliveryGuarantee",
     "transitionId",
     "protocolId",
     "contractId",
@@ -14,6 +15,7 @@
     "custodyId",
     "descriptorHash",
     "taskHandleCommitment",
+    "authorCommitmentHash",
     "includedTransitionHash",
     "admittedVaultStateHead",
     "unlockCapabilityHash",
@@ -50,6 +52,9 @@
     "recordType": {
       "const": "synthetic_custody_transition"
     },
+    "deliveryGuarantee": {
+      "const": "at_most_once_abort_on_uncertain_delivery"
+    },
     "transitionId": {
       "$ref": "./common.schema.json#/$defs/entityId"
     },
@@ -69,6 +74,9 @@
       "$ref": "./common.schema.json#/$defs/sha256"
     },
     "taskHandleCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "authorCommitmentHash": {
       "$ref": "./common.schema.json#/$defs/sha256"
     },
     "includedTransitionHash": {
@@ -99,6 +107,8 @@
         "reserve_release",
         "begin_materialization",
         "deny_release",
+        "deny_materialization",
+        "begin_cleanup",
         "cleanup"
       ]
     },
@@ -148,7 +158,13 @@
             "vault_crash_recovery",
             "timeout",
             "capability_rejection",
-            "response_loss"
+            "response_loss",
+            "reservation_abandoned",
+            "materialization_prewrite_abandoned",
+            "cryptographic_rejection",
+            "cleanup_interrupted_after_plaintext_delete",
+            "cleanup_interrupted_after_private_delete",
+            "cleanup_acknowledgement_loss"
           ]
         },
         {
@@ -207,6 +223,7 @@
         "sealed",
         "release_reserved",
         "materialization_started",
+        "cleanup_started",
         "cleaned"
       ]
     },

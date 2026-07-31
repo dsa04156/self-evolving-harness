@@ -199,6 +199,64 @@ test(
           );
         },
       },
+      {
+        name: "fresh-replay-request-signature",
+        mutate: (value) => {
+          const normal = arrayAt(
+            value,
+            "scenarios",
+          )[0]!;
+          const fresh = arrayAt(
+            normal,
+            "freshCapabilityReuse",
+          )[0]!;
+          objectAt(
+            fresh,
+            "request",
+          )["senderSequence"] = 999_999;
+        },
+      },
+      {
+        name: "crash-terminal-history",
+        mutate: (value) => {
+          const crash = arrayAt(
+            value,
+            "crashCases",
+          )[0]!;
+          crash["terminalTransitionHash"] =
+            sha256Text(
+              "tampered-crash-terminal-transition",
+            );
+        },
+      },
+      {
+        name: "adversarial-denial-lineage",
+        mutate: (value) => {
+          const attack = arrayAt(
+            value,
+            "adversarialCases",
+          )[0]!;
+          attack["denialTransitionHash"] =
+            sha256Text(
+              "tampered-adversarial-denial",
+            );
+        },
+      },
+      {
+        name: "adversarial-request-attestation",
+        mutate: (value) => {
+          const attack = arrayAt(
+            value,
+            "adversarialCases",
+          ).at(-1)!;
+          const request = objectAt(attack, "request");
+          objectAt(
+            request,
+            "attestation",
+          )["signature"] =
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        },
+      },
     ];
 
     for (const mutation of mutationCases) {

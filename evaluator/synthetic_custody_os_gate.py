@@ -34,6 +34,41 @@ SCENARIOS = (
     "response_loss",
 )
 
+CRASH_BOUNDARIES = (
+    "after_reservation_commit",
+    "after_materialization_start",
+    "after_plaintext_delete",
+    "after_private_delete",
+    "after_cleanup_commit",
+)
+
+ENVELOPE_ATTACKS = (
+    "ciphertext",
+    "authentication_tag",
+    "nonce",
+    "aad_custody_id",
+    "aad_protocol_id",
+    "aad_contract_id",
+    "aad_contract_hash",
+    "aad_task_handle",
+    "aad_author_commitment",
+    "aad_included_transition",
+    "aad_admitted_state",
+    "aad_unlock_capability",
+    "aad_plaintext_commitment",
+    "aad_payload_length",
+    "aad_delivery_guarantee",
+    "envelope_swap",
+)
+
+CAPABILITY_SUBSTITUTIONS = (
+    "custodyId",
+    "admittedVaultStateHead",
+    "authorCommitmentHash",
+    "taskHandleCommitment",
+    "unlockCapabilityHash",
+)
+
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -906,6 +941,146 @@ def stage_receipt(root: Path, stage: str) -> dict[str, Any]:
     )
 
 
+def attempt_fresh_capability_reuse(
+    *,
+    condition: str,
+    ordinal: int,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization: Path,
+    contract_path: Path,
+    custody_id: str,
+    descriptor_path: Path,
+    capability_path: Path,
+    occurred_at: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    before = journal_transitions(root, custody_id)
+    sign_stage = (
+        f"custody_{custody_id.split('.')[1]}_fresh_"
+        f"{condition}_sign"
+    )
+    prepare_custody_stage(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        mode="sign_release",
+        custody_id=custody_id,
+        occurred_at=occurred_at,
+        contract_path=contract_path,
+        extra={
+            "requestId":
+                f"{custody_id}.fresh.{condition}.request",
+            "senderSequence": 10_000 + ordinal,
+            "requestNonce":
+                f"{condition}-fresh-request-nonce-{ordinal:04d}",
+        },
+        inputs={
+            "descriptor.json": descriptor_path,
+            "capability.json": capability_path,
+        },
+    )
+    sign_process = run_custody_worker(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=False,
+    )
+    require_success(sign_process, sign_stage)
+    request_path = (
+        root / "state" / sign_stage / "request.json"
+    )
+    request = read_json(request_path)
+    reserve_stage = (
+        f"custody_{custody_id.split('.')[1]}_fresh_"
+        f"{condition}_reserve"
+    )
+    prepare_custody_stage(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        mode="reserve_release",
+        custody_id=custody_id,
+        occurred_at=occurred_at,
+        contract_path=contract_path,
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    reserve_process = run_custody_worker(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(reserve_process, reserve_stage)
+    result = read_json(
+        root / "state" / reserve_stage / "result.json"
+    )
+    after = journal_transitions(root, custody_id)
+    reservations = [
+        transition
+        for transition in after
+        if transition["action"] == "reserve_release"
+    ]
+    materializations = [
+        transition
+        for transition in after
+        if transition["action"]
+        == "begin_materialization"
+    ]
+    if (
+        request["requestHash"]
+        == read_json(
+            root
+            / "state"
+            / f"custody_{custody_id.split('.')[1]}_sign"
+            / "request.json"
+        )["requestHash"]
+        or result["failure"]["code"] != "REPLAY_DETECTED"
+        or result["newlyCommitted"]
+        or len(after) != len(before)
+        or len(reservations) != 1
+        or len(materializations) > 1
+    ):
+        raise RuntimeError(
+            f"fresh capability replay escaped after {condition}"
+        )
+    return (
+        {
+            "condition": condition,
+            "correctlySignedFreshRequest": True,
+            "request": request,
+            "requestHash": request["requestHash"],
+            "senderSequence": request["senderSequence"],
+            "nonce": request["nonce"],
+            "failureCode": result["failure"]["code"],
+            "newlyCommitted": result["newlyCommitted"],
+            "transitionCountBefore": len(before),
+            "transitionCountAfter": len(after),
+            "reservationCount": len(reservations),
+            "materializationCount":
+                len(materializations),
+            "secondReservationAppended": False,
+            "secondMaterializationBegan": False,
+        },
+        [
+            stage_receipt(root, sign_stage),
+            stage_receipt(root, reserve_stage),
+        ],
+    )
+
+
 def run_scenario(
     *,
     scenario: str,
@@ -1065,6 +1240,7 @@ def run_scenario(
         "receiptProduced": False,
     }
     exact_retry = None
+    fresh_reuse: list[dict[str, Any]] = []
     role_denials = None
 
     if scenario == "capability_rejection":
@@ -1281,6 +1457,29 @@ def run_scenario(
             else "cleanup"
         )
 
+    condition = {
+        "normal": "normal_completion",
+        "response_loss": "response_loss",
+        "vault_crash": "vault_restart",
+    }.get(scenario)
+    if condition is not None:
+        reuse, receipts = attempt_fresh_capability_reuse(
+            condition=condition,
+            ordinal=ordinal,
+            root=root,
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            contract_path=contract_path,
+            custody_id=custody_id,
+            descriptor_path=descriptor_path,
+            capability_path=capability_path,
+            occurred_at=timestamp(scenario_offset + 6),
+        )
+        fresh_reuse.append(reuse)
+        role_receipts.extend(receipts)
+
     cleanup_stage = f"custody_{scenario}_cleanup"
     cleanup_inputs = {
         "descriptor.json": descriptor_path,
@@ -1331,6 +1530,22 @@ def run_scenario(
         )
 
     if scenario == "normal":
+        reuse, receipts = attempt_fresh_capability_reuse(
+            condition="cleanup_completion",
+            ordinal=ordinal + 100,
+            root=root,
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            contract_path=contract_path,
+            custody_id=custody_id,
+            descriptor_path=descriptor_path,
+            capability_path=capability_path,
+            occurred_at=timestamp(scenario_offset + 8),
+        )
+        fresh_reuse.append(reuse)
+        role_receipts.extend(receipts)
         retry_reserve_stage = (
             "custody_normal_exact_retry_reserve"
         )
@@ -1479,11 +1694,1059 @@ def run_scenario(
         "roleReceipts": role_receipts,
         "roleDenials": role_denials,
         "exactRetry": exact_retry,
+        "freshCapabilityReuse": fresh_reuse,
         "residuals": {
             "keyFilePresent": False,
             "ciphertextFilePresent": False,
             "plaintextFilePresent": False,
         },
+    }
+
+
+def run_crash_case(
+    *,
+    boundary: str,
+    ordinal: int,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization_base: Path,
+    setup: dict[str, Any],
+    binding: dict[str, Any],
+) -> dict[str, Any]:
+    contract_path: Path = setup["contractPath"]
+    custody_id = (
+        f"synthetic-custody.crash-{ordinal}.v1"
+    )
+    materialization = (
+        materialization_base / f"crash-{ordinal}"
+    )
+    materialization.mkdir(mode=0o700)
+    os.chown(
+        materialization,
+        base.ROLE_UIDS["vault"],
+        base.ROLE_UIDS["vault"],
+        follow_symlinks=False,
+    )
+    offset = 100 + ordinal * 12
+    receipts: list[dict[str, Any]] = []
+    prefix = f"custody_crash_{ordinal}"
+
+    seal_stage = f"{prefix}_seal"
+    seal_input, _state = prepare_custody_stage(
+        root=root,
+        stage=seal_stage,
+        role="vault",
+        mode="seal_custody",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset),
+        contract_path=contract_path,
+        extra={
+            "capabilityId":
+                f"{custody_id}.capability",
+            "capabilityIssuedAt": timestamp(offset + 1),
+            "capabilityExpiresAt": timestamp(offset + 11),
+            "capabilityNonce":
+                f"crash-{ordinal}-capability-nonce-0001",
+        },
+    )
+    base.write_input(
+        seal_input, "binding.json", binding, "vault"
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=seal_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, seal_stage)
+    receipts.append(stage_receipt(root, seal_stage))
+    descriptor_path = (
+        root / "state" / seal_stage / "descriptor.json"
+    )
+    capability_path = (
+        root / "state" / seal_stage / "capability.json"
+    )
+    descriptor = read_json(descriptor_path)
+
+    sign_stage = f"{prefix}_sign"
+    prepare_custody_stage(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        mode="sign_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 2),
+        contract_path=contract_path,
+        extra={
+            "requestId": f"{custody_id}.request",
+            "senderSequence": 20_000 + ordinal,
+            "requestNonce":
+                f"crash-{ordinal}-request-nonce-0001",
+        },
+        inputs={
+            "descriptor.json": descriptor_path,
+            "capability.json": capability_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=False,
+    )
+    require_success(process, sign_stage)
+    receipts.append(stage_receipt(root, sign_stage))
+    request_path = (
+        root / "state" / sign_stage / "request.json"
+    )
+    request = read_json(request_path)
+
+    reserve_stage = f"{prefix}_reserve"
+    prepare_custody_stage(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        mode="reserve_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 3),
+        contract_path=contract_path,
+        extra={
+            "crashAfterReservationCommit":
+                boundary == "after_reservation_commit"
+        },
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    reserve_process = run_custody_worker(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+        retain=boundary != "after_reservation_commit",
+    )
+    if boundary == "after_reservation_commit":
+        if reserve_process["returnCode"] == 0:
+            raise RuntimeError(
+                "reservation crash boundary did not terminate"
+            )
+    else:
+        require_success(reserve_process, reserve_stage)
+        receipts.append(stage_receipt(root, reserve_stage))
+
+    if boundary == "after_reservation_commit":
+        cleanup_reason = "reservation_abandoned"
+    else:
+        materialize_stage = f"{prefix}_materialize"
+        prepare_custody_stage(
+            root=root,
+            stage=materialize_stage,
+            role="vault",
+            mode="materialize",
+            custody_id=custody_id,
+            occurred_at=timestamp(offset + 4),
+            contract_path=contract_path,
+            extra={
+                "crashAfterMaterializationStart":
+                    boundary
+                    == "after_materialization_start"
+            },
+            inputs={
+                "descriptor.json": descriptor_path,
+                "request.json": request_path,
+            },
+        )
+        materialize_process = run_custody_worker(
+            root=root,
+            stage=materialize_stage,
+            role="vault",
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            vault_private=True,
+            retain=(
+                boundary
+                != "after_materialization_start"
+            ),
+        )
+        if boundary == "after_materialization_start":
+            if (
+                materialize_process["returnCode"] == 0
+                or (
+                    materialization / "payload.bin"
+                ).exists()
+            ):
+                raise RuntimeError(
+                    "materialization-start crash crossed plaintext write"
+                )
+            cleanup_reason = (
+                "materialization_prewrite_abandoned"
+            )
+        else:
+            require_success(
+                materialize_process, materialize_stage
+            )
+            receipts.append(
+                stage_receipt(root, materialize_stage)
+            )
+            if not (
+                materialization / "payload.bin"
+            ).is_file():
+                raise RuntimeError(
+                    "cleanup crash case has no plaintext"
+                )
+            cleanup_reason = {
+                "after_plaintext_delete":
+                    "cleanup_interrupted_after_plaintext_delete",
+                "after_private_delete":
+                    "cleanup_interrupted_after_private_delete",
+                "after_cleanup_commit":
+                    "cleanup_acknowledgement_loss",
+            }[boundary]
+
+    crash_cleanup_process: (
+        dict[str, Any] | None
+    ) = None
+    if boundary in {
+        "after_plaintext_delete",
+        "after_private_delete",
+        "after_cleanup_commit",
+    }:
+        crash_cleanup_stage = f"{prefix}_cleanup_crash"
+        prepare_custody_stage(
+            root=root,
+            stage=crash_cleanup_stage,
+            role="vault",
+            mode="cleanup",
+            custody_id=custody_id,
+            occurred_at=timestamp(offset + 5),
+            contract_path=contract_path,
+            extra={
+                "cleanupReason": cleanup_reason,
+                "crashAfterPlaintextDelete":
+                    boundary
+                    == "after_plaintext_delete",
+                "crashAfterPrivateDelete":
+                    boundary == "after_private_delete",
+                "crashAfterCleanupCommit":
+                    boundary == "after_cleanup_commit",
+            },
+            inputs={
+                "descriptor.json": descriptor_path,
+                "request.json": request_path,
+            },
+        )
+        crash_cleanup_process = run_custody_worker(
+            root=root,
+            stage=crash_cleanup_stage,
+            role="vault",
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            vault_private=True,
+            scan_mounts=True,
+            retain=False,
+        )
+        if crash_cleanup_process["returnCode"] == 0:
+            raise RuntimeError(
+                f"{boundary} cleanup did not terminate"
+            )
+
+    recovery_stage = f"{prefix}_recover"
+    prepare_custody_stage(
+        root=root,
+        stage=recovery_stage,
+        role="vault",
+        mode="recover_cleanup",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 6),
+        contract_path=contract_path,
+        extra={"cleanupReason": cleanup_reason},
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    recovery_process = run_custody_worker(
+        root=root,
+        stage=recovery_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+        scan_mounts=True,
+    )
+    require_success(recovery_process, recovery_stage)
+    receipts.append(stage_receipt(root, recovery_stage))
+    result = read_json(
+        root / "state" / recovery_stage / "result.json"
+    )
+    scan = read_json(
+        root
+        / "state"
+        / recovery_stage
+        / "leakage-scan.json"
+    )
+    transitions = journal_transitions(root, custody_id)
+    begin_cleanup_count = sum(
+        transition["action"] == "begin_cleanup"
+        for transition in transitions
+    )
+    cleanup_count = sum(
+        transition["action"] == "cleanup"
+        for transition in transitions
+    )
+    materialization_count = sum(
+        transition["action"]
+        == "begin_materialization"
+        for transition in transitions
+    )
+    expected_materializations = (
+        0
+        if boundary == "after_reservation_commit"
+        else 1
+    )
+    residuals = {
+        "keyFilePresent": (
+            root / "custody" / custody_id / "key.bin"
+        ).exists(),
+        "ciphertextFilePresent": (
+            root
+            / "custody"
+            / custody_id
+            / "envelope.json"
+        ).exists(),
+        "plaintextFilePresent": (
+            materialization / "payload.bin"
+        ).exists(),
+    }
+    leakage_counts = [
+        scan[name]
+        for name in (
+            "repositoryPayloadMatches",
+            "repositoryKeyMatches",
+            "retainedStatePayloadMatches",
+            "retainedStateKeyMatches",
+            "logPayloadMatches",
+            "logKeyMatches",
+            "processArgumentPayloadMatches",
+            "processArgumentKeyMatches",
+        )
+    ]
+    if (
+        result["state"] != "cleaned"
+        or begin_cleanup_count != 1
+        or cleanup_count != 1
+        or materialization_count
+        != expected_materializations
+        or any(residuals.values())
+        or any(leakage_counts)
+    ):
+        raise RuntimeError(
+            f"{boundary} recovery is not terminal and clean"
+        )
+    return {
+        "boundary": boundary,
+        "deliveryGuarantee":
+            "at_most_once_abort_on_uncertain_delivery",
+        "cleanupReason": cleanup_reason,
+        "crashObserved": True,
+        "crashReturnCode": (
+            reserve_process["returnCode"]
+            if boundary == "after_reservation_commit"
+            else (
+                materialize_process["returnCode"]
+                if boundary
+                == "after_materialization_start"
+                else crash_cleanup_process["returnCode"]
+            )
+        ),
+        "evaluatorPlaintextMounted": False,
+        "evaluatorReceiptProduced": False,
+        "descriptor": descriptor,
+        "transitions": transitions,
+        "terminalTransitionHash":
+            result["transition"]["recordHash"],
+        "beginCleanupCount": begin_cleanup_count,
+        "cleanupCount": cleanup_count,
+        "materializationCount": materialization_count,
+        "duplicateMaterializationCount": 0,
+        "leakageScan": scan,
+        "roleReceipts": receipts,
+        "residuals": residuals,
+    }
+
+
+def prepare_attack_object(
+    *,
+    prefix: str,
+    custody_id: str,
+    offset: int,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization: Path,
+    contract_path: Path,
+    binding: dict[str, Any],
+) -> tuple[Path, Path, dict[str, Any], dict[str, Any]]:
+    stage = f"{prefix}_seal"
+    input_directory, _state = prepare_custody_stage(
+        root=root,
+        stage=stage,
+        role="vault",
+        mode="seal_custody",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset),
+        contract_path=contract_path,
+        extra={
+            "capabilityId":
+                f"{custody_id}.capability",
+            "capabilityIssuedAt": timestamp(offset + 1),
+            "capabilityExpiresAt": timestamp(offset + 9),
+            "capabilityNonce":
+                f"{prefix}-capability-nonce-0001",
+        },
+    )
+    base.write_input(
+        input_directory,
+        "binding.json",
+        binding,
+        "vault",
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, stage)
+    descriptor_path = (
+        root / "state" / stage / "descriptor.json"
+    )
+    capability_path = (
+        root / "state" / stage / "capability.json"
+    )
+    return (
+        descriptor_path,
+        capability_path,
+        read_json(descriptor_path),
+        stage_receipt(root, stage),
+    )
+
+
+def finish_adversarial_cleanup(
+    *,
+    prefix: str,
+    custody_id: str,
+    offset: int,
+    reason: str,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization: Path,
+    contract_path: Path,
+    descriptor_path: Path,
+    request_path: Path,
+) -> tuple[
+    dict[str, Any], dict[str, Any], dict[str, Any]
+]:
+    stage = f"{prefix}_cleanup"
+    prepare_custody_stage(
+        root=root,
+        stage=stage,
+        role="vault",
+        mode="recover_cleanup",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset),
+        contract_path=contract_path,
+        extra={"cleanupReason": reason},
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+        scan_mounts=True,
+    )
+    require_success(process, stage)
+    return (
+        read_json(root / "state" / stage / "result.json"),
+        read_json(
+            root
+            / "state"
+            / stage
+            / "leakage-scan.json"
+        ),
+        stage_receipt(root, stage),
+    )
+
+
+def assert_adversarial_terminal(
+    *,
+    attack_id: str,
+    root: Path,
+    custody_id: str,
+    materialization: Path,
+    scan: dict[str, Any],
+    expected_materializations: int,
+    expected_denial_action: str,
+) -> tuple[list[dict[str, Any]], dict[str, bool]]:
+    transitions = journal_transitions(root, custody_id)
+    denial_count = sum(
+        transition["action"] == expected_denial_action
+        for transition in transitions
+    )
+    cleanup_count = sum(
+        transition["action"] == "cleanup"
+        for transition in transitions
+    )
+    begin_cleanup_count = sum(
+        transition["action"] == "begin_cleanup"
+        for transition in transitions
+    )
+    materialization_count = sum(
+        transition["action"]
+        == "begin_materialization"
+        for transition in transitions
+    )
+    residuals = {
+        "keyFilePresent": (
+            root / "custody" / custody_id / "key.bin"
+        ).exists(),
+        "ciphertextFilePresent": (
+            root
+            / "custody"
+            / custody_id
+            / "envelope.json"
+        ).exists(),
+        "plaintextFilePresent": (
+            materialization / "payload.bin"
+        ).exists(),
+    }
+    leakage_counts = [
+        scan[name]
+        for name in (
+            "repositoryPayloadMatches",
+            "repositoryKeyMatches",
+            "retainedStatePayloadMatches",
+            "retainedStateKeyMatches",
+            "logPayloadMatches",
+            "logKeyMatches",
+            "processArgumentPayloadMatches",
+            "processArgumentKeyMatches",
+        )
+    ]
+    if (
+        denial_count != 1
+        or cleanup_count != 1
+        or begin_cleanup_count != 1
+        or materialization_count
+        != expected_materializations
+        or any(residuals.values())
+        or any(leakage_counts)
+    ):
+        raise RuntimeError(
+            f"{attack_id} did not deny and clean exactly once"
+        )
+    return transitions, residuals
+
+
+def run_envelope_attack(
+    *,
+    attack: str,
+    ordinal: int,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization_base: Path,
+    setup: dict[str, Any],
+    binding: dict[str, Any],
+) -> dict[str, Any]:
+    custody_id = (
+        f"synthetic-custody.attack-envelope-{ordinal}.v1"
+    )
+    prefix = f"custody_attack_envelope_{ordinal}"
+    offset = 180 + ordinal * 10
+    materialization = (
+        materialization_base / f"attack-envelope-{ordinal}"
+    )
+    materialization.mkdir(mode=0o700)
+    os.chown(
+        materialization,
+        base.ROLE_UIDS["vault"],
+        base.ROLE_UIDS["vault"],
+        follow_symlinks=False,
+    )
+    contract_path: Path = setup["contractPath"]
+    (
+        descriptor_path,
+        capability_path,
+        descriptor,
+        seal_receipt,
+    ) = prepare_attack_object(
+        prefix=prefix,
+        custody_id=custody_id,
+        offset=offset,
+        root=root,
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        contract_path=contract_path,
+        binding=binding,
+    )
+    receipts = [seal_receipt]
+
+    sign_stage = f"{prefix}_sign"
+    prepare_custody_stage(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        mode="sign_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 2),
+        contract_path=contract_path,
+        extra={
+            "requestId": f"{custody_id}.request",
+            "senderSequence": 30_000 + ordinal,
+            "requestNonce":
+                f"envelope-{ordinal}-request-nonce-0001",
+        },
+        inputs={
+            "descriptor.json": descriptor_path,
+            "capability.json": capability_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=False,
+    )
+    require_success(process, sign_stage)
+    receipts.append(stage_receipt(root, sign_stage))
+    request_path = (
+        root / "state" / sign_stage / "request.json"
+    )
+    request = read_json(request_path)
+
+    reserve_stage = f"{prefix}_reserve"
+    prepare_custody_stage(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        mode="reserve_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 3),
+        contract_path=contract_path,
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, reserve_stage)
+    receipts.append(stage_receipt(root, reserve_stage))
+
+    tamper_stage = f"{prefix}_tamper"
+    prepare_custody_stage(
+        root=root,
+        stage=tamper_stage,
+        role="vault",
+        mode="tamper_private_envelope",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 4),
+        contract_path=contract_path,
+        extra={"tamperKind": attack},
+        inputs={"descriptor.json": descriptor_path},
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=tamper_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, tamper_stage)
+    receipts.append(stage_receipt(root, tamper_stage))
+
+    materialize_stage = f"{prefix}_materialize"
+    prepare_custody_stage(
+        root=root,
+        stage=materialize_stage,
+        role="vault",
+        mode="materialize",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 5),
+        contract_path=contract_path,
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=materialize_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, materialize_stage)
+    result = read_json(
+        root / "state" / materialize_stage / "result.json"
+    )
+    receipts.append(stage_receipt(root, materialize_stage))
+    if (
+        result["ok"]
+        or result["failure"]["code"]
+        not in {
+            "AUTHENTICATION_FAILED",
+            "HASH_MISMATCH",
+            "SCHEMA_INVALID",
+        }
+        or result["materializationCreated"]
+        or (materialization / "payload.bin").exists()
+    ):
+        raise RuntimeError(
+            f"{attack} envelope attack produced plaintext"
+        )
+
+    cleanup_result, scan, cleanup_receipt = (
+        finish_adversarial_cleanup(
+            prefix=prefix,
+            custody_id=custody_id,
+            offset=offset + 6,
+            reason="cryptographic_rejection",
+            root=root,
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            contract_path=contract_path,
+            descriptor_path=descriptor_path,
+            request_path=request_path,
+        )
+    )
+    receipts.append(cleanup_receipt)
+    if cleanup_result["state"] != "cleaned":
+        raise RuntimeError(
+            f"{attack} cleanup is not terminal"
+        )
+    transitions, residuals = (
+        assert_adversarial_terminal(
+            attack_id=attack,
+            root=root,
+            custody_id=custody_id,
+            materialization=materialization,
+            scan=scan,
+            expected_materializations=1,
+            expected_denial_action=
+                "deny_materialization",
+        )
+    )
+    denial = next(
+        transition
+        for transition in transitions
+        if transition["action"]
+        == "deny_materialization"
+    )
+    return {
+        "attackId": f"envelope.{attack}",
+        "attackClass": (
+            "descriptor_envelope_swap"
+            if attack == "envelope_swap"
+            else (
+                "aad_identity_substitution"
+                if attack.startswith("aad_")
+                else "cipher_envelope_tamper"
+            )
+        ),
+        "targetField": attack,
+        "correctlySignedRequest": True,
+        "request": request,
+        "crossScenarioSwap":
+            attack == "envelope_swap",
+        "evaluatorPlaintextMounted": False,
+        "evaluatorReceiptProduced": False,
+        "denialCode": denial["reasonCode"],
+        "denialTransitionHash": denial["recordHash"],
+        "cleanupReason": "cryptographic_rejection",
+        "cleanupTransitionHash":
+            cleanup_result["transition"]["recordHash"],
+        "descriptor": descriptor,
+        "transitions": transitions,
+        "leakageScan": scan,
+        "roleReceipts": receipts,
+        "residuals": residuals,
+    }
+
+
+def run_capability_substitution_attack(
+    *,
+    field: str,
+    ordinal: int,
+    root: Path,
+    repository: Path,
+    python_root: Path,
+    node_executable: Path,
+    materialization_base: Path,
+    setup: dict[str, Any],
+    binding: dict[str, Any],
+) -> dict[str, Any]:
+    custody_id = (
+        f"synthetic-custody.attack-capability-{ordinal}.v1"
+    )
+    prefix = f"custody_attack_capability_{ordinal}"
+    offset = 350 + ordinal * 10
+    materialization = (
+        materialization_base
+        / f"attack-capability-{ordinal}"
+    )
+    materialization.mkdir(mode=0o700)
+    os.chown(
+        materialization,
+        base.ROLE_UIDS["vault"],
+        base.ROLE_UIDS["vault"],
+        follow_symlinks=False,
+    )
+    contract_path: Path = setup["contractPath"]
+    (
+        descriptor_path,
+        capability_path,
+        descriptor,
+        seal_receipt,
+    ) = prepare_attack_object(
+        prefix=prefix,
+        custody_id=custody_id,
+        offset=offset,
+        root=root,
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        contract_path=contract_path,
+        binding=binding,
+    )
+    receipts = [seal_receipt]
+
+    forge_stage = f"{prefix}_forge"
+    prepare_custody_stage(
+        root=root,
+        stage=forge_stage,
+        role="vault",
+        mode="forge_substituted_capability",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 2),
+        contract_path=contract_path,
+        extra={"substitutionField": field},
+        inputs={
+            "descriptor.json": descriptor_path,
+            "capability.json": capability_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=forge_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, forge_stage)
+    receipts.append(stage_receipt(root, forge_stage))
+    substituted_capability_path = (
+        root / "state" / forge_stage / "capability.json"
+    )
+
+    sign_stage = f"{prefix}_sign"
+    prepare_custody_stage(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        mode="sign_substituted_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 3),
+        contract_path=contract_path,
+        extra={
+            "requestId":
+                f"{custody_id}.substituted.request",
+            "senderSequence": 40_000 + ordinal,
+            "requestNonce":
+                f"substitution-{ordinal}-request-nonce-0001",
+        },
+        inputs={
+            "descriptor.json": descriptor_path,
+            "capability.json":
+                substituted_capability_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=sign_stage,
+        role="evaluator",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=False,
+    )
+    require_success(process, sign_stage)
+    receipts.append(stage_receipt(root, sign_stage))
+    request_path = (
+        root / "state" / sign_stage / "request.json"
+    )
+    request = read_json(request_path)
+
+    reserve_stage = f"{prefix}_reserve"
+    prepare_custody_stage(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        mode="reserve_release",
+        custody_id=custody_id,
+        occurred_at=timestamp(offset + 4),
+        contract_path=contract_path,
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    process = run_custody_worker(
+        root=root,
+        stage=reserve_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(process, reserve_stage)
+    result = read_json(
+        root / "state" / reserve_stage / "result.json"
+    )
+    receipts.append(stage_receipt(root, reserve_stage))
+    if (
+        result["ok"]
+        or result["failure"]["code"]
+        != "AUTHORIZATION_DENIED"
+        or result["materializationCreated"]
+    ):
+        raise RuntimeError(
+            f"{field} substituted capability was accepted"
+        )
+
+    cleanup_result, scan, cleanup_receipt = (
+        finish_adversarial_cleanup(
+            prefix=prefix,
+            custody_id=custody_id,
+            offset=offset + 5,
+            reason="capability_rejection",
+            root=root,
+            repository=repository,
+            python_root=python_root,
+            node_executable=node_executable,
+            materialization=materialization,
+            contract_path=contract_path,
+            descriptor_path=descriptor_path,
+            request_path=request_path,
+        )
+    )
+    receipts.append(cleanup_receipt)
+    transitions, residuals = (
+        assert_adversarial_terminal(
+            attack_id=field,
+            root=root,
+            custody_id=custody_id,
+            materialization=materialization,
+            scan=scan,
+            expected_materializations=0,
+            expected_denial_action="deny_release",
+        )
+    )
+    denial = next(
+        transition
+        for transition in transitions
+        if transition["action"] == "deny_release"
+    )
+    return {
+        "attackId": f"capability.{field}",
+        "attackClass": (
+            "capability_object_substitution"
+            if field == "custodyId"
+            else "capability_identity_substitution"
+        ),
+        "targetField": field,
+        "correctlySignedRequest": True,
+        "request": request,
+        "crossScenarioSwap": field == "custodyId",
+        "evaluatorPlaintextMounted": False,
+        "evaluatorReceiptProduced": False,
+        "denialCode": denial["reasonCode"],
+        "denialTransitionHash": denial["recordHash"],
+        "cleanupReason": "capability_rejection",
+        "cleanupTransitionHash":
+            cleanup_result["transition"]["recordHash"],
+        "descriptor": descriptor,
+        "transitions": transitions,
+        "leakageScan": scan,
+        "roleReceipts": receipts,
+        "residuals": residuals,
     }
 
 
@@ -1619,6 +2882,53 @@ def main() -> int:
             )
             for ordinal, scenario in enumerate(SCENARIOS)
         ]
+        crash_cases = [
+            run_crash_case(
+                boundary=boundary,
+                ordinal=ordinal,
+                root=root,
+                repository=repository,
+                python_root=python_root,
+                node_executable=node_executable,
+                materialization_base=materialization_base,
+                setup=setup,
+                binding=binding,
+            )
+            for ordinal, boundary in enumerate(
+                CRASH_BOUNDARIES
+            )
+        ]
+        adversarial_cases = [
+            run_envelope_attack(
+                attack=attack,
+                ordinal=ordinal,
+                root=root,
+                repository=repository,
+                python_root=python_root,
+                node_executable=node_executable,
+                materialization_base=materialization_base,
+                setup=setup,
+                binding=binding,
+            )
+            for ordinal, attack in enumerate(
+                ENVELOPE_ATTACKS
+            )
+        ] + [
+            run_capability_substitution_attack(
+                field=field,
+                ordinal=ordinal,
+                root=root,
+                repository=repository,
+                python_root=python_root,
+                node_executable=node_executable,
+                materialization_base=materialization_base,
+                setup=setup,
+                binding=binding,
+            )
+            for ordinal, field in enumerate(
+                CAPABILITY_SUBSTITUTIONS
+            )
+        ]
         normal = scenarios[0]
         normal_descriptor_path = (
             root
@@ -1680,8 +2990,18 @@ def main() -> int:
         )
 
         descriptor_hashes = sorted(
-            item["descriptor"]["recordHash"]
-            for item in scenarios
+            {
+                item["descriptor"]["recordHash"]
+                for item in scenarios
+            }
+            | {
+                item["descriptor"]["recordHash"]
+                for item in crash_cases
+            }
+            | {
+                item["descriptor"]["recordHash"]
+                for item in adversarial_cases
+            }
         )
         transition_hashes = sorted(
             {
@@ -1689,15 +3009,43 @@ def main() -> int:
                 for item in scenarios
                 for transition in item["transitions"]
             }
+            | {
+                transition["recordHash"]
+                for item in crash_cases
+                for transition in item["transitions"]
+            }
+            | {
+                transition["recordHash"]
+                for item in adversarial_cases
+                for transition in item["transitions"]
+            }
         )
         role_receipts = [
             receipt
             for item in scenarios
             for receipt in item["roleReceipts"]
+        ] + [
+            receipt
+            for item in crash_cases
+            for receipt in item["roleReceipts"]
+        ] + [
+            receipt
+            for item in adversarial_cases
+            for receipt in item["roleReceipts"]
         ] + [scorer_receipt, promoter_receipt]
         leakage_scan_hashes = sorted(
-            item["leakageScan"]["recordHash"]
-            for item in scenarios
+            {
+                item["leakageScan"]["recordHash"]
+                for item in scenarios
+            }
+            | {
+                item["leakageScan"]["recordHash"]
+                for item in crash_cases
+            }
+            | {
+                item["leakageScan"]["recordHash"]
+                for item in adversarial_cases
+            }
         )
         audit_stage = "custody_audit_finalize"
         audit_input, _state = prepare_custody_stage(
@@ -1795,6 +3143,8 @@ def main() -> int:
                 "privateKeyPresent": False,
             },
             "scenarios": scenarios,
+            "crashCases": crash_cases,
+            "adversarialCases": adversarial_cases,
             "scorerProjection": scorer_projection,
             "promoterProjection": promoter_projection,
             "finalAudit": final_audit,
