@@ -163,3 +163,31 @@ any paid-provider request.
 - Real-provider work, Gate 3 completion, B0–B6, research scheduling/pilot/thresholds, confirmatory
   attribution, gate/final/temporal/withheld-public access, research selection, promotion, canary,
   deployment, empirical claims, push, release, and publication remain prohibited.
+
+## Durable Round 3RRR development-attribution decision
+
+- External decision: `APPROVE`; blocking findings: none for the narrow Round 3RR development scope.
+- The prediction-before-label contract is accepted for visible-fixture development diagnostics:
+  one committed label-blind input class, a content-addressed and signed 24-trace/28-occurrence
+  prediction set, explicit zero/nonzero terminal-status accounting, and scorer oracle access only
+  after the durable seal.
+- The diagnostic counts (top-1 10, top-3 21, top-8 28) are adaptive public-fixture feedback. They are
+  not benchmark accuracy, research attribution performance, an H1–H4 result, or a gate signal.
+- One synthetic `WorkflowPolicy` mutation is accepted as bounded plumbing: one declarative operation,
+  633 expanded closure bytes, zero immutable/capability diffs, and 7/7 admission checks.
+- The separate Python evaluator result is accepted only as transport/result plumbing because it
+  consumed hand-authored synthetic pass/fail pairs. It does not show that the candidate repaired a
+  task or improved a harness.
+- The exact candidate is mechanically non-promotable before the mutation service returns. The signed
+  quarantine covers all 18 generated files and denies ten research, claim, promotion, and deployment
+  use classes.
+- The development packet is closed without completing Gate 3 or authorizing research.
+- Authorized next: move prediction/scoring/mutation/evaluation/audit across distinct subordinate OS
+  identities with role-owned keys and mounts; enforce the prediction seal at the socket/capability
+  boundary; replace precomputed evaluator outcomes with actual standalone-runtime execution on
+  synthetic non-benchmark tasks; reject alias, copied-manifest, indirect-reference, and new-record
+  laundering; preserve every adaptive development run and extend the append-only quarantine.
+- Real-provider use, B0–B6, research scheduling/pilot/thresholds, confirmatory attribution,
+  gate/final/temporal/withheld-public access, research selection, promotion/canary/deployment,
+  performance/attribution/generalization/security/self-improvement claims, push, release, and
+  publication remain prohibited.
