@@ -1,16 +1,27 @@
 import assert from "node:assert/strict";
+import {
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { describe, test } from "node:test";
 import path from "node:path";
 
 import {
   SchemaRegistry,
+  canonicalize,
   createTrustPlaneConformanceManifest,
+  parseStrictJson,
+  verifyTrustPlaneAggregate,
   verifyTrustPlaneConformanceManifest,
   verifyTrustPlaneOutstandingObligations,
+  type JsonValue,
   type TrustPlaneArtifactReference,
   type TrustPlaneConformanceManifest,
   type TrustPlaneEvidenceDomain,
   type TrustPlaneOutstandingObligations,
+  type UnsignedTrustPlaneConformanceManifest,
 } from "../src/index.js";
 import { deterministicPrincipal } from "./helpers/deterministic-principal.js";
 
@@ -245,6 +256,40 @@ async function fixture(): Promise<{
   return { schemas, record };
 }
 
+async function resign(
+  input: TrustPlaneConformanceManifest,
+  schemas: SchemaRegistry,
+  mutate: (
+    value: UnsignedTrustPlaneConformanceManifest,
+  ) => UnsignedTrustPlaneConformanceManifest,
+): Promise<TrustPlaneConformanceManifest> {
+  const signer = deterministicPrincipal({
+    principalId: "protocol.author.aggregate-tamper.test",
+    role: "protocol_author",
+    implementationDigest: digest("7"),
+    instanceId:
+      "protocol.author.aggregate-tamper.test.instance",
+    seedByte: 203,
+  });
+  return createTrustPlaneConformanceManifest({
+    signer,
+    schemas,
+    value: mutate({
+      manifestId: input.manifestId,
+      scope: input.scope,
+      sourceSnapshot: input.sourceSnapshot,
+      evidenceDomains: input.evidenceDomains,
+      governanceChains: input.governanceChains,
+      authorityState: input.authorityState,
+      eligibilityState: input.eligibilityState,
+      statusDistinction: input.statusDistinction,
+      outstandingObligations: input.outstandingObligations,
+      identityNamespacePolicy: input.identityNamespacePolicy,
+      recordedAt: input.recordedAt,
+    }),
+  });
+}
+
 describe("trust-plane conformance contracts", () => {
   test("the obligations matrix is exact and unresolved", async () => {
     const schemas = await SchemaRegistry.load(
@@ -354,4 +399,173 @@ describe("trust-plane conformance contracts", () => {
       /Contradictory identity binding/u,
     );
   });
+});
+
+test("independent aggregate verification rejects validly re-signed nested drift", async (t) => {
+  const manifestPath =
+    "governance/trust-plane/conformance-manifest.json";
+  const schemas = await SchemaRegistry.load(
+    path.resolve("schemas"),
+  );
+  const manifest = parseStrictJson(
+    await readFile(manifestPath, "utf8"),
+  ) as unknown as TrustPlaneConformanceManifest;
+  const verified = await verifyTrustPlaneAggregate({
+    repositoryRoot: process.cwd(),
+    manifestPath,
+  });
+  assert.equal(verified.verified, true);
+  assert.equal(verified.authoritiesGranted, 0);
+  assert.equal(verified.domainCount, 7);
+
+  const temporaryRoot = await mkdtemp(
+    path.resolve(".trust-plane-aggregate-test-"),
+  );
+  t.after(async () => {
+    await rm(temporaryRoot, {
+      recursive: true,
+      force: true,
+    });
+  });
+  const writeTamper = async (
+    name: string,
+    value: TrustPlaneConformanceManifest,
+  ): Promise<string> => {
+    const target = path.join(temporaryRoot, `${name}.json`);
+    await writeFile(
+      target,
+      `${canonicalize(value as unknown as JsonValue)}\n`,
+      "utf8",
+    );
+    return path.relative(process.cwd(), target);
+  };
+
+  const hashDrift = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      evidenceDomains: value.evidenceDomains.map(
+        (domain, index) =>
+          index === 0
+            ? {
+                ...domain,
+                artifacts: domain.artifacts.map(
+                  (artifactValue, artifactIndex) =>
+                    artifactIndex === 0
+                      ? {
+                          ...artifactValue,
+                          sha256: digest("0"),
+                        }
+                      : artifactValue,
+                ),
+              }
+            : domain,
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "artifact-hash",
+        hashDrift,
+      ),
+    }),
+    /content hash mismatch/u,
+  );
+
+  const rulingDrift = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      evidenceDomains: value.evidenceDomains.map(
+        (domain, index) =>
+          index === 0
+            ? {
+                ...domain,
+                ruling: {
+                  ...domain.ruling,
+                  decision: "REVISE",
+                },
+              }
+            : domain,
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "ruling-decision",
+        rulingDrift,
+      ),
+    }),
+    /ruling decision mismatch/u,
+  );
+
+  const chainTypeDrift = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      governanceChains: value.governanceChains.map(
+        (chain, index) =>
+          index === 0
+            ? {
+                ...chain,
+                records: chain.records.map(
+                  (record, recordIndex) =>
+                    recordIndex === 1
+                      ? {
+                          ...record,
+                          recordType:
+                            "publication_remediation_closure",
+                        }
+                      : record,
+                ),
+              }
+            : chain,
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "governance-type",
+        chainTypeDrift,
+      ),
+    }),
+    /record type mismatch/u,
+  );
+
+  const packetManifest =
+    manifest.evidenceDomains[0]!.artifacts.find(
+      (entry) =>
+        entry.artifactId === "gate2r.packet_manifest",
+    );
+  assert.ok(packetManifest);
+  const obligationDrift = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      outstandingObligations: {
+        ...packetManifest,
+        artifactId: "trust_plane.outstanding_obligations",
+      },
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "obligation-source",
+        obligationDrift,
+      ),
+    }),
+    /SCHEMA_INVALID|schema|must have required property|must be equal/u,
+  );
 });
