@@ -426,9 +426,15 @@ test(
       unauthorizedSocketConnectDenied: boolean;
       candidateFilesystemSnapshot: {
         filesystemSnapshotHash: string;
+        baseCommit: string;
         headCommit: string;
         treeHash: string;
         entryCount: number;
+      };
+      candidateBundle: {
+        bundleId: string;
+        candidateHarnessVersionId: string;
+        sourceBaseCommit: string;
       };
       auditPrivateOwner: number;
       evaluatorPrivateOwner: number;
@@ -500,9 +506,15 @@ test(
     assert.equal(evidence.unauthorizedSocketConnectDenied, true);
     assert.deepEqual(evidence.candidateFilesystemSnapshot, {
       filesystemSnapshotHash: snapshotDescriptor.filesystemSnapshotHash,
+      baseCommit: snapshotDescriptor.baseCommit,
       headCommit: snapshotDescriptor.headCommit,
       treeHash: snapshotDescriptor.treeHash,
       entryCount: snapshotDescriptor.entries.length,
+    });
+    assert.deepEqual(evidence.candidateBundle, {
+      bundleId: candidateBundle.bundleId,
+      candidateHarnessVersionId: candidateHarness.harnessVersionId,
+      sourceBaseCommit: snapshotDescriptor.baseCommit,
     });
     const evidenceOutput = process.env["SEH_OS_EVIDENCE_OUTPUT"];
     if (evidenceOutput !== undefined) {

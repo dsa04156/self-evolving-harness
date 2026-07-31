@@ -795,6 +795,11 @@ def main() -> int:
             encoding="utf-8",
         ) as snapshot_file:
             snapshot_descriptor = json.load(snapshot_file)
+        with open(
+            root / "public" / "evaluator.json",
+            encoding="utf-8",
+        ) as evaluator_config_file:
+            evaluator_config = json.load(evaluator_config_file)
         evidence = {
             "schemaVersion": 1,
             "isolationClass": "os_enforced_subordinate_uids",
@@ -813,9 +818,17 @@ def main() -> int:
                 "filesystemSnapshotHash": snapshot_descriptor[
                     "filesystemSnapshotHash"
                 ],
+                "baseCommit": snapshot_descriptor["baseCommit"],
                 "headCommit": snapshot_descriptor["headCommit"],
                 "treeHash": snapshot_descriptor["treeHash"],
                 "entryCount": len(snapshot_descriptor["entries"]),
+            },
+            "candidateBundle": {
+                "bundleId": evaluator_config["candidateBundleId"],
+                "candidateHarnessVersionId": evaluator_config[
+                    "candidateHarnessVersionId"
+                ],
+                "sourceBaseCommit": snapshot_descriptor["baseCommit"],
             },
             "auditPrivateOwner": os.stat(
                 root / "vault" / "audit" / "private.pem"
