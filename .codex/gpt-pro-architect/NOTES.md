@@ -425,3 +425,27 @@ any paid-provider request.
   research split/scheduler/B0–B6/pilot/attribution experiment, candidate selection/qualification/
   promotion/canary/deployment, production-pointer modification, empirical claim, release, or
   publication is authorized.
+
+## Durable Round 3RRRRRRRRRRRRR integrated-conformance decision
+
+- External decision: `REVISE`.
+- Accepted: the signed reference-only aggregation design, two-commit source identity, preservation
+  of both historical `REVISE` rulings, both append-only governance histories, historical
+  eligibility restrictions, implemented/tested/deferred/unclaimed distinctions, seven unresolved
+  obligations, zero granted authority, validation evidence, ordinary-versus-canonical JSON parsing,
+  and bounded claims.
+- Blocking defect: the independent-authorship domain can present the pre-projection `af70fd...`
+  implementation as current blinded-review evidence even though the later `864d211...`
+  `BlindedReviewerContractProjection` corrected its benchmark-author identity exposure.
+- The correction must add one canonical cross-domain reviewer-blinding control identity and an
+  ordered introduced/discovered/superseded/correcting/approved/current implementation lineage.
+  `af70fd...` remains historical and valid only for unaffected accepted contract portions;
+  `864d211...` and its later `APPROVE` ruling support the correction; the current source artifact at
+  `181fe51...` must be explicitly bound.
+- The aggregate verifier must reject the six named lineage/status/current-binding attacks,
+  including validly re-signed outer manifests. Existing evidence bodies, rulings, governance
+  records, and the seven unresolved obligations remain unchanged.
+- Authorized next scope is only this local conformance-lineage correction, full deterministic
+  validation, and a narrow correction packet. No push, credentials/provider, benchmark/research
+  material or execution, selection/promotion/deployment, publication, or empirical/security/
+  performance/generalization/evolution/self-improvement claim is authorized.
