@@ -60,6 +60,10 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Replay, truncation, oversized payload, confused response, protocol downgrade, or peer crash | length framing, limits, hash, sequence/nonce/expiry, correlation, closed errors | replay/partial/extra/oversized/cross-correlation/cross-protocol/crash tests | denial of service |
 | Dirty or substituted worktree bytes reach evaluator | require an exact clean commit; reject ignored/untracked/link/special objects; materialize committed blobs; evaluator independently verifies descriptor, blob ID, bytes, mode, exact path set, and request/result snapshot pin | dirty/ignored/symlink/hardlink/post-freeze/mode/snapshot-mismatch cases rejected | compromised bootstrapping host or Git implementation |
 | Proposer reads gate/test/verifier or infers it adaptively | absent mounts, opaque handles, deny egress, fixed one-shot release fields/count | path/canary/error/side-channel probes; feedback cap exhaustion | aggregate leakage; public-model contamination |
+| Development scorer reads labels before predictions are irrevocably committed | scorer socket is absent until an audit-verified seal is created with exclusive create plus file and directory sync; exact corpus/prototype/prediction/commitment/seal bindings | early socket probe plus unsealed, commitment-substitution, prediction-substitution, corpus-substitution, and seal-substitution requests rejected | malicious host root/storage can violate durability or mount claims |
+| Development proposer adapts after diagnostic scoring | proposer mounts neither oracle nor score; score channel terminates at scorer/audit; recursive taint policy rejects scorer/oracle-derived proposal inputs | post-score scorer/oracle import, wrapper, alias, copied-content, and indirect-reference inputs rejected | a human can learn public-fixture diagnostics and author a separately identified adaptive prototype, which remains development-only |
+| Quarantined development candidate is laundered into research or promotion | exact hash and semantic-content taint, recursive graph traversal, alternate-lifecycle denial, immutable non-promotable registry, distinct operations/runtime/evaluator principals | same candidate under another lifecycle, copied manifest, wrapper record, alias/indirect research manifest, promotion and claim inputs rejected | semantic reimplementation that evades content/graph identity needs human review and future stronger policy |
+| Synthetic evaluation fabricates success with precomputed outcome pairs | parent and candidate execute through the standalone runtime under a runtime UID; evaluator UID derives results from signed observable execution/verifier artifacts | outcome injection, runtime/evaluator signer substitution, execution/evaluation hash mismatch, and missing receipt rejected | deterministic synthetic tasks establish plumbing only, not external validity |
 | Final test affects qualification/deployment/tuning/rollback | metric-to-split authorization and promoter rejection | final-role result supplied to promoter is rejected | human may launch a new exploratory protocol after seeing results |
 | Gate aggregate influences a later confirmatory protocol | one-shot gate capability; promoter/audit-only evidence until final closure; fresh gate after human release | pre-final recipient and second-unlock probes rejected | gate is consumed even if the run is disappointing |
 | Abnormal session is killed or its cause changes during cleanup | `terminating → terminated`, immutable transaction descriptor, direct initiating-record reference, descendant/capability revocation, process reap, sealed accounting/evidence | every reason, descriptor-drift/conflicting-final, crash-during-termination, orphan and resume tests | malicious host outside TCB |
@@ -115,6 +119,16 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
    a qualification decision.
 10. **Admission laundering:** schema-valid bytes are called “accepted.” Static admission can only write
     `admitted`; independent evaluation and promotion must write the final proposal disposition.
+11. **Diagnostic-feedback laundering:** a scorer result is copied into a new proposer input after the
+    prediction seal. Role mounts and recursive artifact taint reject direct, aliased, wrapped, and
+    indirect score/oracle dependencies; any human-authored follow-up remains explicitly adaptive and
+    development-only.
+12. **Candidate-identity laundering:** a quarantined candidate is registered under a new lifecycle ID
+    or copied into a research manifest. Exact hashes, copied semantic content, component closure,
+    wrapper edges, alias edges, and destination classes are all checked before use.
+13. **Synthetic-outcome laundering:** a hand-authored pass/fail pair is presented as measured runtime
+    evidence. The development evaluator accepts only parent/candidate execution artifacts signed by the
+    distinct runtime principal and recomputes the aggregate from verifier outcomes.
 
 ## Acceptance boundary
 
@@ -137,3 +151,12 @@ required OS track repeats the registry-generated bundle transaction across opera
 evaluator UID 1103 with no-network namespaces and authenticated sockets. Evidence is stored under
 `architect/evidence/candidate-bundle-os/`. The result is still bounded by the local Linux/rootless TCB;
 it does not defend against malicious host root, kernel, or storage loss.
+
+The separate Round 03RRR development track extends this local evidence to eight subordinate identities
+for attribution, commitment, scoring, mutation, quarantine, runtime, candidate evaluation, and audit.
+Its self-contained evidence and verifier live under
+`architect/evidence/development-process-boundary/`. All fixtures are public and development-exposed,
+the provider is deterministic and fake, and every candidate/result remains non-promotable and
+unauthorized for research evidence. Therefore the track closes process-boundary plumbing only; it does
+not unlock Gate 3, provider use, B0–B6, held-out access, promotion, deployment, or any performance,
+security, generalization, or self-improvement claim.

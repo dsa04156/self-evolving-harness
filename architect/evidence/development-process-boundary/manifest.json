@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "development_only_os_process_boundary",
+  "source": {
+    "commit": "88e39cdebf1df4db7688fff592363f5f867533ce",
+    "tree": "ccb20381cc3308cb71954789614144575870eb83",
+    "generatedAt": "2026-07-31T15:22:39+09:00"
+  },
+  "files": [
+    {
+      "path": "architect/evidence/development-process-boundary/os-boundary.json",
+      "sha256": "sha256:7afe896e01409d4b97a01e6bfcdc8d327df8d81c464bc6c4282f7e276dfc82b9",
+      "sizeBytes": 169029
+    },
+    {
+      "path": "schemas/development-process-boundary-evidence.schema.json",
+      "sha256": "sha256:47af39e04d0f34bf7e5fee8dc4243109e0c239e409fb8bb0beaf1e74ddf8270b"
+    },
+    {
+      "path": "scripts/verify-development-process-boundary.ts",
+      "sha256": "sha256:9af7ce27d7c5b878dec6d25daabd8f16ae112b26407910377fc5ee634cf545fa"
+    },
+    {
+      "path": "evaluator/development_boundary_gate.py",
+      "sha256": "sha256:94c0a9e53ab1080afb7be95a0be91f278feec352c2bb6d661f7255c29a08c252"
+    },
+    {
+      "path": "evaluator/development_score_gate.py",
+      "sha256": "sha256:62c0052ab7c722cb3fe9356fb880e4ac909a39066b0296872e638233ab7179fa"
+    },
+    {
+      "path": "scripts/development-boundary-worker.ts",
+      "sha256": "sha256:d4131b1b4895534681f7bbeb13f97de39b590671f40c23624b3512f5f1891470"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "sha256:6067e8a69a6adfbf2f0f5eb7f395b5afb6dd114b74c131e55cd3f3c8986d3ed2"
+    }
+  ],
+  "environment": {
+    "node": "v24.18.1",
+    "python": "3.13.14",
+    "rootlesskit": "2.3.6",
+    "bubblewrap": "0.9.0",
+    "openssl": "3.0.13",
+    "network": "unshared",
+    "provider": "none"
+  },
+  "validation": {
+    "commands": [
+      "npm run generate:development-process-boundary",
+      "npm run verify:development-process-boundary",
+      "npm test",
+      "npm run build"
+    ],
+    "fullTestSuite": {
+      "tests": 102,
+      "passed": 102,
+      "failed": 0,
+      "skipped": 0
+    },
+    "processBoundary": {
+      "subordinateUidCount": 8,
+      "signedReceiptCount": 9,
+      "adversarialReleaseCases": 7,
+      "adversarialReleaseRejections": 7,
+      "oracleMountRoles": [
+        "scorer"
+      ],
+      "predictionBeforeLabel": true,
+      "candidateNonPromotable": true,
+      "actualStandaloneRuntimeEvaluation": true
+    }
+  },
+  "claimBoundary": {
+    "developmentOnly": true,
+    "publicVisibleFixtures": true,
+    "authorizedForResearchEvidence": false,
+    "attributionPerformanceClaim": false,
+    "selfImprovementClaim": false,
+    "promotionAuthorized": false,
+    "providerUsed": false
+  }
+}

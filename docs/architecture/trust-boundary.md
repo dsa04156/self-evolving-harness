@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR and Gate 2R externally approved; mandatory zero-skip subordinate-UID evidence run
-complete
+Status: Gate 1RRR and Gate 2R externally approved; Round 03RRR development-only process hardening
+implemented and awaiting its narrow follow-up review
 
 ## Security objective
 
@@ -53,6 +53,49 @@ best-effort cgroup, and no-network sandbox, zero effective capabilities, `NoNewP
 and only role-specific read-only code/config mounts. Normal audit/evaluator sockets are mode 0660 and
 group-scoped to operations; both endpoints also verify `SO_PEERCRED` before parsing a frame. The local
 same-UID transport suite remains explicitly labelled emulation.
+
+## Development evolution process boundary
+
+Round 03RRR authorized a narrower development-only hardening exercise. It is deliberately separate
+from the research protocol, candidate qualification, promotion, and deployment paths. The exercised
+roles are eight distinct subordinate UID/GID principals:
+
+| Role | Namespace UID | Authority | Deliberately absent |
+|---|---:|---|---|
+| attributor | 1201 | read the committed label-blind corpus and emit predictions | oracle, score, candidate evaluation, promotion, network |
+| prediction committer | 1202 | sign the complete prediction commitment and durable seal | oracle, score, mutation, promotion, network |
+| scorer | 1203 | read the visible-fixture oracle only after seal release and emit a diagnostic score | proposer output directory, mutation, promotion, network |
+| mutation proposer | 1204 | consume sealed predictions and create one bounded development proposal | oracle, scorer output, research manifest, promotion, network |
+| candidate quarantine | 1205 | register the exact candidate and its aliases as non-promotable | oracle, proposer key, runtime authority, promotion, network |
+| runtime | 1206 | execute synthetic parent and candidate through the standalone agent loop | oracle, scorer output, evaluator key, promotion, network |
+| candidate evaluator | 1207 | derive a synthetic development result from runtime artifacts | oracle, proposer output, runtime write authority, promotion, network |
+| audit | 1208 | verify receipts, taint closure, role probes, and claim boundary | oracle, mutation authority, deployment authority, network |
+
+Each role has a distinct Ed25519 key owned by its UID. RootlessKit and bubblewrap create separate PID,
+mount, IPC, UTS, and no-network environments with zero effective capabilities and `NoNewPrivs`.
+Role probes demonstrate that forbidden key/file reads and writes fail. This is a local Linux boundary
+under the trusted-host assumption, not a defense against host root or kernel compromise.
+
+The scorer socket does not exist before release. The committer writes the prediction seal with
+exclusive creation, synchronizes the file, then synchronizes its directory. Only an audit-verified seal
+can authorize socket creation. The scorer additionally requires the expected peer UID through
+`SO_PEERCRED`, a valid role key, a fresh nonce, and exact corpus, prototype, prediction, commitment, and
+seal bindings. Wrong peer, wrong key, commitment substitution, prediction substitution, corpus
+substitution, seal substitution, and replay are rejected before a score is released.
+
+The proposer never receives the oracle or score report. The development candidate is materialized into
+a separate read-only registry view, recursively tainted across exact hashes, copied content, aliases,
+wrappers, indirect references, and alternate lifecycle names, and registered as permanently
+non-promotable. Runtime and evaluator principals are distinct. The evaluator consumes actual
+standalone-runtime artifacts produced with a deterministic fake provider and immutable tools; it does
+not receive precomputed pass/fail pairs.
+
+The complete evidence bundle is
+`architect/evidence/development-process-boundary/os-boundary.json`. Its external verifier checks the
+schema, signatures, role probes, seal chronology and durability, candidate registry and closure,
+mutation, runtime execution, evaluation, taint graph, receipts, and claim boundary. The recorded
+synthetic counts are transport/runtime diagnostics only: they are not research metrics, a promotion
+signal, or evidence of self-improvement.
 
 ## Manifest and state boundaries
 

@@ -1,5 +1,30 @@
 # Evolution Loop Change Log
 
+## 2026-07-31 — Development evolution boundary across eight OS principals
+
+Audited source commit: `88e39cdebf1df4db7688fff592363f5f867533ce`
+
+- attribution, prediction commitment, scoring, mutation proposal, candidate quarantine, runtime
+  execution, candidate evaluation, and audit run as eight distinct subordinate UIDs with distinct
+  Ed25519 keys, no network, zero effective capabilities, and `NoNewPrivs`;
+- the scorer socket is absent until the complete prediction commitment is durably sealed with exclusive
+  creation, file sync, and directory sync;
+- the scorer verifies peer credentials, signer, nonce, and exact corpus/prototype/prediction/
+  commitment/seal bindings;
+- wrong peer, wrong key, commitment substitution, prediction substitution, corpus substitution, seal
+  substitution, and replay are rejected;
+- only the scorer mounts the public visible-fixture oracle, and the proposer receives neither oracle nor
+  scoring output;
+- the synthetic parent and candidate execute through the standalone agent loop with a deterministic
+  request-observing fake provider and immutable tools;
+- recursive taint and non-promotability reject exact, copied, aliased, wrapped, indirect,
+  alternate-lifecycle, promotion, claim, and post-score laundering;
+- a standalone verifier reconstructs and verifies the full evidence graph under
+  `architect/evidence/development-process-boundary/`.
+
+This is development-only process-boundary evidence. It is not a research metric, promotion signal,
+provider result, security generalization, or self-improvement result.
+
 ## 2026-07-31 — Superseded HarnessFaultBench structural-oracle plumbing
 
 Implementation commits:
