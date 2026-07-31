@@ -22,6 +22,7 @@ export * from "./evolution/weakness-attribution.js";
 export * from "./evolution/worktree-isolation.js";
 export * from "./harness/component-registry.js";
 export * from "./operations/session-lifecycle.js";
+export * from "./operations/session-definition.js";
 export * from "./operations/control-plane.js";
 export * from "./providers/fake-provider.js";
 export * from "./providers/openai-responses-provider.js";

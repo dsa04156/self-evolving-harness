@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/session-definition.schema.json",
+  "title": "Signed Complete Session Definition",
+  "description": "Commits every authority-bearing and result-interpreting session pin before execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sessionDefinitionHash",
+    "sessionId",
+    "pins",
+    "createdAt",
+    "createdBy",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "sessionDefinitionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "sessionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolId",
+        "harnessVersionId",
+        "runtimeStateSnapshotId",
+        "modelIdentityHash",
+        "permissionPolicyHash",
+        "safetyPolicyHash",
+        "budgetPolicyHash",
+        "budgetAccountId",
+        "datasetPermissions"
+      ],
+      "properties": {
+        "protocolId": {
+          "$ref": "./common.schema.json#/$defs/protocolId"
+        },
+        "harnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "runtimeStateSnapshotId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "modelIdentityHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "permissionPolicyHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "safetyPolicyHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "budgetPolicyHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "budgetAccountId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "datasetPermissions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/datasetRole"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

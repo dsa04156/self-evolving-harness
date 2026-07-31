@@ -14,9 +14,18 @@ import type {
 import type { EvidenceReceipt, EvidenceReceiptStore } from "../evidence/receipts.js";
 import { AppendOnlyLog } from "../storage/append-only-log.js";
 import type { ArtifactStore } from "../storage/artifact-store.js";
-import type { PrincipalSigner } from "../trust/identity.js";
+import {
+  PrincipalRegistry,
+  type PrincipalSigner,
+} from "../trust/identity.js";
 import type { HarnessReferenceLedger } from "../evolution/reference-ledger.js";
 import type { SessionLifecycleStore } from "./session-lifecycle.js";
+import {
+  asSignedSessionDefinition,
+  createSignedSessionDefinition,
+  verifySignedSessionDefinition,
+  type SignedSessionDefinition,
+} from "./session-definition.js";
 
 export const OPERATION_RESPONSE_SCHEMA_ID = `${SCHEMA_BASE_URL}operation-response.schema.json`;
 
@@ -48,13 +57,6 @@ export interface OperationResponse {
   readonly nextAllowedActions: readonly NextAction[];
 }
 
-interface SessionDefinition {
-  readonly schemaVersion: 1;
-  readonly sessionId: string;
-  readonly pins: SessionPins;
-  readonly createdAt: string;
-}
-
 type SessionExecutor = (task: string, abortSignal: AbortSignal) => Promise<AgentRunResult>;
 
 export type TerminationCrashStage = "initiated" | "final_receipt" | "completed";
@@ -83,10 +85,6 @@ const NEXT_ACTIONS: Readonly<Record<SessionState, readonly NextAction[]>> = Obje
   terminated: ["observe", "events", "artifacts"],
 });
 
-function asDefinition(value: JsonValue): SessionDefinition {
-  return value as unknown as SessionDefinition;
-}
-
 export class OperationsControlPlane {
   readonly #protocolId: string;
   readonly #schemas: SchemaRegistry;
@@ -94,11 +92,12 @@ export class OperationsControlPlane {
   readonly #receipts: EvidenceReceiptStore;
   readonly #artifacts: ArtifactStore;
   readonly #signer: PrincipalSigner;
+  readonly #principals = new PrincipalRegistry();
   readonly #clock: Clock;
   readonly #references: HarnessReferenceLedger | null;
   readonly #crashAfterTerminationStage: TerminationCrashStage | null;
   readonly #definitions: AppendOnlyLog<JsonValue>;
-  readonly #sessions = new Map<string, SessionDefinition>();
+  readonly #sessions = new Map<string, SignedSessionDefinition>();
   readonly #abortControllers = new Map<string, AbortController>();
   readonly #activeExecutions = new Map<string, Promise<AgentRunResult>>();
   readonly #terminationRequests = new Set<string>();
@@ -128,6 +127,7 @@ export class OperationsControlPlane {
     this.#receipts = input.receipts;
     this.#artifacts = input.artifacts;
     this.#signer = input.signer;
+    this.#principals.register(input.signer.exportPublic());
     this.#clock = input.clock;
     this.#references = input.references ?? null;
     this.#crashAfterTerminationStage =
@@ -140,11 +140,15 @@ export class OperationsControlPlane {
 
   public async initialize(): Promise<void> {
     for (const record of await this.#definitions.readAll()) {
-      const definition = asDefinition(record.payload);
+      const definition = asSignedSessionDefinition(record.payload);
+      verifySignedSessionDefinition({
+        definition,
+        expectedProtocolId: this.#protocolId,
+        schemas: this.#schemas,
+        principals: this.#principals,
+      });
       assertCondition(
-        definition.schemaVersion === 1 &&
-          definition.pins.protocolId === this.#protocolId &&
-          !this.#sessions.has(definition.sessionId),
+        !this.#sessions.has(definition.sessionId),
         "PROTOCOL_MISMATCH",
         "Invalid persisted session definition",
       );
@@ -180,12 +184,13 @@ export class OperationsControlPlane {
         "PROTOCOL_MISMATCH",
         "Session protocol differs from control plane",
       );
-      const definition: SessionDefinition = {
-        schemaVersion: 1,
+      const definition = createSignedSessionDefinition({
         sessionId,
         pins,
         createdAt: this.#clock.now().toISOString(),
-      };
+        signer: this.#signer,
+        schemas: this.#schemas,
+      });
       await this.#acquireSessionHold(definition);
       await this.#definitions.append(definition as unknown as JsonValue);
       this.#sessions.set(sessionId, definition);
@@ -495,20 +500,23 @@ export class OperationsControlPlane {
 
   async #controlReceipt(
     receiptType: "session_initialization" | "session_checkpoint" | "session_completion" | "artifact_retention",
-    definition: SessionDefinition,
+    definition: SignedSessionDefinition,
     identity: { readonly receiptId: string; readonly createdAt: string } | null = null,
   ): Promise<EvidenceReceipt> {
     return this.#receipts.create({
       ...(identity === null ? {} : identity),
       receiptType,
-      subjectIds: [definition.sessionId],
+      subjectIds: [
+        definition.sessionId,
+        definition.sessionDefinitionHash,
+      ],
       harnessVersionIds: [definition.pins.harnessVersionId],
       runtimeStateSnapshotIds: [definition.pins.runtimeStateSnapshotId],
       signer: this.#signer,
     });
   }
 
-  #definition(sessionId: string): SessionDefinition {
+  #definition(sessionId: string): SignedSessionDefinition {
     const definition = this.#sessions.get(sessionId);
     if (definition === undefined) {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Unknown session ${sessionId}`);
@@ -548,7 +556,9 @@ export class OperationsControlPlane {
     );
   }
 
-  async #acquireSessionHold(definition: SessionDefinition): Promise<void> {
+  async #acquireSessionHold(
+    definition: SignedSessionDefinition,
+  ): Promise<void> {
     if (this.#references === null) return;
     await this.#references.acquire({
       holdId: `hold.session.${definition.sessionId}`,
@@ -559,7 +569,9 @@ export class OperationsControlPlane {
     });
   }
 
-  async #releaseSessionHold(definition: SessionDefinition): Promise<void> {
+  async #releaseSessionHold(
+    definition: SignedSessionDefinition,
+  ): Promise<void> {
     if (this.#references === null) return;
     const holdId = `hold.session.${definition.sessionId}`;
     const active = (await this.#references.activeHolds()).some(
@@ -576,7 +588,7 @@ export class OperationsControlPlane {
   }
 
   async #reconcileSessionHold(
-    definition: SessionDefinition,
+    definition: SignedSessionDefinition,
     state: SessionState,
   ): Promise<void> {
     if (state === "retired" || state === "terminated") {
