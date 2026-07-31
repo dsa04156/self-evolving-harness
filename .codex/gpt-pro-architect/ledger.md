@@ -200,3 +200,24 @@ response path, interpreted decision, required revisions, and the commit containi
 - authorized next: blocking corrections and deterministic Gate 2R verification only
 - still prohibited: real-provider smoke, benchmark/gate/final/temporal/withheld-public access,
   paid-provider work, live deployment, push/release, and empirical/security/generalization claims
+
+## Round 2R preparation — 2026-07-31
+
+- packet: `.codex/gpt-pro-architect/packets/packet-2r.md`
+- authoritative project copy: `architect/PACKET_02R_RUNTIME_AND_TRUST.md`
+- packet hash: `123f3a048bc92ce606ce6bb5415e8f8b8e4c59ab29dd9986f4fe59d2f485f792`
+- packet size: 12,500 characters / 12,568 bytes
+- runtime source commit: `14e373ee4cf245da8c221be9574aa7528d3202e8`
+- manifest: `architect/PACKET_02R_MANIFEST.json`
+- local evidence: 38/38 tests, zero skips; 92.06% line, 85.89% branch, 89.03% function
+  coverage; typecheck/build pass; 41 schemas compiled; fake-provider CLI demo completed
+- OS evidence: five distinct subordinate host UIDs; role-owned keys; authenticated audit/evaluator
+  sockets; exact snapshot transaction; 11/11 wire attacks rejected; wrong client/server UID rejected
+- evidence hashes: OS evidence
+  `9b637be156719c67fd11a72fdf0bb000bca9c5d8dee2d72bf033b38d263d459e`;
+  snapshot descriptor
+  `2ab94a3f4cb86f9c67cc9caf6e787e593a8d5a57dc824945da477319e71e3e7a`
+- scope: correction summary, aggregate local results, environment and hashes only; no source upload,
+  secrets, raw traces, sealed data, provider call, benchmark run, deployment, push, or release
+- authorized transport: same exact project conversation, endpoint, and browser target only
+- status: prepared, not yet transmitted

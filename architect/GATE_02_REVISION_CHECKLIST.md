@@ -15,11 +15,11 @@ dependency, not convenience.
 |---|---|---|
 | component identity and capability preimage | implemented | deterministic registry tests pass |
 | cross-language canonical domain | implemented | TypeScript, evaluator Python, and audit Python consume one corpus with frozen rejection category |
-| OS principals, key custody, authenticated sockets | candidate implementation complete; execution pending | mandatory test currently fails closed until `uidmap` is installed; same-UID transport tests remain labelled emulation |
+| OS principals, key custody, authenticated sockets | implemented and executed | subordinate-UID test passes with five distinct host UIDs, role keys, authenticated sockets, 11 wire attacks, wrong-peer tests, and zero skips; same-UID transport remains labelled emulation |
 | enforced cancellation and descendant reaping | implemented | non-cooperative delayed-write/process-group test passes |
 | retirement holds and restart-safe transactions | implemented | six hold kinds, deployment-pointer recovery, evaluator eight-stage recovery, and termination three-stage recovery pass |
-| exact evaluator filesystem input | implemented | dirty/ignored/link/substitution rejection, committed-object materialization, and evaluator-side descriptor/blob/mode/exact-object verification pass outside the pending OS run |
-| Gate 2R evidence and resubmission | pending | requires a zero-skip OS-boundary run, clean commit, replacement hashes, and same-tab Architect ruling |
+| exact evaluator filesystem input | implemented and executed | dirty/ignored/link/substitution rejection, committed-object materialization, evaluator-side descriptor/blob/mode/exact-object verification, and the OS-mounted transaction pass |
+| Gate 2R evidence and resubmission | evidence complete; ruling pending | clean source commit, 38/38 zero-skip suite, coverage, environment, replacement hashes, and packet are ready for the same-tab Architect ruling |
 
 ## 1. Version component identity and capability preimage
 

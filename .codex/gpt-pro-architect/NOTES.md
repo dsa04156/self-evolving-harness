@@ -81,3 +81,16 @@ any paid-provider request.
   and the external architect explicitly approves it.
 - Benchmark/gate/final/temporal/withheld-public access, paid-provider work, live deployment,
   push/release, and performance/security/generalization/self-improvement claims remain prohibited.
+
+## Gate 2R local evidence
+
+- The ordered Gate 2 corrections are implemented at runtime source commit
+  `14e373ee4cf245da8c221be9574aa7528d3202e8`.
+- The mandatory subordinate-UID path passes with five distinct host UIDs, role-owned keys, authenticated
+  Unix sockets, exact evaluator snapshot binding, 11 rejected wire attacks, wrong-peer rejection, and
+  no synthesized final result.
+- The complete deterministic suite passes 38/38 with zero skips and 92.06% line coverage.
+- This supports only the declared local attack cases under the recorded host assumptions; it is not a
+  general security or self-improvement claim.
+- Gate 2R external review is pending in the same pinned project conversation. Until its ruling, all
+  Gate 2 prohibitions remain in force.

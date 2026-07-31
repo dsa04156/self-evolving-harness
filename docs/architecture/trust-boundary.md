@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR contract approved; Gate 2R correction implementation complete except for the
-mandatory zero-skip subordinate-UID evidence run
+Status: Gate 1RRR contract approved; Gate 2R correction implementation and mandatory zero-skip
+subordinate-UID evidence run complete; external Gate 2R ruling pending
 
 ## Security objective
 
@@ -113,8 +113,9 @@ fully compromised host is outside the containment claim. Provider telemetry/mode
 availability, and benchmark-author blinding have explicit residual risks documented in
 `tcb-and-authenticated-protocol.md` and `threat-model.md`.
 
-Until distinct UID/container/mount/network/secret adversarial tests pass at Gate 2, only architectural
-feasibility is claimed.
+The declared distinct-UID/mount/network/key and authenticated-socket Gate 2R tests pass. This is
+evidence for the listed local attack cases under the stated Linux host assumptions, not a general
+security, tamper-proof, or production-containment claim.
 
 ## Fail-closed rules
 

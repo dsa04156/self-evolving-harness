@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate2r-runtime-trust-corrections-1",
+  "createdAt": "2026-07-31T09:18:27+09:00",
+  "status": "prepared_not_transmitted",
+  "respondsToDecisionSha256": "e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1",
+  "runtimeSourceCommit": "14e373ee4cf245da8c221be9574aa7528d3202e8",
+  "runtimeSourceTree": "f30df800ece4424a1a1bbc0f7f61b2ca108020cd",
+  "packet": {
+    "path": "architect/PACKET_02R_RUNTIME_AND_TRUST.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-2r.md",
+    "sha256": "123f3a048bc92ce606ce6bb5415e8f8b8e4c59ab29dd9986f4fe59d2f485f792",
+    "characterCount": 12500,
+    "byteCount": 12568,
+    "copiesByteIdentical": true
+  },
+  "validation": {
+    "path": "docs/evaluation/gate2r-validation.md",
+    "sha256": "f0cc363f9d6a9d2d752386fb60c433a8db4c3deb751ba56c9d9e87e4081ffbc5",
+    "tests": {
+      "total": 38,
+      "passed": 38,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coveragePercent": {
+      "line": 92.06,
+      "branch": 85.89,
+      "function": 89.03
+    },
+    "compiledSchemas": 41,
+    "typecheck": "pass",
+    "build": "pass",
+    "demo": {
+      "state": "completed",
+      "verificationPassed": true,
+      "modelCalls": 2,
+      "toolCalls": 1,
+      "eventCount": 14,
+      "eventHeadHash": "sha256:40b62c69a361d61928a9e8319bb766505e8e5eeec249298aabea961421dacd45"
+    },
+    "trustDisposition": "os_enforced_subordinate_uids"
+  },
+  "osEvidence": {
+    "path": "architect/evidence/gate2r/os-principal-evidence.json",
+    "sha256": "9b637be156719c67fd11a72fdf0bb000bca9c5d8dee2d72bf033b38d263d459e",
+    "snapshotPath": "architect/evidence/gate2r/candidate-filesystem-snapshot.json",
+    "snapshotArtifactSha256": "2ab94a3f4cb86f9c67cc9caf6e787e593a8d5a57dc824945da477319e71e3e7a",
+    "filesystemSnapshotHash": "sha256:31cd051b667c23a8769be80546248cc20e7990c8d0e286123b16556a951aeb65",
+    "roleCount": 5,
+    "adversarialModeCount": 11,
+    "allAdversarialRejectedWithoutFinalResult": true,
+    "wrongClientUidRejected": true,
+    "wrongServerUidRejected": true,
+    "unauthorizedSocketConnectDenied": true
+  },
+  "environment": {
+    "node": "24.18.1",
+    "npm": "11.18.0",
+    "python": "3.13.14",
+    "bubblewrap": "0.9.0",
+    "rootlesskit": "2.3.6",
+    "kernel": "Linux 7.0.0-28-generic x86_64 GNU/Linux",
+    "uidmapMode": "4755",
+    "subordinateIdRange": "jinuk:231072:65536",
+    "packageLockSha256": "6067e8a69a6adfbf2f0f5eb7f395b5afb6dd114b74c131e55cd3f3c8986d3ed2"
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "benchmarkExecution": false,
+    "gateOrFinalAccess": false,
+    "externalRepositoryWrite": false
+  },
+  "review": {
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserEndpoint": "127.0.0.1:9222",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "transportPlan": "Oracle CLI 0.16.1 preflight followed by exact-tab direct-CDP continuation if Oracle attach metadata remains unavailable",
+    "newWindowAllowed": false,
+    "decision": null,
+    "responsePath": null,
+    "responseSha256": null
+  }
+}
