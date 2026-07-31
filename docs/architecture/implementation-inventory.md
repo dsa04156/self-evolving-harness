@@ -1,6 +1,8 @@
 # Implementation Inventory
 
-Snapshot commit: `bff832cdd447acd28748e9f347145eab099e9eb9`
+Implementation commit: `819be3eaa05b159effe2abf0f069cba673055731`
+
+Implementation tree: `eb06f2105811f1b78588d47cfea21dacea917371`
 
 Resource profile: `NP-1`
 
@@ -23,7 +25,7 @@ callable services is not marked complete when the required end-to-end control pa
 | Deliverable | Status | Evidence or gap |
 |---|---|---|
 | Architecture and loop diagrams | implemented | `docs/architecture/`, `docs/diagrams/` |
-| Component, event, evidence, lifecycle schemas | implemented | 53 JSON Schemas compile |
+| Component, event, evidence, lifecycle schemas | implemented | 54 JSON Schemas compile |
 | Session and harness state machines | implemented | separate stores and transition tests |
 | Threat model | implemented, bounded | no broad containment claim |
 | Minimum working runtime | implemented | deterministic CLI demo and runtime-loop tests |

@@ -80,6 +80,11 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Provider returns a different model than requested | adapter records requested alias and provider-reported model; proxy accepts only the alias or its dated snapshot form and signs the observed value | deterministic adapter test plus accepted dated snapshot and rejected unrelated-model receipts | provider may misreport its own internal serving identity |
 | Provider failure avoids accounting | exactly one attempt is frozen; missing usage charges the full token/cost reservation; overage suppresses the response and emits `budget_exhausted` | deterministic failed-call, overage, replay, and restart tests | provider billing can still disagree with API telemetry |
 | Gate is overfit through repeated aggregates | finite candidate batch, one non-adaptive gate selection, fixed released fields, every release charged | second query/refinement request denied | first aggregate still informs selection by design |
+| Task retry or prompt reinjection is relabelled as harness evolution | signed evolution-run journal requires a candidate `HarnessVersion` whose ID differs from its parent and records proposal/evaluation lineage | same-ID candidate, illegal transition, and committed-ID substitution tests reject | semantic no-op changes can still receive a different content ID and require evaluation scrutiny |
+| Static admission is misreported as a successful mutation | proposal disposition is `pending → admitted → accepted or rejected`; only a final evaluator-bound qualification decision resolves it | admission-only, evaluator-failure, approval, and rejection tests | an external report may still misuse the term “accepted” outside the registry |
+| Signed evaluator output bypasses matched-budget or receipt checks | coordinator independently recomputes paired-task counts, targeted repair, regressions, token cost, safety/permission counts, candidate snapshot binding, and verified receipt linkage before promotion | malformed counts, cost overage, snapshot mismatch, missing/foreign receipt, and wrong-signer tests | policy implementation bug inside the trusted coordinator/promoter |
+| Evaluator failure leaves a candidate eligible or triggers adaptive replacement | one evaluator attempt transitions the run to `failed`, rejects the proposal, preserves the parent, and creates no replacement candidate | evaluator-crash/failure test plus duplicate rejected-mutation denial | a human may start a separately identified protocol after inspecting operational failure |
+| Candidate isolation receipt is detached from evaluated bytes | preparation requires non-null snapshot hash and a verified receipt binding the candidate; evaluator result must bind that exact snapshot | candidate-ID, snapshot-hash, signer, and receipt-presence mismatch tests | component closure materialization into the Git snapshot is not yet coordinator-integrated |
 | Qualification is laundered into deployment or per-component activation | separate approval and production-pointer decisions; whole-harness CAS only | approved-without-deploy and mixed-component pointer tests | registry implementation defect |
 | Concurrent promotion loses parent/rollback lineage | expected generation, prior pointer hash, parent ID, registry serialization | stale and concurrent CAS tests | distributed registry outside MVP |
 | Retirement deletes an in-use harness or crash leaves authority unresolved | signed holds for production, rollback, live session/descendant, pending evaluation/deployment; stage journals for evaluator and termination; idempotent restart reconciliation | each hold blocks retirement; crash injected before/after every durable boundary; exactly one completion/result and no orphan hold | host/storage loss outside replicated MVP |
@@ -105,6 +110,11 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
    resolves and retains the rollback closure.
 8. **Meta-evolution disguise:** candidate changes optimizer/evaluator through a “skill.” Closed payload
    schemas and immutable type bindings prevent executable/control-plane substitution.
+9. **Retry disguise:** an execution failure is retried and presented as an evolved harness. The
+   evolution journal rejects a candidate equal to its parent and requires independent evaluation before
+   a qualification decision.
+10. **Admission laundering:** schema-valid bytes are called “accepted.” Static admission can only write
+    `admitted`; independent evaluation and promotion must write the final proposal disposition.
 
 ## Acceptance boundary
 
@@ -119,3 +129,9 @@ signed receipt from the preregistered real plan, exact synthetic output, zero se
 three-principal runtime/provider/egress evidence. Until that artifact exists, provider invocation remains
 `not_executed`; benchmark, pilot, gate, final, temporal, promotion, and performance/self-improvement
 claims remain unauthorized.
+
+The current coordinator proves orchestration against a separately signed deterministic evaluator
+result. Git worktree freezing and OS-external evaluation have independent passing tests, but the exact
+component candidate closure is not yet materialized into that worktree by the coordinator. Until that
+combined path passes, candidate-isolation claims are limited to the separate primitives and the
+preparation-binding contract.
