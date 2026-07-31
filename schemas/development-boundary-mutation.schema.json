@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-boundary-mutation.schema.json",
+  "title": "Process-isolated development mutation awaiting quarantine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "proposalId",
+    "proposalType",
+    "predictionCommitmentHash",
+    "predictionSetHash",
+    "corpusHash",
+    "selectedTraceProjectionId",
+    "selectedComponentType",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "change",
+    "handoffBoundary",
+    "capabilities",
+    "developmentOnly",
+    "authorizedForResearchEvidence",
+    "createdAt",
+    "proposer",
+    "proposalHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "proposalId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "proposalType": {
+      "const": "process_isolated_development_mutation"
+    },
+    "predictionCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "selectedTraceProjectionId": {
+      "type": "string",
+      "pattern": "^lbti-sha256:[a-f0-9]{64}$"
+    },
+    "selectedComponentType": {
+      "$ref": "./development-attribution-score-report.schema.json#/$defs/componentType"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changedComponentCount",
+        "componentId",
+        "beforeComponentManifestId",
+        "afterComponentManifestId",
+        "operations",
+        "semanticOperations",
+        "expandedClosureEditBytes",
+        "replacementSurfaceBytes",
+        "structuralEditOperations",
+        "immutableDiffCount",
+        "capabilityIdsAdded",
+        "capabilityIdsRemoved"
+      ],
+      "properties": {
+        "changedComponentCount": {
+          "const": 1
+        },
+        "componentId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "beforeComponentManifestId": {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        },
+        "afterComponentManifestId": {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op",
+              "path"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "remove",
+                  "replace"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/.+"
+              },
+              "value": {}
+            }
+          }
+        },
+        "semanticOperations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "expandedClosureEditBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "replacementSurfaceBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "structuralEditOperations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "immutableDiffCount": {
+          "const": 0
+        },
+        "capabilityIdsAdded": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "capabilityIdsRemoved": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "handoffBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "evaluatorReleaseAllowed",
+        "onlyAllowedDestination",
+        "quarantineRequiredBeforeEvaluation"
+      ],
+      "properties": {
+        "state": {
+          "const": "awaiting_non_promotable_quarantine"
+        },
+        "evaluatorReleaseAllowed": {
+          "const": false
+        },
+        "onlyAllowedDestination": {
+          "const": "candidate_quarantine_authority"
+        },
+        "quarantineRequiredBeforeEvaluation": {
+          "const": true
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracleAccess",
+        "scorerOutputAccess",
+        "gateAccess",
+        "finalAccess"
+      ],
+      "properties": {
+        "oracleAccess": {
+          "const": false
+        },
+        "scorerOutputAccess": {
+          "const": false
+        },
+        "gateAccess": {
+          "const": false
+        },
+        "finalAccess": {
+          "const": false
+        }
+      }
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "proposer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "proposalHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-synthetic-execution.schema.json",
+  "title": "Signed actual standalone-runtime execution over synthetic tasks",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "executionBundleId",
+    "sourceClass",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "changedComponentType",
+    "tasks",
+    "capabilities",
+    "developmentOnly",
+    "authorizedForResearchEvidence",
+    "generatedAt",
+    "runtime",
+    "bundleHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "executionBundleId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "sourceClass": {
+      "const": "actual_standalone_runtime_synthetic_execution"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "changedComponentType": {
+      "const": "WorkflowPolicy"
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "taskId",
+          "acceptedActions",
+          "parent",
+          "candidate"
+        ],
+        "properties": {
+          "taskId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "acceptedActions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/workflowAction"
+            }
+          },
+          "parent": {
+            "$ref": "#/$defs/outcome"
+          },
+          "candidate": {
+            "$ref": "#/$defs/outcome"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "datasetRole",
+        "providerClass",
+        "toolClass",
+        "oracleAccess",
+        "scorerOutputAccess",
+        "gateAccess",
+        "finalAccess",
+        "networkAccess"
+      ],
+      "properties": {
+        "datasetRole": {
+          "const": "synthetic_development"
+        },
+        "providerClass": {
+          "const": "request_observing_deterministic_fake"
+        },
+        "toolClass": {
+          "const": "immutable_builtin"
+        },
+        "oracleAccess": {
+          "const": false
+        },
+        "scorerOutputAccess": {
+          "const": false
+        },
+        "gateAccess": {
+          "const": false
+        },
+        "finalAccess": {
+          "const": false
+        },
+        "networkAccess": {
+          "const": false
+        }
+      }
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "generatedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "runtime": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "bundleHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "workflowAction": {
+      "type": "string",
+      "enum": [
+        "construct_context",
+        "model_turn",
+        "retrieve_memory",
+        "invoke_skill",
+        "request_tool",
+        "spawn_subagent",
+        "wait_job",
+        "verify",
+        "emit_completion",
+        "emit_block"
+      ]
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "harnessVersionId",
+        "observedAction",
+        "workflowReceiptHash",
+        "state",
+        "passed",
+        "finalTextHash",
+        "verificationEvidenceHash",
+        "eventChainHash",
+        "eventCount",
+        "providerRequestHash"
+      ],
+      "properties": {
+        "harnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "observedAction": {
+          "$ref": "#/$defs/workflowAction"
+        },
+        "workflowReceiptHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "blocked",
+            "terminated"
+          ]
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "finalTextHash": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verificationEvidenceHash": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventChainHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "eventCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "providerRequestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

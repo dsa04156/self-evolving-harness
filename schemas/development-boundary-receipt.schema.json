@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-boundary-receipt.schema.json",
+  "title": "Signed receipt for one development OS-boundary role action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "receiptId",
+    "receiptType",
+    "roleName",
+    "action",
+    "process",
+    "inputHashes",
+    "outputHashes",
+    "accessibleMountClasses",
+    "absentCapabilityClasses",
+    "success",
+    "startedAt",
+    "completedAt",
+    "developmentOnly",
+    "authorizedForResearchEvidence",
+    "producer",
+    "receiptHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "receiptId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "receiptType": {
+      "const": "development_boundary_role_execution"
+    },
+    "roleName": {
+      "type": "string",
+      "enum": [
+        "attributor",
+        "prediction_committer",
+        "scorer",
+        "mutation_proposer",
+        "candidate_quarantine",
+        "runtime",
+        "candidate_evaluator",
+        "audit"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "attribute",
+        "commit_predictions",
+        "seal_predictions",
+        "score_predictions",
+        "propose_mutation",
+        "quarantine_candidate",
+        "execute_synthetic_pair",
+        "evaluate_synthetic_pair",
+        "finalize_evidence"
+      ]
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "isolationClass"
+      ],
+      "properties": {
+        "uid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "isolationClass": {
+          "type": "string",
+          "enum": [
+            "local_process",
+            "os_enforced_subordinate_uid"
+          ]
+        }
+      }
+    },
+    "inputHashes": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "outputHashes": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "accessibleMountClasses": {
+      "$ref": "#/$defs/stringArray"
+    },
+    "absentCapabilityClasses": {
+      "$ref": "#/$defs/stringArray"
+    },
+    "success": {
+      "const": true
+    },
+    "startedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "receiptHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "hashArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          },
+          {
+            "$ref": "./common.schema.json#/$defs/harnessVersionId"
+          },
+          {
+            "$ref": "./common.schema.json#/$defs/componentManifestId"
+          }
+        ]
+      }
+    },
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      }
+    }
+  }
+}

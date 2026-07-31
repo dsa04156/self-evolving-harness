@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-prediction-seal.schema.json",
+  "title": "Durable audit release for a sealed development prediction set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sealId",
+    "recordType",
+    "predictionCommitmentHash",
+    "predictionSetHash",
+    "prototypeManifestHash",
+    "corpusHash",
+    "commitmentSealedAt",
+    "commitmentVerified",
+    "durability",
+    "scorerReleaseAllowed",
+    "developmentOnly",
+    "authorizedForResearchEvidence",
+    "sealedAt",
+    "sealedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "sealId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "development_prediction_seal"
+    },
+    "predictionCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "prototypeManifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "commitmentSealedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "commitmentVerified": {
+      "const": true
+    },
+    "durability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appendMode",
+        "fileSyncRequired",
+        "directorySyncRequired"
+      ],
+      "properties": {
+        "appendMode": {
+          "const": "exclusive_create"
+        },
+        "fileSyncRequired": {
+          "const": true
+        },
+        "directorySyncRequired": {
+          "const": true
+        }
+      }
+    },
+    "scorerReleaseAllowed": {
+      "const": true
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "sealedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "sealedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

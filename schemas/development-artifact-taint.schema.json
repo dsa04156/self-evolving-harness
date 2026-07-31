@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-artifact-taint.schema.json",
+  "title": "Signed recursive development artifact taint and anti-laundering policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "recordType",
+    "policyVersion",
+    "artifacts",
+    "propagationPolicy",
+    "developmentOnly",
+    "authorizedForResearchEvidence",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "development_artifact_taint"
+    },
+    "policyVersion": {
+      "const": "development-anti-laundering-v1"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/taintedArtifact"
+      }
+    },
+    "propagationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matchArtifactId",
+        "matchContentHash",
+        "matchAlias",
+        "traverseReferences",
+        "defaultResearchUse"
+      ],
+      "properties": {
+        "matchArtifactId": {
+          "const": true
+        },
+        "matchContentHash": {
+          "const": true
+        },
+        "matchAlias": {
+          "const": true
+        },
+        "traverseReferences": {
+          "const": true
+        },
+        "defaultResearchUse": {
+          "const": "deny"
+        }
+      }
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "artifactToken": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "contentIdentity": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        }
+      ]
+    },
+    "taintClass": {
+      "type": "string",
+      "enum": [
+        "development_fixture",
+        "prediction_pre_oracle",
+        "oracle_input",
+        "post_score_output",
+        "development_candidate",
+        "development_evaluation"
+      ]
+    },
+    "useClass": {
+      "type": "string",
+      "enum": [
+        "attributor_input",
+        "prediction_committer_input",
+        "scorer_input",
+        "scorer_oracle_input",
+        "development_mutation_proposer_input",
+        "candidate_quarantine",
+        "development_runtime_input",
+        "development_evaluator_input",
+        "governance_audit",
+        "development_archive",
+        "research_protocol_manifest",
+        "research_candidate_selection",
+        "promotion_decision",
+        "canary",
+        "deployment",
+        "production_pointer",
+        "claim_table",
+        "research_evidence"
+      ]
+    },
+    "taintedArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "artifactKind",
+        "contentHash",
+        "aliases",
+        "references",
+        "taintClasses",
+        "allowedUseClasses",
+        "prohibitedUseClasses"
+      ],
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/artifactToken"
+        },
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "fixture_corpus",
+            "prediction_set",
+            "prediction_commitment",
+            "prediction_seal",
+            "oracle_access_event",
+            "score_report",
+            "mutation_proposal",
+            "candidate_harness",
+            "non_promotable_record",
+            "runtime_execution",
+            "evaluator_result",
+            "wrapper_manifest",
+            "archive_record"
+          ]
+        },
+        "contentHash": {
+          "$ref": "#/$defs/contentIdentity"
+        },
+        "aliases": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/artifactToken"
+          }
+        },
+        "references": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/artifactToken"
+          }
+        },
+        "taintClasses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/taintClass"
+          }
+        },
+        "allowedUseClasses": {
+          "type": "array",
+          "maxItems": 18,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/useClass"
+          }
+        },
+        "prohibitedUseClasses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 18,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/useClass"
+          }
+        }
+      }
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

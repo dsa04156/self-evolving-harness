@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-synthetic-evaluation.schema.json",
+  "title": "Signed development evaluation derived from actual synthetic runtime evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "resultId",
+    "sourceClass",
+    "executionBundleHash",
+    "candidateHarnessVersionId",
+    "nonPromotableRecordHash",
+    "aggregate",
+    "lifecycleBoundary",
+    "evaluatedAt",
+    "evaluator",
+    "resultHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "resultId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "sourceClass": {
+      "const": "derived_from_actual_standalone_runtime_evidence"
+    },
+    "executionBundleHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "nonPromotableRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskCount",
+        "parentPassCount",
+        "candidatePassCount",
+        "passToFailCount",
+        "failToPassCount",
+        "researchMetric",
+        "promotionSignal"
+      ],
+      "properties": {
+        "taskCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parentPassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidatePassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passToFailCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failToPassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "researchMetric": {
+          "const": false
+        },
+        "promotionSignal": {
+          "const": false
+        }
+      }
+    },
+    "lifecycleBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "promotable",
+        "canaryAllowed",
+        "approvedAllowed",
+        "deploymentAllowed",
+        "researchSelectionAllowed"
+      ],
+      "properties": {
+        "state": {
+          "const": "evaluated_development"
+        },
+        "promotable": {
+          "const": false
+        },
+        "canaryAllowed": {
+          "const": false
+        },
+        "approvedAllowed": {
+          "const": false
+        },
+        "deploymentAllowed": {
+          "const": false
+        },
+        "researchSelectionAllowed": {
+          "const": false
+        }
+      }
+    },
+    "evaluatedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "evaluator": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "resultHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}
