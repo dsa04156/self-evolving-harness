@@ -286,6 +286,12 @@ export interface UnixProviderProxyEndpoint {
   readonly relayScriptPath: string;
 }
 
+export interface ProviderPeerCredentials {
+  readonly pid: number;
+  readonly uid: number;
+  readonly gid: number;
+}
+
 export class UnixProviderProxyClient implements ModelProvider {
   public readonly providerId: string;
   readonly #protocolId: string;
@@ -304,6 +310,7 @@ export class UnixProviderProxyClient implements ModelProvider {
   #sequence = 0;
   #stderr = "";
   #lastReceipt: ProviderCallReceipt | null = null;
+  #peer: ProviderPeerCredentials | null = null;
 
   public constructor(input: {
     readonly protocolId: string;
@@ -352,6 +359,10 @@ export class UnixProviderProxyClient implements ModelProvider {
     return this.#lastReceipt;
   }
 
+  public get peerCredentials(): ProviderPeerCredentials | null {
+    return this.#peer === null ? null : { ...this.#peer };
+  }
+
   public async start(): Promise<void> {
     assertCondition(
       this.#relay === null,
@@ -367,6 +378,7 @@ export class UnixProviderProxyClient implements ModelProvider {
     this.#sequence = 0;
     this.#replay = new ReplayGuard();
     this.#stderr = "";
+    this.#peer = null;
     const relay = spawn(
       this.#endpoint.pythonExecutable,
       [
@@ -425,6 +437,11 @@ export class UnixProviderProxyClient implements ModelProvider {
         "AUTHENTICATION_FAILED",
         "Provider relay returned invalid peer credentials",
       );
+      this.#peer = {
+        pid: Number(match[1]),
+        uid: Number(match[2]),
+        gid: Number(match[3]),
+      };
     } catch (error) {
       await this.stop();
       throw error;
@@ -599,6 +616,7 @@ export class UnixProviderProxyClient implements ModelProvider {
     const relay = this.#relay;
     this.#relay = null;
     this.#reader = null;
+    this.#peer = null;
     if (relay !== null) await stopProcessGroup(relay);
   }
 }
