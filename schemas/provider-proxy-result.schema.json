@@ -110,6 +110,9 @@
           "additionalProperties": false,
           "required": [
             "providerId",
+            "requestedApiModel",
+            "reportedModel",
+            "reportedModelPolicy",
             "upstreamMetadataHash",
             "normalizedFor"
           ],
@@ -119,6 +122,26 @@
               "enum": [
                 "fake-provider",
                 "openai-responses"
+              ]
+            },
+            "requestedApiModel": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            },
+            "reportedModel": {
+              "oneOf": [
+                {
+                  "$ref": "./common.schema.json#/$defs/entityId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reportedModelPolicy": {
+              "type": "string",
+              "enum": [
+                "none",
+                "requested_alias_or_dated_snapshot"
               ]
             },
             "upstreamMetadataHash": {

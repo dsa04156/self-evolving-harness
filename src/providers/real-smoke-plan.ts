@@ -58,6 +58,8 @@ export interface RealProviderSmokePlan {
     readonly reasoningEffort: "none";
     readonly store: false;
     readonly parallelToolCalls: false;
+    readonly reportedModelPolicy:
+      "requested_alias_or_dated_snapshot";
     readonly pricing: {
       readonly currency: "USD";
       readonly inputMicrosPerMillionTokens: number;

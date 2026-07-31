@@ -247,6 +247,35 @@ function normalizedResponse(
     "SCHEMA_INVALID",
     "Provider smoke produced no assistant message",
   );
+  const upstreamMetadata =
+    response.providerMetadata as Readonly<
+      Record<string, JsonValue>
+    >;
+  const reportedModel =
+    typeof upstreamMetadata["reportedModel"] === "string"
+      ? upstreamMetadata["reportedModel"]
+      : null;
+  if (manifest.provider.providerId === "openai-responses") {
+    const requestedApiModel =
+      upstreamMetadata["requestedApiModel"];
+    const escapedAlias =
+      manifest.provider.apiModel.replace(
+        /[.*+?^${}()|[\]\\]/gu,
+        "\\$&",
+      );
+    assertCondition(
+      upstreamMetadata["provider"] === "openai" &&
+        requestedApiModel === manifest.provider.apiModel &&
+        reportedModel !== null &&
+        (reportedModel === manifest.provider.apiModel ||
+          new RegExp(
+            `^${escapedAlias}-[0-9]{4}-[0-9]{2}-[0-9]{2}$`,
+            "u",
+          ).test(reportedModel)),
+      "PROTOCOL_MISMATCH",
+      "Provider-reported model violates the frozen alias/snapshot policy",
+    );
+  }
   return {
     responseId: response.responseId,
     modelIdentity: response.modelIdentity,
@@ -261,6 +290,13 @@ function normalizedResponse(
     },
     providerMetadata: {
       providerId: manifest.provider.providerId,
+      requestedApiModel: manifest.provider.apiModel,
+      reportedModel:
+        manifest.provider.providerId === "openai-responses"
+          ? reportedModel
+          : null,
+      reportedModelPolicy:
+        manifest.provider.reportedModelPolicy,
       upstreamMetadataHash: sha256(
         response.providerMetadata as unknown as JsonValue,
       ),

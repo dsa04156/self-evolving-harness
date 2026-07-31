@@ -64,6 +64,9 @@ export interface ProviderSmokeCore {
     readonly store: false;
     readonly parallelToolCalls: false;
     readonly toolCount: 0;
+    readonly reportedModelPolicy:
+      | "none"
+      | "requested_alias_or_dated_snapshot";
     readonly pricing: ProviderPricing;
   };
   readonly credentialPrincipal: PrincipalIdentity;
@@ -230,6 +233,8 @@ export function assertProviderSmokeContract(input: {
           manifest.egress.allowedHost === "api.openai.com" &&
           manifest.egress.allowedPort === 443 &&
           manifest.egress.tlsServerName === "api.openai.com" &&
+          manifest.provider.reportedModelPolicy ===
+            "requested_alias_or_dated_snapshot" &&
           manifest.egress.maxTunnelBytes >=
             manifest.caps.requestBytes +
               manifest.caps.responseBytes
@@ -239,6 +244,7 @@ export function assertProviderSmokeContract(input: {
           manifest.egress.allowedHost === "none" &&
           manifest.egress.allowedPort === 0 &&
           manifest.egress.tlsServerName === "none" &&
+          manifest.provider.reportedModelPolicy === "none" &&
           manifest.egress.maxTunnelBytes === 0,
     "AUTHORIZATION_DENIED",
     "Provider and egress modes are inconsistent",

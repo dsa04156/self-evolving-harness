@@ -15,6 +15,7 @@
     "reasoningEffort": "none",
     "store": false,
     "parallelToolCalls": false,
+    "reportedModelPolicy": "requested_alias_or_dated_snapshot",
     "pricing": {
       "currency": "USD",
       "inputMicrosPerMillionTokens": 1000000,

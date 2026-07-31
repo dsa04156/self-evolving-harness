@@ -107,6 +107,7 @@
         "store",
         "parallelToolCalls",
         "toolCount",
+        "reportedModelPolicy",
         "pricing"
       ],
       "properties": {
@@ -182,6 +183,13 @@
         },
         "toolCount": {
           "const": 0
+        },
+        "reportedModelPolicy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "requested_alias_or_dated_snapshot"
+          ]
         },
         "pricing": {
           "$ref": "#/$defs/pricing"

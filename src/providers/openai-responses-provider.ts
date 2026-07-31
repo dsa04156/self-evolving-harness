@@ -175,7 +175,8 @@ export class OpenAIResponsesProvider implements ModelProvider {
       },
       providerMetadata: {
         provider: "openai",
-        apiModel: this.#options.apiModel,
+        requestedApiModel: this.#options.apiModel,
+        reportedModel: response.model,
         status: response.status ?? null,
         serviceTier: response.service_tier ?? null,
         store: false,

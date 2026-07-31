@@ -175,6 +175,8 @@ export function createRealProviderSmokeArtifacts(input: {
         parallelToolCalls:
           plan.provider.parallelToolCalls,
         toolCount: 0,
+        reportedModelPolicy:
+          plan.provider.reportedModelPolicy,
         pricing: plan.provider.pricing,
       },
       credentialPrincipal:

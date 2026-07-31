@@ -54,6 +54,7 @@
         "reasoningEffort",
         "store",
         "parallelToolCalls",
+        "reportedModelPolicy",
         "pricing",
         "pricingSourcePath"
       ],
@@ -84,6 +85,9 @@
         },
         "parallelToolCalls": {
           "const": false
+        },
+        "reportedModelPolicy": {
+          "const": "requested_alias_or_dated_snapshot"
         },
         "pricing": {
           "const": {

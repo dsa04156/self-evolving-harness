@@ -168,6 +168,7 @@ function smokeCore(input: {
       store: false,
       parallelToolCalls: false,
       toolCount: 0,
+      reportedModelPolicy: "none",
       pricing: {
         currency: "USD",
         inputMicrosPerMillionTokens: 1_000_000,

@@ -13,9 +13,11 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  DeterministicClock,
   HarnessError,
   PHASE_IDS,
   PrincipalRegistry,
+  ProviderProxyEngine,
   SchemaRegistry,
   SecretRedactor,
   createRealProviderSmokeArtifacts,
@@ -26,6 +28,7 @@ import {
   sha256,
   verifyBudgetFreezeManifest,
   verifyProviderSmokeManifest,
+  type ModelProvider,
 } from "../src/index.js";
 import { deterministicPrincipal } from "./helpers/deterministic-principal.js";
 
@@ -228,6 +231,85 @@ test("real provider artifacts freeze one signed deterministic-only call", async 
       outputBytes: 0,
     })),
   );
+
+  const providerWithReportedModel = (
+    reportedModel: string,
+  ): ModelProvider => ({
+    providerId: "openai-responses",
+    async generate() {
+      return {
+        responseId: `response.${reportedModel}`,
+        modelIdentity:
+          verifiedPlan.plan.provider.modelIdentity,
+        output: [
+          {
+            kind: "assistant_message",
+            text: verifiedPlan.plan.expectedOutput,
+          },
+        ],
+        usage: {
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+          cacheWriteTokens: 0,
+          totalTokens: 15,
+        },
+        providerMetadata: {
+          provider: "openai",
+          requestedApiModel:
+            verifiedPlan.plan.provider.apiModel,
+          reportedModel,
+        },
+      };
+    },
+  });
+  const accepted = new ProviderProxyEngine({
+    root: path.join(root, "provider-accepted"),
+    manifest: artifacts.smokeManifest,
+    phaseAccountId: artifacts.phaseAccountId,
+    provider: providerWithReportedModel(
+      "gpt-5.6-luna-2026-07-31",
+    ),
+    signer: providerProxy,
+    principals,
+    schemas,
+    clock: new DeterministicClock(),
+    redactor,
+  });
+  await accepted.initialize();
+  const acceptedResult = await accepted.execute(
+    artifacts.request,
+  );
+  assert.equal(acceptedResult.receipt.status, "completed");
+  assert.equal(
+    acceptedResult.response?.providerMetadata[
+      "reportedModel"
+    ],
+    "gpt-5.6-luna-2026-07-31",
+  );
+
+  const rejected = new ProviderProxyEngine({
+    root: path.join(root, "provider-rejected"),
+    manifest: artifacts.smokeManifest,
+    phaseAccountId: artifacts.phaseAccountId,
+    provider: providerWithReportedModel("different-model"),
+    signer: providerProxy,
+    principals,
+    schemas,
+    clock: new DeterministicClock(),
+    redactor,
+  });
+  await rejected.initialize();
+  const rejectedResult = await rejected.execute(
+    artifacts.request,
+  );
+  assert.equal(rejectedResult.receipt.status, "failed");
+  assert.equal(
+    rejectedResult.receipt.error?.code,
+    "PROTOCOL_MISMATCH",
+  );
+  assert.equal(rejectedResult.response, null);
 });
 
 test("real provider smoke plan rejects model and cap drift", async (t) => {
