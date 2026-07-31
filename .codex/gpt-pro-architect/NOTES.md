@@ -449,3 +449,26 @@ any paid-provider request.
   validation, and a narrow correction packet. No push, credentials/provider, benchmark/research
   material or execution, selection/promotion/deployment, publication, or empirical/security/
   performance/generalization/evolution/self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRR reviewer-lineage decision
+
+- External decision: `APPROVE`; no blocking findings remain for the reviewer-blinding correction or
+  the integrated local runtime-and-trust closure.
+- `control.reviewer_blinding` now connects the historical independent-authorship and current
+  eight-principal OS domains through one six-stage introduced/discovered/superseded/correcting/
+  approved/current lineage.
+- The pre-projection `af70fd...` source and its `REVISE` history remain visible but cannot satisfy
+  current status. Correction `864d211...`, its later `APPROVE`, baseline `181fe51...`, and source
+  snapshot `8de2c68...` are independently bound; projection and worker bytes remain equal.
+- Reviewer evidence requires exactly four declared input files and false author-identity, raw-handle,
+  and private-key presence. Current aggregate authorship status derives only from the current stage.
+- Six validly re-signed lineage attacks plus the prior aggregate attacks pass; manifest v2 verifies
+  7 domains, 52 artifacts, 20 source refs, 1 lineage, 2 bindings, 7 unresolved obligations, and zero
+  authorities.
+- Authorized next scope is only a no-execution Gate 3 entry packet for at most one unresolved
+  obligation. It must preregister source, manifest, protocol/policy, principals/authority, data,
+  budget, evidence, contamination, rollback/abandonment, and a required future Architect ruling
+  while keeping every execution/selection/promotion/deployment/claim authority false.
+- No push, credential/provider call, benchmark or research data/execution, selection/promotion/
+  deployment, publication, or empirical/security/performance/generalization/evolution/
+  self-improvement claim is authorized.
