@@ -67,7 +67,9 @@ const SCENARIOS = [
 
 const CRASH_BOUNDARIES = [
   "after_reservation_commit",
+  "after_deny_release",
   "after_materialization_start",
+  "after_deny_materialization",
   "after_plaintext_delete",
   "after_private_delete",
   "after_cleanup_commit",
@@ -234,9 +236,19 @@ interface Scenario {
     readonly senderSequence: number;
     readonly nonce: string;
     readonly failureCode: "REPLAY_DETECTED";
-    readonly newlyCommitted: false;
+    readonly newlyCommitted: true;
+    readonly denialTransitionHash: string;
+    readonly denialReason:
+      "consumed_capability_reuse";
+    readonly statePreservingDenial: true;
     readonly transitionCountBefore: number;
     readonly transitionCountAfter: number;
+    readonly exactRetryFailureCode:
+      "REPLAY_DETECTED";
+    readonly exactRetryNewlyCommitted: false;
+    readonly exactRetryTransitionHash: string;
+    readonly exactRetryTransitionCountBefore: number;
+    readonly exactRetryTransitionCountAfter: number;
     readonly reservationCount: 1;
     readonly materializationCount: number;
     readonly secondReservationAppended: false;
@@ -252,7 +264,9 @@ interface Scenario {
 interface CrashCase {
   readonly boundary:
     | "after_reservation_commit"
+    | "after_deny_release"
     | "after_materialization_start"
+    | "after_deny_materialization"
     | "after_plaintext_delete"
     | "after_private_delete"
     | "after_cleanup_commit";
@@ -269,6 +283,11 @@ interface CrashCase {
   readonly terminalTransitionHash: string;
   readonly beginCleanupCount: 1;
   readonly cleanupCount: 1;
+  readonly denialCount: number;
+  readonly reservationCountBeforeRecovery: number;
+  readonly reservationCountAfterRecovery: number;
+  readonly materializationCountBeforeRecovery: number;
+  readonly materializationCountAfterRecovery: number;
   readonly materializationCount: number;
   readonly duplicateMaterializationCount: 0;
   readonly leakageScan: LeakageScan;
@@ -671,9 +690,19 @@ function verifyScenario(input: {
     evidence,
     schemas,
   });
-  const actions = scenario.transitions.map(
-    (transition) => transition.action,
-  );
+  const durableFreshDenials =
+    scenario.transitions.filter(
+      (transition) =>
+        transition.denialReason ===
+        "consumed_capability_reuse",
+    );
+  const actions = scenario.transitions
+    .filter(
+      (transition) =>
+        transition.denialReason !==
+        "consumed_capability_reuse",
+    )
+    .map((transition) => transition.action);
   assert.deepEqual(
     actions,
     scenario.scenario === "capability_rejection"
@@ -695,9 +724,15 @@ function verifyScenario(input: {
     scenario.sealResult.transition.recordHash,
     scenario.transitions[0]!.recordHash,
   );
+  const cleanupTransitions =
+    scenario.transitions.filter(
+      (transition) =>
+        transition.action === "cleanup",
+    );
+  assert.equal(cleanupTransitions.length, 1);
   assert.equal(
     scenario.cleanupResult.transition.recordHash,
-    scenario.transitions.at(-1)!.recordHash,
+    cleanupTransitions[0]!.recordHash,
   );
   assert.equal(scenario.cleanupResult.state, "cleaned");
 
@@ -801,12 +836,56 @@ function verifyScenario(input: {
       schemas,
     });
     assert.equal(
-      reuse.transitionCountBefore,
       reuse.transitionCountAfter,
+      reuse.transitionCountBefore + 1,
+    );
+    assert.equal(
+      reuse.exactRetryTransitionCountBefore,
+      reuse.transitionCountAfter,
+    );
+    assert.equal(
+      reuse.exactRetryTransitionCountAfter,
+      reuse.exactRetryTransitionCountBefore,
+    );
+    assert.equal(
+      reuse.exactRetryTransitionHash,
+      reuse.denialTransitionHash,
+    );
+    const denial = scenario.transitions.find(
+      (transition) =>
+        transition.recordHash ===
+        reuse.denialTransitionHash,
+    );
+    assert.ok(denial);
+    assert.equal(denial.action, "deny_release");
+    assert.equal(denial.decision, "denied");
+    assert.equal(
+      denial.denialReason,
+      "consumed_capability_reuse",
+    );
+    assert.equal(
+      denial.requestCommitment,
+      sha256(reuse.request as unknown as JsonValue),
+    );
+    assert.deepEqual(
+      denial.requestActor,
+      reuse.request.actor,
+    );
+    assert.equal(
+      denial.capabilityCommitment,
+      reuse.request.capability.capabilityHash,
+    );
+    assert.equal(
+      denial.stateBefore,
+      denial.stateAfter,
     );
     assert.equal(reuse.reservationCount, 1);
     assert.ok(reuse.materializationCount <= 1);
   }
+  assert.equal(
+    durableFreshDenials.length,
+    scenario.freshCapabilityReuse.length,
+  );
 }
 
 function verifyCrashCase(input: {
@@ -829,8 +908,11 @@ function verifyCrashCase(input: {
   const expectedReason = {
     after_reservation_commit:
       "reservation_abandoned",
+    after_deny_release: "capability_rejection",
     after_materialization_start:
       "materialization_prewrite_abandoned",
+    after_deny_materialization:
+      "cryptographic_rejection",
     after_plaintext_delete:
       "cleanup_interrupted_after_plaintext_delete",
     after_private_delete:
@@ -842,34 +924,106 @@ function verifyCrashCase(input: {
     crash.cleanupReason,
     expectedReason[crash.boundary],
   );
-  const expectedActions =
-    crash.boundary === "after_reservation_commit"
-      ? [
-          "seal",
-          "reserve_release",
-          "begin_cleanup",
-          "cleanup",
-        ]
-      : [
-          "seal",
-          "reserve_release",
-          "begin_materialization",
-          "begin_cleanup",
-          "cleanup",
-        ];
+  const expectedActions = {
+    after_reservation_commit: [
+      "seal",
+      "reserve_release",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_deny_release: [
+      "seal",
+      "deny_release",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_materialization_start: [
+      "seal",
+      "reserve_release",
+      "begin_materialization",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_deny_materialization: [
+      "seal",
+      "reserve_release",
+      "begin_materialization",
+      "deny_materialization",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_plaintext_delete: [
+      "seal",
+      "reserve_release",
+      "begin_materialization",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_private_delete: [
+      "seal",
+      "reserve_release",
+      "begin_materialization",
+      "begin_cleanup",
+      "cleanup",
+    ],
+    after_cleanup_commit: [
+      "seal",
+      "reserve_release",
+      "begin_materialization",
+      "begin_cleanup",
+      "cleanup",
+    ],
+  } as const;
   assert.deepEqual(
     crash.transitions.map(
       (transition) => transition.action,
     ),
-    expectedActions,
+    expectedActions[crash.boundary],
   );
   assert.equal(crash.crashReturnCode === 0, false);
   assert.equal(
     crash.materializationCount,
-    crash.boundary === "after_reservation_commit"
+    crash.boundary === "after_reservation_commit" ||
+      crash.boundary === "after_deny_release"
       ? 0
       : 1,
   );
+  assert.equal(
+    crash.reservationCountBeforeRecovery,
+    crash.reservationCountAfterRecovery,
+  );
+  assert.equal(
+    crash.materializationCountBeforeRecovery,
+    crash.materializationCountAfterRecovery,
+  );
+  assert.equal(
+    crash.reservationCountAfterRecovery,
+    crash.boundary === "after_deny_release" ? 0 : 1,
+  );
+  assert.equal(
+    crash.denialCount,
+    crash.boundary === "after_deny_release" ||
+      crash.boundary ===
+        "after_deny_materialization"
+      ? 1
+      : 0,
+  );
+  if (crash.boundary === "after_deny_release") {
+    const denial = crash.transitions[1]!;
+    assert.equal(
+      denial.denialReason,
+      "release_request_rejection",
+    );
+  }
+  if (
+    crash.boundary === "after_deny_materialization"
+  ) {
+    const denial = crash.transitions[3]!;
+    assert.equal(
+      denial.denialReason,
+      "cryptographic_rejection",
+    );
+  }
   assert.equal(
     crash.terminalTransitionHash,
     crash.transitions.at(-1)!.recordHash,

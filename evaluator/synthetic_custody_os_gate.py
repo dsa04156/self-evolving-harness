@@ -36,7 +36,9 @@ SCENARIOS = (
 
 CRASH_BOUNDARIES = (
     "after_reservation_commit",
+    "after_deny_release",
     "after_materialization_start",
+    "after_deny_materialization",
     "after_plaintext_delete",
     "after_private_delete",
     "after_cleanup_commit",
@@ -1028,6 +1030,7 @@ def attempt_fresh_capability_reuse(
         root / "state" / reserve_stage / "result.json"
     )
     after = journal_transitions(root, custody_id)
+    denial = result["transition"]
     reservations = [
         transition
         for transition in after
@@ -1048,13 +1051,75 @@ def attempt_fresh_capability_reuse(
             / "request.json"
         )["requestHash"]
         or result["failure"]["code"] != "REPLAY_DETECTED"
-        or result["newlyCommitted"]
-        or len(after) != len(before)
+        or not result["newlyCommitted"]
+        or len(after) != len(before) + 1
+        or denial["action"] != "deny_release"
+        or denial["decision"] != "denied"
+        or denial["denialReason"]
+        != "consumed_capability_reuse"
+        or denial["requestCommitment"]
+        != f"sha256:{hashlib.sha256(base.canonical(request)).hexdigest()}"
+        or denial["capabilityCommitment"]
+        != request["capability"]["capabilityHash"]
+        or denial["requestActor"] != request["actor"]
+        or denial["stateBefore"] != denial["stateAfter"]
         or len(reservations) != 1
         or len(materializations) > 1
     ):
         raise RuntimeError(
             f"fresh capability replay escaped after {condition}"
+        )
+    exact_retry_stage = (
+        f"custody_{custody_id.split('.')[1]}_fresh_"
+        f"{condition}_exact_retry"
+    )
+    exact_retry_at = (
+        datetime.fromisoformat(
+            occurred_at.replace("Z", "+00:00")
+        )
+        + timedelta(seconds=1)
+    ).isoformat().replace("+00:00", "Z")
+    prepare_custody_stage(
+        root=root,
+        stage=exact_retry_stage,
+        role="vault",
+        mode="reserve_release",
+        custody_id=custody_id,
+        occurred_at=exact_retry_at,
+        contract_path=contract_path,
+        inputs={
+            "descriptor.json": descriptor_path,
+            "request.json": request_path,
+        },
+    )
+    retry_process = run_custody_worker(
+        root=root,
+        stage=exact_retry_stage,
+        role="vault",
+        repository=repository,
+        python_root=python_root,
+        node_executable=node_executable,
+        materialization=materialization,
+        vault_private=True,
+    )
+    require_success(retry_process, exact_retry_stage)
+    retry_result = read_json(
+        root
+        / "state"
+        / exact_retry_stage
+        / "result.json"
+    )
+    after_retry = journal_transitions(root, custody_id)
+    if (
+        retry_result["failure"]["code"]
+        != "REPLAY_DETECTED"
+        or retry_result["newlyCommitted"]
+        or retry_result["transition"]["recordHash"]
+        != denial["recordHash"]
+        or len(after_retry) != len(after)
+    ):
+        raise RuntimeError(
+            f"fresh capability exact retry changed history after {condition}"
         )
     return (
         {
@@ -1066,8 +1131,23 @@ def attempt_fresh_capability_reuse(
             "nonce": request["nonce"],
             "failureCode": result["failure"]["code"],
             "newlyCommitted": result["newlyCommitted"],
+            "denialTransitionHash":
+                denial["recordHash"],
+            "denialReason":
+                denial["denialReason"],
+            "statePreservingDenial": True,
             "transitionCountBefore": len(before),
             "transitionCountAfter": len(after),
+            "exactRetryFailureCode":
+                retry_result["failure"]["code"],
+            "exactRetryNewlyCommitted":
+                retry_result["newlyCommitted"],
+            "exactRetryTransitionHash":
+                retry_result["transition"]["recordHash"],
+            "exactRetryTransitionCountBefore":
+                len(after),
+            "exactRetryTransitionCountAfter":
+                len(after_retry),
             "reservationCount": len(reservations),
             "materializationCount":
                 len(materializations),
@@ -1077,6 +1157,7 @@ def attempt_fresh_capability_reuse(
         [
             stage_receipt(root, sign_stage),
             stage_receipt(root, reserve_stage),
+            stage_receipt(root, exact_retry_stage),
         ],
     )
 
@@ -1746,7 +1827,11 @@ def run_crash_case(
             "capabilityId":
                 f"{custody_id}.capability",
             "capabilityIssuedAt": timestamp(offset + 1),
-            "capabilityExpiresAt": timestamp(offset + 11),
+            "capabilityExpiresAt": timestamp(
+                offset + 2
+                if boundary == "after_deny_release"
+                else offset + 11
+            ),
             "capabilityNonce":
                 f"crash-{ordinal}-capability-nonce-0001",
         },
@@ -1781,7 +1866,11 @@ def run_crash_case(
         role="evaluator",
         mode="sign_release",
         custody_id=custody_id,
-        occurred_at=timestamp(offset + 2),
+        occurred_at=timestamp(
+            offset + 3
+            if boundary == "after_deny_release"
+            else offset + 2
+        ),
         contract_path=contract_path,
         extra={
             "requestId": f"{custody_id}.request",
@@ -1822,7 +1911,9 @@ def run_crash_case(
         contract_path=contract_path,
         extra={
             "crashAfterReservationCommit":
-                boundary == "after_reservation_commit"
+                boundary == "after_reservation_commit",
+            "crashAfterDenialCommit":
+                boundary == "after_deny_release",
         },
         inputs={
             "descriptor.json": descriptor_path,
@@ -1838,12 +1929,19 @@ def run_crash_case(
         node_executable=node_executable,
         materialization=materialization,
         vault_private=True,
-        retain=boundary != "after_reservation_commit",
+        retain=boundary
+        not in {
+            "after_reservation_commit",
+            "after_deny_release",
+        },
     )
-    if boundary == "after_reservation_commit":
+    if boundary in {
+        "after_reservation_commit",
+        "after_deny_release",
+    }:
         if reserve_process["returnCode"] == 0:
             raise RuntimeError(
-                "reservation crash boundary did not terminate"
+                f"{boundary} crash boundary did not terminate"
             )
     else:
         require_success(reserve_process, reserve_stage)
@@ -1851,7 +1949,38 @@ def run_crash_case(
 
     if boundary == "after_reservation_commit":
         cleanup_reason = "reservation_abandoned"
+    elif boundary == "after_deny_release":
+        cleanup_reason = "capability_rejection"
     else:
+        if boundary == "after_deny_materialization":
+            tamper_stage = f"{prefix}_tamper"
+            prepare_custody_stage(
+                root=root,
+                stage=tamper_stage,
+                role="vault",
+                mode="tamper_private_envelope",
+                custody_id=custody_id,
+                occurred_at=timestamp(offset + 4),
+                contract_path=contract_path,
+                extra={"tamperKind": "authentication_tag"},
+                inputs={
+                    "descriptor.json": descriptor_path,
+                },
+            )
+            tamper_process = run_custody_worker(
+                root=root,
+                stage=tamper_stage,
+                role="vault",
+                repository=repository,
+                python_root=python_root,
+                node_executable=node_executable,
+                materialization=materialization,
+                vault_private=True,
+            )
+            require_success(tamper_process, tamper_stage)
+            receipts.append(
+                stage_receipt(root, tamper_stage)
+            )
         materialize_stage = f"{prefix}_materialize"
         prepare_custody_stage(
             root=root,
@@ -1864,7 +1993,10 @@ def run_crash_case(
             extra={
                 "crashAfterMaterializationStart":
                     boundary
-                    == "after_materialization_start"
+                    == "after_materialization_start",
+                "crashAfterMaterializationDenialCommit":
+                    boundary
+                    == "after_deny_materialization",
             },
             inputs={
                 "descriptor.json": descriptor_path,
@@ -1882,7 +2014,10 @@ def run_crash_case(
             vault_private=True,
             retain=(
                 boundary
-                != "after_materialization_start"
+                not in {
+                    "after_materialization_start",
+                    "after_deny_materialization",
+                }
             ),
         )
         if boundary == "after_materialization_start":
@@ -1898,6 +2033,17 @@ def run_crash_case(
             cleanup_reason = (
                 "materialization_prewrite_abandoned"
             )
+        elif boundary == "after_deny_materialization":
+            if (
+                materialize_process["returnCode"] == 0
+                or (
+                    materialization / "payload.bin"
+                ).exists()
+            ):
+                raise RuntimeError(
+                    "materialization-denial crash crossed plaintext write"
+                )
+            cleanup_reason = "cryptographic_rejection"
         else:
             require_success(
                 materialize_process, materialize_stage
@@ -1969,6 +2115,19 @@ def run_crash_case(
                 f"{boundary} cleanup did not terminate"
             )
 
+    before_recovery = journal_transitions(
+        root, custody_id
+    )
+    reservation_count_before_recovery = sum(
+        transition["action"] == "reserve_release"
+        for transition in before_recovery
+    )
+    materialization_count_before_recovery = sum(
+        transition["action"]
+        == "begin_materialization"
+        for transition in before_recovery
+    )
+
     recovery_stage = f"{prefix}_recover"
     prepare_custody_stage(
         root=root,
@@ -2020,10 +2179,35 @@ def run_crash_case(
         == "begin_materialization"
         for transition in transitions
     )
+    reservation_count = sum(
+        transition["action"] == "reserve_release"
+        for transition in transitions
+    )
+    denial_count = sum(
+        transition["action"]
+        in {"deny_release", "deny_materialization"}
+        for transition in transitions
+    )
     expected_materializations = (
         0
-        if boundary == "after_reservation_commit"
+        if boundary
+        in {
+            "after_reservation_commit",
+            "after_deny_release",
+        }
         else 1
+    )
+    expected_reservations = (
+        0 if boundary == "after_deny_release" else 1
+    )
+    expected_denials = (
+        1
+        if boundary
+        in {
+            "after_deny_release",
+            "after_deny_materialization",
+        }
+        else 0
     )
     residuals = {
         "keyFilePresent": (
@@ -2058,6 +2242,12 @@ def run_crash_case(
         or cleanup_count != 1
         or materialization_count
         != expected_materializations
+        or reservation_count != expected_reservations
+        or denial_count != expected_denials
+        or reservation_count
+        != reservation_count_before_recovery
+        or materialization_count
+        != materialization_count_before_recovery
         or any(residuals.values())
         or any(leakage_counts)
     ):
@@ -2072,11 +2262,18 @@ def run_crash_case(
         "crashObserved": True,
         "crashReturnCode": (
             reserve_process["returnCode"]
-            if boundary == "after_reservation_commit"
+            if boundary
+            in {
+                "after_reservation_commit",
+                "after_deny_release",
+            }
             else (
                 materialize_process["returnCode"]
                 if boundary
-                == "after_materialization_start"
+                in {
+                    "after_materialization_start",
+                    "after_deny_materialization",
+                }
                 else crash_cleanup_process["returnCode"]
             )
         ),
@@ -2088,6 +2285,15 @@ def run_crash_case(
             result["transition"]["recordHash"],
         "beginCleanupCount": begin_cleanup_count,
         "cleanupCount": cleanup_count,
+        "denialCount": denial_count,
+        "reservationCountBeforeRecovery":
+            reservation_count_before_recovery,
+        "reservationCountAfterRecovery":
+            reservation_count,
+        "materializationCountBeforeRecovery":
+            materialization_count_before_recovery,
+        "materializationCountAfterRecovery":
+            materialization_count,
         "materializationCount": materialization_count,
         "duplicateMaterializationCount": 0,
         "leakageScan": scan,

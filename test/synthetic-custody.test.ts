@@ -298,14 +298,41 @@ test(
       freshReplay.failure?.code,
       "REPLAY_DETECTED",
     );
-    assert.equal(freshReplay.newlyCommitted, false);
+    assert.equal(freshReplay.newlyCommitted, true);
     assert.equal(
-      freshReplay.transition.recordHash,
-      reservation.transition.recordHash,
+      freshReplay.transition.action,
+      "deny_release",
+    );
+    assert.equal(
+      freshReplay.transition.denialReason,
+      "consumed_capability_reuse",
+    );
+    assert.deepEqual(
+      freshReplay.transition.requestActor,
+      actors.evaluator.identity,
     );
     assert.equal(
       (await journal.readTransitions()).length,
-      transitionsBeforeFreshReplay.length,
+      transitionsBeforeFreshReplay.length + 1,
+    );
+    assert.equal(
+      (await journal.readTransitions()).filter(
+        (transition) =>
+          transition.action === "reserve_release",
+      ).length,
+      1,
+    );
+    const exactFreshReplay = await journal.reserve(
+      freshReplayRequest,
+    );
+    assert.equal(exactFreshReplay.newlyCommitted, false);
+    assert.equal(
+      exactFreshReplay.transition.recordHash,
+      freshReplay.transition.recordHash,
+    );
+    assert.equal(
+      (await journal.readTransitions()).length,
+      transitionsBeforeFreshReplay.length + 1,
     );
   },
 );
@@ -520,6 +547,10 @@ test(
       denied.transition.action,
       "deny_release",
     );
+    assert.equal(
+      denied.transition.denialReason,
+      "release_request_rejection",
+    );
     await expiredJournal.cleanup({
       reason: "capability_rejection",
       occurredAt: timestamp(5),
@@ -586,6 +617,24 @@ test(
       dispositions.filter(
         (result) =>
           result.failure?.code === "REPLAY_DETECTED",
+      ).length,
+      1,
+    );
+    const racedTransitions =
+      await journals[0]!.readTransitions();
+    assert.equal(
+      racedTransitions.filter(
+        (transition) =>
+          transition.action === "reserve_release",
+      ).length,
+      1,
+    );
+    assert.equal(
+      racedTransitions.filter(
+        (transition) =>
+          transition.action === "deny_release" &&
+          transition.denialReason ===
+            "consumed_capability_reuse",
       ).length,
       1,
     );

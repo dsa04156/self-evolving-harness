@@ -141,9 +141,19 @@ interface EvidenceScenario {
     readonly condition: string;
     readonly correctlySignedFreshRequest: true;
     readonly failureCode: "REPLAY_DETECTED";
-    readonly newlyCommitted: false;
+    readonly newlyCommitted: true;
+    readonly denialTransitionHash: string;
+    readonly denialReason:
+      "consumed_capability_reuse";
+    readonly statePreservingDenial: true;
     readonly transitionCountBefore: number;
     readonly transitionCountAfter: number;
+    readonly exactRetryFailureCode:
+      "REPLAY_DETECTED";
+    readonly exactRetryNewlyCommitted: false;
+    readonly exactRetryTransitionHash: string;
+    readonly exactRetryTransitionCountBefore: number;
+    readonly exactRetryTransitionCountAfter: number;
     readonly reservationCount: 1;
     readonly materializationCount: number;
     readonly secondReservationAppended: false;
@@ -194,6 +204,11 @@ interface CustodyEvidence {
     readonly evaluatorReceiptProduced: false;
     readonly beginCleanupCount: 1;
     readonly cleanupCount: 1;
+    readonly denialCount: number;
+    readonly reservationCountBeforeRecovery: number;
+    readonly reservationCountAfterRecovery: number;
+    readonly materializationCountBeforeRecovery: number;
+    readonly materializationCountAfterRecovery: number;
     readonly duplicateMaterializationCount: 0;
     readonly leakageScan:
       EvidenceScenario["leakageScan"];
@@ -563,7 +578,9 @@ test(
       ),
       [
         "after_reservation_commit",
+        "after_deny_release",
         "after_materialization_start",
+        "after_deny_materialization",
         "after_plaintext_delete",
         "after_private_delete",
         "after_cleanup_commit",
@@ -574,6 +591,14 @@ test(
       assert.equal(crash.evaluatorReceiptProduced, false);
       assert.equal(crash.beginCleanupCount, 1);
       assert.equal(crash.cleanupCount, 1);
+      assert.equal(
+        crash.reservationCountBeforeRecovery,
+        crash.reservationCountAfterRecovery,
+      );
+      assert.equal(
+        crash.materializationCountBeforeRecovery,
+        crash.materializationCountAfterRecovery,
+      );
       assert.equal(
         crash.duplicateMaterializationCount,
         0,
@@ -654,6 +679,28 @@ test(
         "vault_restart",
       ],
     );
+    for (const reuse of evidence.scenarios.flatMap(
+      (entry) => entry.freshCapabilityReuse,
+    )) {
+      assert.equal(reuse.newlyCommitted, true);
+      assert.equal(
+        reuse.denialReason,
+        "consumed_capability_reuse",
+      );
+      assert.equal(reuse.statePreservingDenial, true);
+      assert.equal(
+        reuse.transitionCountAfter,
+        reuse.transitionCountBefore + 1,
+      );
+      assert.equal(
+        reuse.exactRetryTransitionHash,
+        reuse.denialTransitionHash,
+      );
+      assert.equal(
+        reuse.exactRetryTransitionCountBefore,
+        reuse.exactRetryTransitionCountAfter,
+      );
+    }
 
     const normal = scenario(evidence, "normal");
     assert.ok(normal.consumerReceipt);

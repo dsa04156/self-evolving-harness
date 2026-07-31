@@ -24,11 +24,11 @@
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-07-31
-- last packet: `architect/PACKET_03RRRRRRRRRR_SYNTHETIC_CUSTODY_REHEARSAL.md`
-- last packet sha256: `8caaa035c8957c8d6666c56ade673f3fbd902a075ecc6b3fb8187dc2a3d99438`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrr.md`
-- last response sha256: `aa16d875b8bbf79f0324d3630c370c04f4c19e2d6178f94f088e38e83e7b4b6b`
-- next packet: synthetic-custody active-path substitution and crash-recovery correction
+- last packet: `architect/PACKET_03RRRRRRRRRRR_SYNTHETIC_CUSTODY_RECOVERY.md`
+- last packet sha256: `bb84ce1977b47f77da71cf2bf6a7cfd449c86b855d6564869772a3ea17ace402`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrr.md`
+- last response sha256: `248c180aff8e617300b95d03b9fd0b19cb74e2d334a8af134994c17ea95d495e`
+- next packet: synthetic-custody denial-record and denial-to-cleanup recovery correction
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -77,15 +77,17 @@
   claim discipline are accepted. Closure is blocked on live AEAD/cross-object substitution
   rejection, reservation-only crash recovery, fresh-request reuse of a consumed capability, and
   cleanup-interruption recovery.
-- current authorization: only a local deterministic correction of the synthetic-custody state
-  machine, recovery rules, cleanup reasons, schemas, live cryptographic adversarial tests,
-  fresh-request capability-reuse tests, crash-injection matrix, independent verifier, final audit,
-  and related documentation. Freeze an explicit delivery guarantee; clean and terminally abandon a
-  durable reservation that has no materialization start; test ciphertext/tag/nonce/AAD and
-  descriptor/capability/request substitutions on the live vault path; deny newly signed requests
-  that reuse a consumed capability; and recover crashes after reservation, before plaintext,
-  between file removals, before cleanup append, and after cleanup durability. No push,
-  credential/provider, real task/verifier/label/path, research data or scheduler/B0–B6, pilot,
-  attribution evaluation, selection, promotion/canary/deployment, empirical confidentiality,
-  containment, security, performance, generalization, evolution/self-improvement claim, release, or
-  publication is authorized.
+- Round 03RRRRRRRRRRR decision: `REVISE`. The at-most-once delivery contract, original five
+  crash-recovery windows, twenty-one live substitution attacks, OS materialization boundary,
+  downstream projections, leakage evidence, audit graph, and claim discipline are accepted.
+  Closure is blocked only because distinct first-seen consumed-capability probes were not durably
+  recorded and because restart after durable release/materialization denial but before cleanup start
+  was undefined.
+- current authorization: only a local deterministic correction adding one state-preserving
+  vault-signed denial per first-seen consumed-capability request, exact-retry reuse without a second
+  append, deterministic `deny_release`/`deny_materialization` to cleanup recovery without decryption
+  retry, two immediate post-denial SIGKILL cases, and associated schema/test/verifier/final-audit
+  documentation. No push, credential/provider, real task/verifier/label/path, research data or
+  scheduler/B0–B6, pilot, attribution evaluation, selection, promotion/canary/deployment, empirical
+  confidentiality, containment, security, performance, generalization, evolution/self-improvement
+  claim, release, or publication is authorized.

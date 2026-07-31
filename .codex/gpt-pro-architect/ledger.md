@@ -686,3 +686,46 @@ response path, interpreted decision, required revisions, and the commit containi
   or research data, scheduler/B0–B6, pilot/attribution evaluation, candidate selection,
   promotion/canary/deployment, and empirical confidentiality, containment, security, performance,
   generalization, evolution, or self-improvement claims
+
+## Round 3RRRRRRRRRRR — 2026-07-31
+
+- sent authoritative project packet:
+  `architect/PACKET_03RRRRRRRRRRR_SYNTHETIC_CUSTODY_RECOVERY.md`
+- packet hash: `bb84ce1977b47f77da71cf2bf6a7cfd449c86b855d6564869772a3ea17ace402`
+- packet size: 18,196 characters / 18,242 bytes
+- implementation commit/tree:
+  `e7df5d229760c75bd2bd44ca1679889db152c0d4` /
+  `cfe60bbd5476b3956b321e816e6ad6f04a96d8b0`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no push occurred
+- validation: exact Node 24.18.1 deterministic suite 135/135; line 96.01%, branch 90.39%,
+  function 93.47%; build, type/static checks, Python compilation, independent custody verifier,
+  and nine rehashed nested-tamper cases passed
+- custody evidence file/internal hashes:
+  `ef4ac5419ebcf0143152658002aaa411e05f798e2250023d7e0ac0318f542cba` /
+  `sha256:07fdd58f387a2826fd355b320bae1d8d2b9168816dae8653a4396de012753996`
+- transport: the exact existing Chrome CDP target and conversation were reused. The long insert
+  timed out before send; the complete 18,905-character rendered composer was verified, then the
+  packet was submitted exactly once. No new tab/window or continuation was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 10,806 characters / 10,824 bytes with
+  SHA-256 `248c180aff8e617300b95d03b9fd0b19cb74e2d334a8af134994c17ea95d495e`
+- architect decision: `REVISE`
+- accepted: frozen at-most-once delivery, reservation abandonment, two-phase cleanup, five original
+  SIGKILL boundaries, twenty-one live attacks, fresh capability-reuse rejection behavior,
+  eight-principal custody boundary, finite leakage scans, commitment-only projections, final audit,
+  nested verification, and claim discipline
+- blocking findings: first-seen fresh consumed-capability requests lacked a vault-signed denial
+  record; restart was undefined after durable `deny_release` or `deny_materialization` before
+  `cleanup_started`
+- authorized next: only per-request state-preserving consumed-capability denial, exact-retry
+  idempotency, both denial-to-cleanup recovery paths, two immediate post-denial SIGKILL cases,
+  associated schemas/tests/verifier/final-audit bindings, documentation, and complete clean-commit
+  validation
+- still prohibited: Git push/release/publication, credential/provider/API, real task or benchmark
+  material, research scheduling/B0–B6, pilot/attribution evaluation, candidate selection,
+  promotion/canary/deployment, and empirical confidentiality, containment, security, performance,
+  generalization, evolution, or self-improvement claims

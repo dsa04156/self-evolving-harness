@@ -83,6 +83,11 @@ export type SyntheticCustodyCleanupReason =
   | "cleanup_interrupted_after_private_delete"
   | "cleanup_acknowledgement_loss";
 
+export type SyntheticCustodyDenialReason =
+  | "release_request_rejection"
+  | "consumed_capability_reuse"
+  | "cryptographic_rejection";
+
 export interface SyntheticCustodyAad {
   readonly schemaVersion: 1;
   readonly recordType: "synthetic_custody_aad";
@@ -217,6 +222,7 @@ export interface SyntheticCustodyTransition {
   readonly priorJournalHead: string | null;
   readonly action: SyntheticCustodyAction;
   readonly requestCommitment: string | null;
+  readonly requestActor: PrincipalIdentity | null;
   readonly capabilityCommitment: string | null;
   readonly releaseId: string | null;
   readonly stateBefore: SyntheticCustodyState | null;
@@ -224,6 +230,8 @@ export interface SyntheticCustodyTransition {
   readonly stateSuccessor: boolean;
   readonly decision: "allowed" | "denied";
   readonly reasonCode: string;
+  readonly denialReason:
+    SyntheticCustodyDenialReason | null;
   readonly cleanupReason:
     SyntheticCustodyCleanupReason | null;
   readonly keyReleased: false;
@@ -1461,6 +1469,37 @@ export function verifySyntheticCustodyTransition(input: {
     "HASH_MISMATCH",
     "Synthetic custody transition binding changed",
   );
+  assertCondition(
+    (input.record.requestCommitment === null &&
+      input.record.requestActor === null) ||
+      (input.record.requestCommitment !== null &&
+        input.record.requestActor !== null &&
+        canonicalize(
+          input.record.requestActor as unknown as JsonValue,
+        ) ===
+          canonicalize(
+            input.contract.principalMatrix.evaluator
+              .identity as unknown as JsonValue,
+          )),
+    "AUTHENTICATION_FAILED",
+    "Synthetic custody transition request actor binding changed",
+  );
+  assertCondition(
+    input.record.decision === "allowed"
+      ? input.record.denialReason === null
+      : input.record.denialReason !== null &&
+          ((input.record.action === "deny_release" &&
+            (input.record.denialReason ===
+              "release_request_rejection" ||
+              input.record.denialReason ===
+                "consumed_capability_reuse")) ||
+            (input.record.action ===
+              "deny_materialization" &&
+              input.record.denialReason ===
+                "cryptographic_rejection")),
+    "INVALID_STATE_TRANSITION",
+    "Synthetic custody transition denial reason is invalid",
+  );
   registryWith(input.record.publicPrincipal).verify(
     input.record.recordedBy,
     transitionSignedBody(
@@ -1524,6 +1563,7 @@ export class SyntheticCustodyJournal {
         priorJournalHead: null,
         action: "seal",
         requestCommitment: null,
+        requestActor: null,
         capabilityCommitment: null,
         releaseId: null,
         stateBefore: null,
@@ -1531,6 +1571,7 @@ export class SyntheticCustodyJournal {
         stateSuccessor: true,
         decision: "allowed",
         reasonCode: "ALLOWED",
+        denialReason: null,
         cleanupReason: null,
         occurredAt,
       });
@@ -1574,6 +1615,8 @@ export class SyntheticCustodyJournal {
         };
       }
       let failure: HarnessError | null = null;
+      let denialReason:
+        SyntheticCustodyDenialReason | null = null;
       try {
         verifySyntheticCustodyReleaseRequest({
           record: request,
@@ -1587,16 +1630,12 @@ export class SyntheticCustodyJournal {
             request.capability.capabilityHash,
           );
         if (consumedReservation !== undefined) {
-          return {
-            transition: consumedReservation,
-            journalHead: snapshot.head!,
-            newlyCommitted: false,
-            failure: {
-              code: "REPLAY_DETECTED",
-              safeDetail:
-                "Synthetic custody capability was already consumed",
-            },
-          };
+          denialReason =
+            "consumed_capability_reuse";
+          throw new HarnessError(
+            "REPLAY_DETECTED",
+            "Synthetic custody capability was already consumed",
+          );
         }
         assertCondition(
           snapshot.state === "sealed",
@@ -1605,6 +1644,8 @@ export class SyntheticCustodyJournal {
         );
       } catch (error) {
         failure = asHarnessError(error);
+        denialReason ??=
+          "release_request_rejection";
       }
       const allowed = failure === null;
       const releaseId = allowed
@@ -1619,6 +1660,7 @@ export class SyntheticCustodyJournal {
           ? "reserve_release"
           : "deny_release",
         requestCommitment,
+        requestActor: request.actor,
         capabilityCommitment:
           request.capability.capabilityHash,
         releaseId,
@@ -1629,6 +1671,9 @@ export class SyntheticCustodyJournal {
         stateSuccessor: allowed,
         decision: allowed ? "allowed" : "denied",
         reasonCode: failure?.code ?? "ALLOWED",
+        denialReason: allowed
+          ? null
+          : denialReason,
         cleanupReason: null,
         occurredAt: request.requestedAt,
       });
@@ -1716,6 +1761,7 @@ export class SyntheticCustodyJournal {
         priorJournalHead: snapshot.head,
         action: "begin_materialization",
         requestCommitment,
+        requestActor: input.request.actor,
         capabilityCommitment:
           input.request.capability.capabilityHash,
         releaseId: reservation.releaseId,
@@ -1724,6 +1770,7 @@ export class SyntheticCustodyJournal {
         stateSuccessor: true,
         decision: "allowed",
         reasonCode: "ALLOWED",
+        denialReason: null,
         cleanupReason: null,
         occurredAt: input.occurredAt,
       });
@@ -1800,6 +1847,7 @@ export class SyntheticCustodyJournal {
         priorJournalHead: snapshot.head,
         action: "deny_materialization",
         requestCommitment,
+        requestActor: input.request.actor,
         capabilityCommitment:
           input.request.capability.capabilityHash,
         releaseId: materialization.releaseId,
@@ -1808,6 +1856,7 @@ export class SyntheticCustodyJournal {
         stateSuccessor: false,
         decision: "denied",
         reasonCode: input.failureCode,
+        denialReason: "cryptographic_rejection",
         cleanupReason: null,
         occurredAt: input.occurredAt,
       });
@@ -1889,14 +1938,34 @@ export class SyntheticCustodyJournal {
       );
       if (input.reason === "capability_rejection") {
         assertCondition(
-          [...snapshot.requests.values()].some(
-            (transition) =>
-              transition.action ===
-                "deny_release" &&
-              transition.decision === "denied",
-          ),
+          snapshot.latestTransition?.action ===
+            "deny_release" &&
+            snapshot.latestTransition.decision ===
+              "denied" &&
+            snapshot.latestTransition.denialReason ===
+              "release_request_rejection" &&
+            (requestCommitment === null ||
+              snapshot.latestTransition
+                .requestCommitment ===
+                requestCommitment),
           "AUTHORIZATION_DENIED",
-          "Capability-rejection cleanup requires a durable denial",
+          "Capability-rejection cleanup requires the latest durable request denial",
+        );
+      }
+      if (input.reason === "cryptographic_rejection") {
+        assertCondition(
+          snapshot.latestTransition?.action ===
+            "deny_materialization" &&
+            snapshot.latestTransition.decision ===
+              "denied" &&
+            snapshot.latestTransition.denialReason ===
+              "cryptographic_rejection" &&
+            (requestCommitment === null ||
+              snapshot.latestTransition
+                .requestCommitment ===
+                requestCommitment),
+          "AUTHORIZATION_DENIED",
+          "Cryptographic-rejection cleanup requires the latest durable materialization denial",
         );
       }
       const transition = this.#createTransition({
@@ -1906,6 +1975,8 @@ export class SyntheticCustodyJournal {
         priorJournalHead: snapshot.head,
         action: "begin_cleanup",
         requestCommitment,
+        requestActor:
+          input.request?.actor ?? null,
         capabilityCommitment,
         releaseId,
         stateBefore: snapshot.state,
@@ -1913,6 +1984,7 @@ export class SyntheticCustodyJournal {
         stateSuccessor: true,
         decision: "allowed",
         reasonCode: "ALLOWED",
+        denialReason: null,
         cleanupReason: input.reason,
         occurredAt: input.occurredAt,
       });
@@ -1974,6 +2046,7 @@ export class SyntheticCustodyJournal {
         action: "cleanup",
         requestCommitment:
           cleanupStart.requestCommitment,
+        requestActor: cleanupStart.requestActor,
         capabilityCommitment:
           cleanupStart.capabilityCommitment,
         releaseId: cleanupStart.releaseId,
@@ -1982,6 +2055,7 @@ export class SyntheticCustodyJournal {
         stateSuccessor: true,
         decision: "allowed",
         reasonCode: "ALLOWED",
+        denialReason: null,
         cleanupReason: input.reason,
         occurredAt: input.occurredAt,
       });
@@ -2036,6 +2110,8 @@ export class SyntheticCustodyJournal {
     readonly priorJournalHead: string | null;
     readonly action: SyntheticCustodyAction;
     readonly requestCommitment: string | null;
+    readonly requestActor:
+      PrincipalIdentity | null;
     readonly capabilityCommitment: string | null;
     readonly releaseId: string | null;
     readonly stateBefore:
@@ -2044,6 +2120,8 @@ export class SyntheticCustodyJournal {
     readonly stateSuccessor: boolean;
     readonly decision: "allowed" | "denied";
     readonly reasonCode: string;
+    readonly denialReason:
+      SyntheticCustodyDenialReason | null;
     readonly cleanupReason:
       SyntheticCustodyCleanupReason | null;
     readonly occurredAt: string;
@@ -2083,6 +2161,7 @@ export class SyntheticCustodyJournal {
       action: input.action,
       requestCommitment:
         input.requestCommitment,
+      requestActor: input.requestActor,
       capabilityCommitment:
         input.capabilityCommitment,
       releaseId: input.releaseId,
@@ -2091,6 +2170,7 @@ export class SyntheticCustodyJournal {
       stateSuccessor: input.stateSuccessor,
       decision: input.decision,
       reasonCode: input.reasonCode,
+      denialReason: input.denialReason,
       cleanupReason: input.cleanupReason,
       keyReleased: false,
       ciphertextReleased: false,
@@ -2223,6 +2303,7 @@ export class SyntheticCustodyJournal {
               "deny_materialization") &&
             transition.decision === "denied" &&
             transition.stateAfter === state &&
+            transition.denialReason !== null &&
             transition.cleanupReason === null,
           "INVALID_STATE_TRANSITION",
           "Synthetic custody non-successor is not a denial",

@@ -25,6 +25,7 @@
     "priorJournalHead",
     "action",
     "requestCommitment",
+    "requestActor",
     "capabilityCommitment",
     "releaseId",
     "stateBefore",
@@ -32,6 +33,7 @@
     "stateSuccessor",
     "decision",
     "reasonCode",
+    "denialReason",
     "cleanupReason",
     "keyReleased",
     "ciphertextReleased",
@@ -115,6 +117,16 @@
     "requestCommitment": {
       "$ref": "#/$defs/nullableHash"
     },
+    "requestActor": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "capabilityCommitment": {
       "$ref": "#/$defs/nullableHash"
     },
@@ -147,6 +159,21 @@
     "reasonCode": {
       "type": "string",
       "pattern": "^[A-Z][A-Z0-9_]{1,95}$"
+    },
+    "denialReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "release_request_rejection",
+            "consumed_capability_reuse",
+            "cryptographic_rejection"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "cleanupReason": {
       "oneOf": [

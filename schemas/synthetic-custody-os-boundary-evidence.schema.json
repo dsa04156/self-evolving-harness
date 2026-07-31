@@ -267,7 +267,35 @@
             {
               "properties": {
                 "boundary": {
+                  "const": "after_deny_release"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
                   "const": "after_materialization_start"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/crashCase"
+            },
+            {
+              "properties": {
+                "boundary": {
+                  "const": "after_deny_materialization"
                 }
               }
             }
@@ -316,8 +344,8 @@
           ]
         }
       ],
-      "minItems": 5,
-      "maxItems": 5
+      "minItems": 7,
+      "maxItems": 7
     },
     "adversarialCases": {
       "type": "array",
@@ -514,8 +542,16 @@
         "nonce",
         "failureCode",
         "newlyCommitted",
+        "denialTransitionHash",
+        "denialReason",
+        "statePreservingDenial",
         "transitionCountBefore",
         "transitionCountAfter",
+        "exactRetryFailureCode",
+        "exactRetryNewlyCommitted",
+        "exactRetryTransitionHash",
+        "exactRetryTransitionCountBefore",
+        "exactRetryTransitionCountAfter",
         "reservationCount",
         "materializationCount",
         "secondReservationAppended",
@@ -553,7 +589,16 @@
           "const": "REPLAY_DETECTED"
         },
         "newlyCommitted": {
-          "const": false
+          "const": true
+        },
+        "denialTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "denialReason": {
+          "const": "consumed_capability_reuse"
+        },
+        "statePreservingDenial": {
+          "const": true
         },
         "transitionCountBefore": {
           "type": "integer",
@@ -562,6 +607,23 @@
         "transitionCountAfter": {
           "type": "integer",
           "minimum": 2
+        },
+        "exactRetryFailureCode": {
+          "const": "REPLAY_DETECTED"
+        },
+        "exactRetryNewlyCommitted": {
+          "const": false
+        },
+        "exactRetryTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "exactRetryTransitionCountBefore": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "exactRetryTransitionCountAfter": {
+          "type": "integer",
+          "minimum": 3
         },
         "reservationCount": {
           "const": 1
@@ -838,6 +900,11 @@
         "terminalTransitionHash",
         "beginCleanupCount",
         "cleanupCount",
+        "denialCount",
+        "reservationCountBeforeRecovery",
+        "reservationCountAfterRecovery",
+        "materializationCountBeforeRecovery",
+        "materializationCountAfterRecovery",
         "materializationCount",
         "duplicateMaterializationCount",
         "leakageScan",
@@ -849,7 +916,9 @@
           "type": "string",
           "enum": [
             "after_reservation_commit",
+            "after_deny_release",
             "after_materialization_start",
+            "after_deny_materialization",
             "after_plaintext_delete",
             "after_private_delete",
             "after_cleanup_commit"
@@ -862,7 +931,9 @@
           "type": "string",
           "enum": [
             "reservation_abandoned",
+            "capability_rejection",
             "materialization_prewrite_abandoned",
+            "cryptographic_rejection",
             "cleanup_interrupted_after_plaintext_delete",
             "cleanup_interrupted_after_private_delete",
             "cleanup_acknowledgement_loss"
@@ -889,7 +960,7 @@
         "transitions": {
           "type": "array",
           "minItems": 4,
-          "maxItems": 5,
+          "maxItems": 6,
           "uniqueItems": true,
           "items": {
             "$ref": "./synthetic-custody-transition.schema.json"
@@ -903,6 +974,31 @@
         },
         "cleanupCount": {
           "const": 1
+        },
+        "denialCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reservationCountBeforeRecovery": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reservationCountAfterRecovery": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "materializationCountBeforeRecovery": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "materializationCountAfterRecovery": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
         },
         "materializationCount": {
           "type": "integer",

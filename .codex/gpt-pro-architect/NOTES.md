@@ -376,3 +376,26 @@ any paid-provider request.
   attribution evaluation, candidate selection, promotion/deployment, publication, or empirical
   confidentiality/security/performance/generalization/evolution/self-improvement claim is
   authorized.
+
+## Durable Round 3RRRRRRRRRRR custody-recovery decision
+
+- External decision: `REVISE`.
+- Accepted: the explicit `at_most_once_abort_on_uncertain_delivery` contract, reservation-only
+  abandonment, two-phase cleanup, five original SIGKILL recovery windows, twenty-one live
+  cryptographic/binding attacks, four fresh consumed-capability probes, eight-principal
+  materialization boundary, finite leakage evidence, downstream commitment projections, nested
+  signature verification, and bounded claims.
+- Blocking audit defect: a first-seen, correctly signed request reusing a consumed capability was
+  rejected without a new vault-signed state-preserving `deny_release` record. Exact retries may
+  reuse an existing disposition, but distinct authenticated probes must each enter authoritative
+  history without adding a reservation or materialization successor.
+- Blocking recovery defects: restart was undefined after durable `deny_release` and after durable
+  `deny_materialization` when `cleanup_started` had not yet been committed.
+- Authorized correction: add per-request durable consumed-capability denial plus exact-retry
+  idempotency; define denial-to-cleanup recovery without retrying decryption; inject SIGKILL
+  immediately after both denial commits; bind denial/retry/count evidence in the independent
+  verifier and final audit; rerun the complete local deterministic validation from a clean commit.
+- No Git push, API credential/provider, real task or benchmark material, research scheduling/B0–B6,
+  attribution experiment, candidate selection, promotion/canary/deployment, publication, or
+  empirical confidentiality/security/performance/generalization/evolution/self-improvement claim is
+  authorized.

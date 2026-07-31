@@ -217,6 +217,59 @@ test(
         },
       },
       {
+        name: "fresh-denial-lineage",
+        mutate: (value) => {
+          const normal = arrayAt(
+            value,
+            "scenarios",
+          )[0]!;
+          const fresh = arrayAt(
+            normal,
+            "freshCapabilityReuse",
+          )[0]!;
+          fresh["denialTransitionHash"] =
+            sha256Text(
+              "tampered-fresh-denial-lineage",
+            );
+        },
+      },
+      {
+        name: "fresh-exact-retry-disposition",
+        mutate: (value) => {
+          const normal = arrayAt(
+            value,
+            "scenarios",
+          )[0]!;
+          const fresh = arrayAt(
+            normal,
+            "freshCapabilityReuse",
+          )[0]!;
+          fresh["exactRetryTransitionHash"] =
+            sha256Text(
+              "tampered-exact-retry-transition",
+            );
+        },
+      },
+      {
+        name: "fresh-exact-retry-count",
+        mutate: (value) => {
+          const normal = arrayAt(
+            value,
+            "scenarios",
+          )[0]!;
+          const fresh = arrayAt(
+            normal,
+            "freshCapabilityReuse",
+          )[0]!;
+          fresh["exactRetryTransitionCountAfter"] =
+            Number(
+              fresh[
+                "exactRetryTransitionCountAfter"
+              ],
+            ) + 1;
+        },
+      },
+      {
         name: "crash-terminal-history",
         mutate: (value) => {
           const crash = arrayAt(
@@ -227,6 +280,28 @@ test(
             sha256Text(
               "tampered-crash-terminal-transition",
             );
+        },
+      },
+      {
+        name: "deny-release-recovery-count",
+        mutate: (value) => {
+          const crash = arrayAt(
+            value,
+            "crashCases",
+          )[1]!;
+          crash["reservationCountAfterRecovery"] = 1;
+        },
+      },
+      {
+        name: "deny-materialization-recovery-count",
+        mutate: (value) => {
+          const crash = arrayAt(
+            value,
+            "crashCases",
+          )[3]!;
+          crash[
+            "materializationCountAfterRecovery"
+          ] = 0;
         },
       },
       {

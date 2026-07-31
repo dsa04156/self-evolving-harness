@@ -134,7 +134,9 @@ interface WorkerConfiguration {
     | "timeout";
   readonly crashAfterPlaintextWrite?: boolean;
   readonly crashAfterReservationCommit?: boolean;
+  readonly crashAfterDenialCommit?: boolean;
   readonly crashAfterMaterializationStart?: boolean;
+  readonly crashAfterMaterializationDenialCommit?: boolean;
   readonly crashAfterPlaintextDelete?: boolean;
   readonly crashAfterPrivateDelete?: boolean;
   readonly crashAfterCleanupCommit?: boolean;
@@ -1005,6 +1007,14 @@ async function reserveRelease(
   ) {
     process.kill(process.pid, "SIGKILL");
   }
+  if (
+    config.crashAfterDenialCommit === true &&
+    disposition.failure !== null &&
+    disposition.transition.action === "deny_release" &&
+    disposition.newlyCommitted
+  ) {
+    process.kill(process.pid, "SIGKILL");
+  }
   await writeOperationResult({
     schemas,
     descriptor,
@@ -1137,6 +1147,13 @@ async function materialize(
         failureCode: materializationFailureCode,
         occurredAt: config.timestamp,
       });
+    if (
+      config.crashAfterMaterializationDenialCommit ===
+        true &&
+      denied.newlyCommitted
+    ) {
+      process.kill(process.pid, "SIGKILL");
+    }
     await writeOperationResult({
       schemas,
       descriptor,
