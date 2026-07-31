@@ -1,0 +1,1 @@
+{"input":[{"content":"Synthetic non-benchmark OS-boundary input.","kind":"text","role":"user"}],"instructions":"Synthetic transport check. Return SYNTHETIC_OS_OK.","maxOutputTokens":32,"modelIdentity":"fake:model-os-boundary-v1","reasoningEffort":"none","requestId":"provider-request.os-boundary.1","tools":[]}

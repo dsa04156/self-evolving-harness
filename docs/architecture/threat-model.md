@@ -1,6 +1,6 @@
 # Threat Model
 
-Status: Gate 1RRR correction candidate
+Status: Gate 3 readiness candidate; no broad production-containment claim
 Scope: standalone runtime, component/evolution registries, local candidate execution, evaluation, and
 promotion
 
@@ -72,6 +72,13 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Trace deletion/reorder/rewriting | signed sequence/hash chain, artifact hashes, published heads/checkpoints | missing/reordered/modified replay detection | privileged deletion hurts availability |
 | Model/tool/feedback compute is laundered through roles/caches/failures | sole provider/tool broker, shared phase account, charge all attempts/statuses | hidden-role, cancelled, cached, retry and subagent accounting tests | provider billing/telemetry ambiguity |
 | Model alias silently drifts | pinned exposed identity/parameters, request IDs, probe/disclosure, reproducibility tier | mismatch/drift report and invalidation rule | opaque service-side updates |
+| Browser login is mistaken for provider authority | real-provider runner accepts only the preregistered protected-file credential slot; browser cookies/session data are never read or mounted | absent `OPENAI_API_KEY` fails before artifact creation or network; validation mode does not inspect credentials | operator may still provision the wrong API project/key |
+| Runtime, proposer, evaluator, promoter, or audit reads the provider key | only provider UID 1106 owns the 0600 credential and signing key; runtime UID 1102 receives only an authenticated Unix capability | subordinate-UID probe denies cross-read/write, signal, and ptrace; runtime integration records denied credential read | malicious host root/kernel remains outside the claim |
+| Credential-owning provider bypasses the egress policy | provider and runtime use independent `--unshare-net` sandboxes; credential-blind egress UID 1107 alone retains network | both role probes report direct network denial; CONNECT broker test rejects a non-allowlisted destination | compromised bootstrap host can replace namespaces or mounts |
+| Egress broker receives the provider credential or terminates TLS | broker mounts neither vault nor public provider config; it authenticates provider `SO_PEERCRED`, admits one exact CONNECT target, and relays opaque bytes; TLS/SNI/certificate validation remains in provider UID | broker credential-mount and TLS-termination fields are fixed false; broker stdout must be empty; secret scan covers subprocess output and evidence | traffic size/timing and destination remain visible to the broker |
+| Smoke plan, price, broker, or egress policy changes after review | closed preregistration schema, canonical plan/pricing hash, raw broker-byte hash, canonical policy hash, clean committed source, and pre/during/post source checks | model/cap/price/broker/policy drift and symlinked artifacts fail before a call | a malicious host can race and restore bytes between checks |
+| Provider returns a different model than requested | adapter records requested alias and provider-reported model; proxy accepts only the alias or its dated snapshot form and signs the observed value | deterministic adapter test plus accepted dated snapshot and rejected unrelated-model receipts | provider may misreport its own internal serving identity |
+| Provider failure avoids accounting | exactly one attempt is frozen; missing usage charges the full token/cost reservation; overage suppresses the response and emits `budget_exhausted` | deterministic failed-call, overage, replay, and restart tests | provider billing can still disagree with API telemetry |
 | Gate is overfit through repeated aggregates | finite candidate batch, one non-adaptive gate selection, fixed released fields, every release charged | second query/refinement request denied | first aggregate still informs selection by design |
 | Qualification is laundered into deployment or per-component activation | separate approval and production-pointer decisions; whole-harness CAS only | approved-without-deploy and mixed-component pointer tests | registry implementation defect |
 | Concurrent promotion loses parent/rollback lineage | expected generation, prior pointer hash, parent ID, registry serialization | stale and concurrent CAS tests | distributed registry outside MVP |
@@ -105,3 +112,10 @@ Gate 1R may approve only the implementable contracts. Gate 2 requires determinis
 adversarial evidence. An `isolation_emulated` result proves logic only. Any immutable-boundary violation,
 test leakage, evaluator impersonation, protocol mixing, or non-atomic activation is a final `BLOCK`
 regardless of task performance.
+
+The Gate 3 provider path adds a narrower acceptance rule: deterministic controls and fake-provider OS
+evidence do not count as a real-provider result. A successful provider smoke additionally requires one
+signed receipt from the preregistered real plan, exact synthetic output, zero secret exposure, and the
+three-principal runtime/provider/egress evidence. Until that artifact exists, provider invocation remains
+`not_executed`; benchmark, pilot, gate, final, temporal, promotion, and performance/self-improvement
+claims remain unauthorized.
