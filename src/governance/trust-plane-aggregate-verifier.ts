@@ -112,7 +112,7 @@ const EXPECTED_PUBLIC_ROOTS = [
 interface ParsedArtifact {
   readonly reference: TrustPlaneArtifactReference;
   readonly bytes: Buffer;
-  readonly json: JsonValue | null;
+  readonly json: unknown | null;
 }
 
 interface SignedRecord {
@@ -174,9 +174,9 @@ function sameStrings(
 }
 
 function objectValue(
-  value: JsonValue,
+  value: unknown,
   key: string,
-): JsonValue {
+): unknown {
   ensure(
     value !== null &&
       typeof value === "object" &&
@@ -184,15 +184,15 @@ function objectValue(
       Object.hasOwn(value, key),
     `JSON object has no ${key}`,
   );
-  return value[key]!;
+  return (value as Record<string, unknown>)[key];
 }
 
 function jsonPointer(
-  value: JsonValue,
+  value: unknown,
   pointer: string,
-): JsonValue {
+): unknown {
   ensure(pointer.startsWith("/"), `invalid JSON pointer ${pointer}`);
-  let current = value;
+  let current: unknown = value;
   for (const token of pointer
     .slice(1)
     .split("/")
@@ -207,7 +207,7 @@ function jsonPointer(
           current[index] !== undefined,
         `JSON pointer ${pointer} is absent`,
       );
-      current = current[index]!;
+      current = current[index];
       continue;
     }
     ensure(
@@ -216,7 +216,7 @@ function jsonPointer(
         Object.hasOwn(current, token),
       `JSON pointer ${pointer} is absent`,
     );
-    current = current[token]!;
+    current = (current as Record<string, unknown>)[token];
   }
   return current;
 }
@@ -383,9 +383,9 @@ async function loadArtifact(
     `sha256:${sha256Bytes(bytes)}` === reference.sha256,
     `${reference.artifactId} content hash mismatch`,
   );
-  let json: JsonValue | null = null;
+  let json: unknown | null = null;
   if (reference.mediaType === "application/json") {
-    json = parseStrictJson(bytes.toString("utf8"));
+    json = JSON.parse(bytes.toString("utf8")) as unknown;
   }
   return { reference, bytes, json };
 }
@@ -412,7 +412,7 @@ function asSignedRecord(
 function artifactJson(
   artifacts: ReadonlyMap<string, ParsedArtifact>,
   artifactId: string,
-): JsonValue {
+): unknown {
   const artifact = artifacts.get(artifactId);
   ensure(artifact !== undefined, `missing artifact ${artifactId}`);
   ensure(
@@ -420,6 +420,15 @@ function artifactJson(
     `${artifactId} is not JSON`,
   );
   return artifact.json;
+}
+
+function artifactCanonicalJson(
+  artifacts: ReadonlyMap<string, ParsedArtifact>,
+  artifactId: string,
+): JsonValue {
+  const artifact = artifacts.get(artifactId);
+  ensure(artifact !== undefined, `missing artifact ${artifactId}`);
+  return parseStrictJson(artifact.bytes.toString("utf8"));
 }
 
 function artifactText(
@@ -453,7 +462,7 @@ function verifyGovernance(
             : chain.records[index - 1]!.artifactId),
         `${chain.chainId} predecessor mismatch`,
       );
-      const json = artifactJson(
+      const json = artifactCanonicalJson(
         artifacts,
         record.artifactId,
       );
@@ -469,11 +478,11 @@ function verifyGovernance(
     });
   }
 
-  const hfbDeviation = artifactJson(
+  const hfbDeviation = artifactCanonicalJson(
     artifacts,
     "governance.hfb_deviation",
   );
-  const hfbClosure = artifactJson(
+  const hfbClosure = artifactCanonicalJson(
     artifacts,
     "governance.hfb_closure",
   );
@@ -493,15 +502,15 @@ function verifyGovernance(
     "HFB append-only remediation relationship mismatch",
   );
 
-  const publicationDeviation = artifactJson(
+  const publicationDeviation = artifactCanonicalJson(
     artifacts,
     "governance.publication_deviation",
   );
-  const publicationClosure = artifactJson(
+  const publicationClosure = artifactCanonicalJson(
     artifacts,
     "governance.publication_closure",
   );
-  const supersedingClosure = artifactJson(
+  const supersedingClosure = artifactCanonicalJson(
     artifacts,
     "governance.publication_superseding_closure",
   );
@@ -552,7 +561,7 @@ function verifyGovernance(
     "Publication superseding relationship mismatch",
   );
 
-  const inventory = artifactJson(
+  const inventory = artifactCanonicalJson(
     artifacts,
     "governance.historical_inventory",
   );
@@ -572,7 +581,7 @@ function verifyGovernance(
       sha256(inventoryCore),
     "Historical inventory hash mismatch",
   );
-  const ledger = artifactJson(
+  const ledger = artifactCanonicalJson(
     artifacts,
     "governance.historical_ledger",
   );
@@ -581,7 +590,7 @@ function verifyGovernance(
     "ledgerHash",
     "historical exposure ledger",
   );
-  const priorLedger = artifactJson(
+  const priorLedger = artifactCanonicalJson(
     artifacts,
     "governance.prior_public_ledger",
   );
@@ -799,12 +808,15 @@ function verifyObligations(
     artifact.json !== null,
     "outstanding obligations are not JSON",
   );
+  const canonicalObligations = parseStrictJson(
+    artifact.bytes.toString("utf8"),
+  );
   schemas.validate(
     "https://self-evolving-harness.local/schemas/trust-plane-outstanding-obligations.schema.json",
-    artifact.json,
+    canonicalObligations,
   );
   const obligations =
-    artifact.json as unknown as TrustPlaneOutstandingObligations;
+    canonicalObligations as unknown as TrustPlaneOutstandingObligations;
   sameStrings(
     obligations.obligations.map(
       (entry) => entry.obligationId,
@@ -1033,10 +1045,7 @@ export async function verifyTrustPlaneAggregate(input: {
         assertion.jsonPointer,
       );
       ensure(
-        canonicalize(actual) ===
-          canonicalize(
-            assertion.equals as JsonPrimitive,
-          ),
+        actual === assertion.equals,
         `${domain.domainId} assertion ${assertion.artifactId}${assertion.jsonPointer} differs`,
       );
     }
