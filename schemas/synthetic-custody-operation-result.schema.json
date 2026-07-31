@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-operation-result.schema.json",
+  "title": "Body-free result from one synthetic custody vault operation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "ok",
+    "failure",
+    "custodyId",
+    "descriptorHash",
+    "transition",
+    "journalHead",
+    "state",
+    "newlyCommitted",
+    "materializationCreated",
+    "keyFilePresent",
+    "ciphertextFilePresent",
+    "plaintextFilePresent",
+    "process"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_operation_result"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "safeDetail"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{1,95}$"
+            },
+            "safeDetail": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        }
+      ]
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "transition": {
+      "$ref": "./synthetic-custody-transition.schema.json"
+    },
+    "journalHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "sealed",
+        "release_reserved",
+        "materialization_started",
+        "cleaned"
+      ]
+    },
+    "newlyCommitted": {
+      "type": "boolean"
+    },
+    "materializationCreated": {
+      "type": "boolean"
+    },
+    "keyFilePresent": {
+      "type": "boolean"
+    },
+    "ciphertextFilePresent": {
+      "type": "boolean"
+    },
+    "plaintextFilePresent": {
+      "type": "boolean"
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "isolationClass"
+      ],
+      "properties": {
+        "uid": {
+          "const": 1304
+        },
+        "gid": {
+          "const": 1304
+        },
+        "isolationClass": {
+          "const": "os_enforced_subordinate_uid"
+        }
+      }
+    }
+  }
+}

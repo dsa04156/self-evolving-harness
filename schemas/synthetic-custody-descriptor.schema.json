@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-descriptor.schema.json",
+  "title": "Commitment-only descriptor for an encrypted inert synthetic payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "custodyId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "taskHandleCommitment",
+    "authorCommitmentHash",
+    "includedTransitionHash",
+    "admittedVaultStateHead",
+    "unlockCapabilityHash",
+    "payloadClass",
+    "payloadLength",
+    "plaintextCommitment",
+    "keyCommitment",
+    "ciphertextCommitment",
+    "envelopeHash",
+    "encryptionAlgorithm",
+    "keyAuthority",
+    "createdAt",
+    "createdBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_descriptor"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskHandleCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "authorCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "includedTransitionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "admittedVaultStateHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "unlockCapabilityHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "payloadClass": {
+      "const": "fixed_inert_bytes_no_research_semantics"
+    },
+    "payloadLength": {
+      "const": 64
+    },
+    "plaintextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "keyCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "ciphertextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "envelopeHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "encryptionAlgorithm": {
+      "const": "aes-256-gcm"
+    },
+    "keyAuthority": {
+      "const": "vault_exclusive_ephemeral_test_root"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

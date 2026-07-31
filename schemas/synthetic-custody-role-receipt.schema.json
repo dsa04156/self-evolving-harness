@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-role-receipt.schema.json",
+  "title": "Signed commitment-only receipt for a synthetic custody OS role action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "receiptId",
+    "protocolId",
+    "contractHash",
+    "custodyId",
+    "role",
+    "action",
+    "process",
+    "inputCommitments",
+    "outputCommitments",
+    "inertPayloadObserved",
+    "taskBodyPresent",
+    "verifierLogicPresent",
+    "labelPresent",
+    "taskPathPresent",
+    "modelPromptPresent",
+    "keyReleased",
+    "ciphertextReleased",
+    "reusableDecryptionAuthorityReleased",
+    "privateMaterialEmbeddedInReceipt",
+    "occurredAt",
+    "producer",
+    "receiptHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_role_receipt"
+    },
+    "receiptId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "seal_custody",
+        "sign_release",
+        "reserve_release",
+        "materialize",
+        "consume",
+        "cleanup",
+        "recover_cleanup",
+        "scorer_projection",
+        "promoter_projection",
+        "finalize_audit"
+      ]
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "isolationClass"
+      ],
+      "properties": {
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "isolationClass": {
+          "const": "os_enforced_subordinate_uid"
+        }
+      }
+    },
+    "inputCommitments": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "outputCommitments": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "inertPayloadObserved": {
+      "type": "boolean"
+    },
+    "taskBodyPresent": {
+      "const": false
+    },
+    "verifierLogicPresent": {
+      "const": false
+    },
+    "labelPresent": {
+      "const": false
+    },
+    "taskPathPresent": {
+      "const": false
+    },
+    "modelPromptPresent": {
+      "const": false
+    },
+    "keyReleased": {
+      "const": false
+    },
+    "ciphertextReleased": {
+      "const": false
+    },
+    "reusableDecryptionAuthorityReleased": {
+      "const": false
+    },
+    "privateMaterialEmbeddedInReceipt": {
+      "const": false
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "receiptHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "hashArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/sha256"
+      }
+    }
+  }
+}

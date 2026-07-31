@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-transition.schema.json",
+  "title": "Signed durable transition for one inert synthetic custody object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "transitionId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "custodyId",
+    "descriptorHash",
+    "taskHandleCommitment",
+    "includedTransitionHash",
+    "admittedVaultStateHead",
+    "unlockCapabilityHash",
+    "plaintextCommitment",
+    "payloadLength",
+    "priorTransitionHash",
+    "priorJournalHead",
+    "action",
+    "requestCommitment",
+    "capabilityCommitment",
+    "releaseId",
+    "stateBefore",
+    "stateAfter",
+    "stateSuccessor",
+    "decision",
+    "reasonCode",
+    "cleanupReason",
+    "keyReleased",
+    "ciphertextReleased",
+    "plaintextRetained",
+    "keyDestroyed",
+    "ciphertextDestroyed",
+    "plaintextCleanupConfirmed",
+    "occurredAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_transition"
+    },
+    "transitionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskHandleCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "includedTransitionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "admittedVaultStateHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "unlockCapabilityHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "plaintextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "payloadLength": {
+      "const": 64
+    },
+    "priorTransitionHash": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "priorJournalHead": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "seal",
+        "reserve_release",
+        "begin_materialization",
+        "deny_release",
+        "cleanup"
+      ]
+    },
+    "requestCommitment": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "capabilityCommitment": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "releaseId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stateBefore": {
+      "$ref": "#/$defs/nullableState"
+    },
+    "stateAfter": {
+      "$ref": "#/$defs/state"
+    },
+    "stateSuccessor": {
+      "type": "boolean"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "allowed",
+        "denied"
+      ]
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$"
+    },
+    "cleanupReason": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "normal_completion",
+            "evaluator_crash",
+            "vault_crash_recovery",
+            "timeout",
+            "capability_rejection",
+            "response_loss"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "keyReleased": {
+      "const": false
+    },
+    "ciphertextReleased": {
+      "const": false
+    },
+    "plaintextRetained": {
+      "const": false
+    },
+    "keyDestroyed": {
+      "type": "boolean"
+    },
+    "ciphertextDestroyed": {
+      "type": "boolean"
+    },
+    "plaintextCleanupConfirmed": {
+      "type": "boolean"
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "nullableHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "sealed",
+        "release_reserved",
+        "materialization_started",
+        "cleaned"
+      ]
+    },
+    "nullableState": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

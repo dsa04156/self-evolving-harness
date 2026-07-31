@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-leakage-scan.schema.json",
+  "title": "Vault-signed absence scan for synthetic custody private bytes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "scanId",
+    "protocolId",
+    "contractHash",
+    "custodyId",
+    "descriptorHash",
+    "plaintextCommitment",
+    "keyCommitment",
+    "repositoryPayloadMatches",
+    "repositoryKeyMatches",
+    "retainedStatePayloadMatches",
+    "retainedStateKeyMatches",
+    "logPayloadMatches",
+    "logKeyMatches",
+    "processArgumentPayloadMatches",
+    "processArgumentKeyMatches",
+    "keyFilePresentAfterCleanup",
+    "ciphertextFilePresentAfterCleanup",
+    "plaintextFilePresentAfterCleanup",
+    "scannedAt",
+    "scannedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_leakage_scan"
+    },
+    "scanId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "plaintextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "keyCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "repositoryPayloadMatches": {
+      "const": 0
+    },
+    "repositoryKeyMatches": {
+      "const": 0
+    },
+    "retainedStatePayloadMatches": {
+      "const": 0
+    },
+    "retainedStateKeyMatches": {
+      "const": 0
+    },
+    "logPayloadMatches": {
+      "const": 0
+    },
+    "logKeyMatches": {
+      "const": 0
+    },
+    "processArgumentPayloadMatches": {
+      "const": 0
+    },
+    "processArgumentKeyMatches": {
+      "const": 0
+    },
+    "keyFilePresentAfterCleanup": {
+      "const": false
+    },
+    "ciphertextFilePresentAfterCleanup": {
+      "const": false
+    },
+    "plaintextFilePresentAfterCleanup": {
+      "const": false
+    },
+    "scannedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "scannedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

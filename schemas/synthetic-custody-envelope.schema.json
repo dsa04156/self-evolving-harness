@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-envelope.schema.json",
+  "title": "Vault-private encrypted envelope for a fixed inert synthetic payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "algorithm",
+    "custodyId",
+    "aad",
+    "nonce",
+    "ciphertext",
+    "authenticationTag",
+    "ciphertextCommitment",
+    "envelopeHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_envelope"
+    },
+    "algorithm": {
+      "const": "aes-256-gcm"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "aad": {
+      "$ref": "#/$defs/aad"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16}$"
+    },
+    "ciphertext": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    },
+    "authenticationTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+    },
+    "ciphertextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "envelopeHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "aad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "recordType",
+        "custodyId",
+        "protocolId",
+        "contractId",
+        "contractHash",
+        "taskHandleCommitment",
+        "authorCommitmentHash",
+        "includedTransitionHash",
+        "admittedVaultStateHead",
+        "unlockCapabilityHash",
+        "plaintextCommitment",
+        "payloadLength"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "recordType": {
+          "const": "synthetic_custody_aad"
+        },
+        "custodyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "protocolId": {
+          "$ref": "./common.schema.json#/$defs/protocolId"
+        },
+        "contractId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "contractHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "taskHandleCommitment": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "authorCommitmentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "includedTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "admittedVaultStateHead": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "unlockCapabilityHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "plaintextCommitment": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "payloadLength": {
+          "const": 64
+        }
+      }
+    }
+  }
+}

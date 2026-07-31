@@ -84,5 +84,6 @@ export * from "./trust/evaluator-vault-contract.js";
 export * from "./trust/evaluator-vault.js";
 export * from "./trust/independent-authorship.js";
 export * from "./trust/protected-file.js";
+export * from "./trust/synthetic-custody.js";
 export * from "./trust/vault-writer-lease.js";
 export * from "./trust/wire.js";

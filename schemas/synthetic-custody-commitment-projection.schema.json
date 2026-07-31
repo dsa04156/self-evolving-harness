@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-commitment-projection.schema.json",
+  "title": "Commitment-only scorer or promoter projection for synthetic custody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "projectionId",
+    "projectionClass",
+    "protocolId",
+    "contractHash",
+    "custodyId",
+    "descriptorHash",
+    "plaintextCommitment",
+    "sourceReceiptHash",
+    "cleanupTransitionHash",
+    "taskBodyPresent",
+    "ciphertextPresent",
+    "keyPresent",
+    "plaintextPresent",
+    "rawTaskHandlePresent",
+    "observedAt",
+    "observedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_commitment_projection"
+    },
+    "projectionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "projectionClass": {
+      "type": "string",
+      "enum": [
+        "scorer_commitments_only",
+        "promoter_commitments_only"
+      ]
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "plaintextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "sourceReceiptHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "cleanupTransitionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskBodyPresent": {
+      "const": false
+    },
+    "ciphertextPresent": {
+      "const": false
+    },
+    "keyPresent": {
+      "const": false
+    },
+    "plaintextPresent": {
+      "const": false
+    },
+    "rawTaskHandlePresent": {
+      "const": false
+    },
+    "observedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "observedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

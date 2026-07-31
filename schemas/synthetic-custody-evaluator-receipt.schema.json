@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-evaluator-receipt.schema.json",
+  "title": "Commitment-only receipt from an evaluator reading an ephemeral inert payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "receiptId",
+    "protocolId",
+    "contractHash",
+    "custodyId",
+    "descriptorHash",
+    "releaseId",
+    "observedPlaintextCommitment",
+    "observedPayloadLength",
+    "readOnlyMaterialization",
+    "encryptionKeyPresent",
+    "ciphertextPresent",
+    "reusableDecryptionAuthorityPresent",
+    "taskBodyPresent",
+    "verifierLogicPresent",
+    "modelPromptPresent",
+    "consumedAt",
+    "consumedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_evaluator_receipt"
+    },
+    "receiptId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "releaseId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "observedPlaintextCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "observedPayloadLength": {
+      "const": 64
+    },
+    "readOnlyMaterialization": {
+      "const": true
+    },
+    "encryptionKeyPresent": {
+      "const": false
+    },
+    "ciphertextPresent": {
+      "const": false
+    },
+    "reusableDecryptionAuthorityPresent": {
+      "const": false
+    },
+    "taskBodyPresent": {
+      "const": false
+    },
+    "verifierLogicPresent": {
+      "const": false
+    },
+    "modelPromptPresent": {
+      "const": false
+    },
+    "consumedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "consumedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

@@ -27,6 +27,9 @@ ROLE_UIDS = {
     "audit_store": 1308,
 }
 WORKER = "/opt/seh/scripts/evaluator-vault-os-worker.ts"
+CUSTODY_WORKER = (
+    "/opt/seh/scripts/synthetic-custody-os-worker.ts"
+)
 NODE = "/opt/node/bin/node"
 TSX = "/opt/seh/node_modules/tsx/dist/cli.mjs"
 CLIENT = "/opt/seh/evaluator/evaluator_vault_socket_client.py"
@@ -355,6 +358,13 @@ def base_sandbox(
             / "evaluator-vault-os-worker.ts"
         ),
         WORKER,
+        "--ro-bind",
+        str(
+            repository
+            / "scripts"
+            / "synthetic-custody-os-worker.ts"
+        ),
+        CUSTODY_WORKER,
         "--ro-bind",
         str(
             repository

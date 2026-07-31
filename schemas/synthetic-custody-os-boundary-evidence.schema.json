@@ -1,0 +1,652 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-os-boundary-evidence.schema.json",
+  "title": "Eight-principal OS evidence for inert encrypted synthetic custody",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "isolationClass",
+    "ephemeralStorage",
+    "roleUids",
+    "hostRoleUids",
+    "keyOwners",
+    "publicPrincipals",
+    "contract",
+    "binding",
+    "reviewerBoundary",
+    "scenarios",
+    "scorerProjection",
+    "promoterProjection",
+    "finalAudit",
+    "roleReceipts",
+    "bodyAbsence",
+    "providerUsed",
+    "researchEvidenceAuthorized",
+    "promotionAuthorized",
+    "repositoryPushPerformed",
+    "evidenceHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_os_boundary_evidence"
+    },
+    "isolationClass": {
+      "const": "os_enforced_subordinate_uids"
+    },
+    "ephemeralStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filesystemType",
+        "pathRetained",
+        "plaintextNamesRetained"
+      ],
+      "properties": {
+        "filesystemType": {
+          "const": "tmpfs"
+        },
+        "pathRetained": {
+          "const": false
+        },
+        "plaintextNamesRetained": {
+          "const": false
+        }
+      }
+    },
+    "roleUids": {
+      "$ref": "./body-free-evaluator-vault-os-boundary-evidence.schema.json#/$defs/fixedRoleUidMap"
+    },
+    "hostRoleUids": {
+      "$ref": "./body-free-evaluator-vault-os-boundary-evidence.schema.json#/$defs/integerRoleMap"
+    },
+    "keyOwners": {
+      "$ref": "./body-free-evaluator-vault-os-boundary-evidence.schema.json#/$defs/fixedRoleUidMap"
+    },
+    "publicPrincipals": {
+      "$ref": "./body-free-evaluator-vault-os-boundary-evidence.schema.json#/$defs/publicPrincipalMap"
+    },
+    "contract": {
+      "$ref": "./evaluator-vault-contract.schema.json"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskHandleCommitment",
+        "authorCommitmentHash",
+        "includedTransitionHash",
+        "admittedVaultStateHead",
+        "unlockCapabilityHash"
+      ],
+      "properties": {
+        "taskHandleCommitment": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "authorCommitmentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "includedTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "admittedVaultStateHead": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "unlockCapabilityHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "reviewerBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputFiles",
+        "custodyDescriptorPresent",
+        "ciphertextMetadataPresent",
+        "authorIdentityPresent",
+        "rawTaskHandlePresent",
+        "privateKeyPresent"
+      ],
+      "properties": {
+        "inputFiles": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "config.json"
+            },
+            {
+              "const": "own-public.json"
+            },
+            {
+              "const": "review.json"
+            },
+            {
+              "const": "reviewer-projection.json"
+            }
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "custodyDescriptorPresent": {
+          "const": false
+        },
+        "ciphertextMetadataPresent": {
+          "const": false
+        },
+        "authorIdentityPresent": {
+          "const": false
+        },
+        "rawTaskHandlePresent": {
+          "const": false
+        },
+        "privateKeyPresent": {
+          "const": false
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "normal"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "evaluator_crash"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "vault_crash"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "timeout"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "capability_rejection"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/scenario"
+            },
+            {
+              "properties": {
+                "scenario": {
+                  "const": "response_loss"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "scorerProjection": {
+      "$ref": "./synthetic-custody-commitment-projection.schema.json"
+    },
+    "promoterProjection": {
+      "$ref": "./synthetic-custody-commitment-projection.schema.json"
+    },
+    "finalAudit": {
+      "$ref": "./synthetic-custody-final-audit.schema.json"
+    },
+    "roleReceipts": {
+      "type": "array",
+      "minItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./synthetic-custody-role-receipt.schema.json"
+      }
+    },
+    "bodyAbsence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskBodyPresent",
+        "verifierLogicPresent",
+        "labelPresent",
+        "taskPathPresent",
+        "expectedAnswerPresent",
+        "modelPromptPresent",
+        "gateMaterialPresent",
+        "finalMaterialPresent",
+        "researchSemanticsPresent"
+      ],
+      "properties": {
+        "taskBodyPresent": {
+          "const": false
+        },
+        "verifierLogicPresent": {
+          "const": false
+        },
+        "labelPresent": {
+          "const": false
+        },
+        "taskPathPresent": {
+          "const": false
+        },
+        "expectedAnswerPresent": {
+          "const": false
+        },
+        "modelPromptPresent": {
+          "const": false
+        },
+        "gateMaterialPresent": {
+          "const": false
+        },
+        "finalMaterialPresent": {
+          "const": false
+        },
+        "researchSemanticsPresent": {
+          "const": false
+        }
+      }
+    },
+    "providerUsed": {
+      "const": false
+    },
+    "researchEvidenceAuthorized": {
+      "const": false
+    },
+    "promotionAuthorized": {
+      "const": false
+    },
+    "repositoryPushPerformed": {
+      "const": false
+    },
+    "evidenceHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "nullableOperationResult": {
+      "oneOf": [
+        {
+          "$ref": "./synthetic-custody-operation-result.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableEvaluatorReceipt": {
+      "oneOf": [
+        {
+          "$ref": "./synthetic-custody-evaluator-receipt.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableRoleReceipt": {
+      "oneOf": [
+        {
+          "$ref": "./synthetic-custody-role-receipt.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "consumer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "returnCode",
+        "timedOut",
+        "responseLost",
+        "receiptProduced"
+      ],
+      "properties": {
+        "returnCode": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "responseLost": {
+          "type": "boolean"
+        },
+        "receiptProduced": {
+          "type": "boolean"
+        }
+      }
+    },
+    "exactRetry": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reservationStable",
+            "reservationTransitionHash",
+            "secondMaterializationDenied",
+            "failureCode",
+            "plaintextFilePresent"
+          ],
+          "properties": {
+            "reservationStable": {
+              "const": true
+            },
+            "reservationTransitionHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "secondMaterializationDenied": {
+              "const": true
+            },
+            "failureCode": {
+              "const": "REPLAY_DETECTED"
+            },
+            "plaintextFilePresent": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "residuals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyFilePresent",
+        "ciphertextFilePresent",
+        "plaintextFilePresent"
+      ],
+      "properties": {
+        "keyFilePresent": {
+          "const": false
+        },
+        "ciphertextFilePresent": {
+          "const": false
+        },
+        "plaintextFilePresent": {
+          "const": false
+        }
+      }
+    },
+    "nullableRoleDenials": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_author",
+            "benchmark_author",
+            "benchmark_reviewer",
+            "evaluator",
+            "scorer",
+            "promoter",
+            "audit_store"
+          ],
+          "properties": {
+            "protocol_author": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "benchmark_author": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "benchmark_reviewer": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "evaluator": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "scorer": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "promoter": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            },
+            "audit_store": {
+              "$ref": "#/$defs/custodyRoleProbe"
+            }
+          }
+        }
+      ]
+    },
+    "custodyRoleProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "role",
+        "uid",
+        "gid",
+        "ownKeyReadable",
+        "challenge",
+        "challengeSignature",
+        "effectiveCapabilities",
+        "noNewPrivileges",
+        "forbiddenReadsDenied",
+        "forbiddenWritesDenied",
+        "signalsDenied",
+        "ptraceDenied",
+        "networkDenied"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "role": {
+          "$ref": "./common.schema.json#/$defs/principalRole"
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ownKeyReadable": {
+          "const": true
+        },
+        "challenge": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "challengeSignature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "effectiveCapabilities": {
+          "const": "0000000000000000"
+        },
+        "noNewPrivileges": {
+          "const": "1"
+        },
+        "forbiddenReadsDenied": {
+          "const": 4
+        },
+        "forbiddenWritesDenied": {
+          "const": 4
+        },
+        "signalsDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ptraceDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "networkDenied": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario",
+        "custodyId",
+        "descriptor",
+        "capability",
+        "request",
+        "sealResult",
+        "reserveResult",
+        "materializeResult",
+        "consumer",
+        "consumerReceipt",
+        "consumerRoleReceipt",
+        "cleanupResult",
+        "leakageScan",
+        "transitions",
+        "roleReceipts",
+        "roleDenials",
+        "exactRetry",
+        "residuals"
+      ],
+      "properties": {
+        "scenario": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "evaluator_crash",
+            "vault_crash",
+            "timeout",
+            "capability_rejection",
+            "response_loss"
+          ]
+        },
+        "custodyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "descriptor": {
+          "$ref": "./synthetic-custody-descriptor.schema.json"
+        },
+        "capability": {
+          "$ref": "./synthetic-custody-capability.schema.json"
+        },
+        "request": {
+          "$ref": "./synthetic-custody-release-request.schema.json"
+        },
+        "sealResult": {
+          "$ref": "./synthetic-custody-operation-result.schema.json"
+        },
+        "reserveResult": {
+          "$ref": "./synthetic-custody-operation-result.schema.json"
+        },
+        "materializeResult": {
+          "$ref": "#/$defs/nullableOperationResult"
+        },
+        "consumer": {
+          "$ref": "#/$defs/consumer"
+        },
+        "consumerReceipt": {
+          "$ref": "#/$defs/nullableEvaluatorReceipt"
+        },
+        "consumerRoleReceipt": {
+          "$ref": "#/$defs/nullableRoleReceipt"
+        },
+        "cleanupResult": {
+          "$ref": "./synthetic-custody-operation-result.schema.json"
+        },
+        "leakageScan": {
+          "$ref": "./synthetic-custody-leakage-scan.schema.json"
+        },
+        "transitions": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-transition.schema.json"
+          }
+        },
+        "roleReceipts": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./synthetic-custody-role-receipt.schema.json"
+          }
+        },
+        "roleDenials": {
+          "$ref": "#/$defs/nullableRoleDenials"
+        },
+        "exactRetry": {
+          "$ref": "#/$defs/exactRetry"
+        },
+        "residuals": {
+          "$ref": "#/$defs/residuals"
+        }
+      }
+    }
+  }
+}

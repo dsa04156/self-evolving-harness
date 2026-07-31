@@ -26,6 +26,8 @@
     "verify:development-process-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-development-process-boundary.ts",
     "generate:evaluator-vault-os-boundary": "SEH_REQUIRE_EVALUATOR_VAULT_OS_BOUNDARY=1 SEH_EVALUATOR_VAULT_OS_EVIDENCE_OUTPUT=architect/evidence/evaluator-vault-os-boundary/evidence.json npx -y node@24.18.1 --import tsx --test test/evaluator-vault-os-boundary.test.ts",
     "verify:evaluator-vault-os-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-evaluator-vault-os-boundary.ts",
+    "generate:synthetic-custody-os-boundary": "SEH_REQUIRE_SYNTHETIC_CUSTODY_OS_BOUNDARY=1 SEH_SYNTHETIC_CUSTODY_OS_EVIDENCE_OUTPUT=architect/evidence/synthetic-custody-os-boundary/evidence.json npx -y node@24.18.1 --import tsx --test test/synthetic-custody-os-boundary.test.ts",
+    "verify:synthetic-custody-os-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-synthetic-custody-os-boundary.ts",
     "create:publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-publication-governance.ts",
     "verify:publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-publication-governance.ts",
     "create:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-historical-publication-governance.ts",

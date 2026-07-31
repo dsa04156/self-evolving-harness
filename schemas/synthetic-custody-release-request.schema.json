@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/synthetic-custody-release-request.schema.json",
+  "title": "Signed evaluator request for one inert synthetic custody materialization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "requestId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "custodyId",
+    "descriptorHash",
+    "capability",
+    "senderSequence",
+    "nonce",
+    "requestedAt",
+    "actor",
+    "requestHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "synthetic_custody_release_request"
+    },
+    "requestId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "custodyId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "descriptorHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "capability": {
+      "$ref": "./synthetic-custody-capability.schema.json"
+    },
+    "senderSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9._:@/-]+$"
+    },
+    "requestedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "actor": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "requestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}
