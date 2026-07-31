@@ -1,4 +1,9 @@
-import { sha256, sha256Text, type JsonValue } from "../core/canonical.js";
+import {
+  canonicalize,
+  sha256,
+  sha256Text,
+  type JsonValue,
+} from "../core/canonical.js";
 import { HarnessError, assertCondition } from "../core/errors.js";
 import type { ModelInputItem, ModelTool } from "../domain/model.js";
 import { estimateTokens, type RankedMemory } from "./memory.js";
@@ -70,6 +75,7 @@ interface TextCandidate {
   readonly role: "system" | "user" | "assistant";
   readonly order: number;
   readonly rank: number;
+  readonly modelItem?: ModelInputItem;
 }
 
 function renderSkill(skill: DeclarativeSkill): string {
@@ -106,8 +112,17 @@ export class ContextBuilder {
       text: string,
       role: TextCandidate["role"],
       rank = 0,
+      modelItem?: ModelInputItem,
     ): void => {
-      candidates.push({ source, sourceId, text, role, order, rank });
+      candidates.push({
+        source,
+        sourceId,
+        text,
+        role,
+        order,
+        rank,
+        ...(modelItem === undefined ? {} : { modelItem }),
+      });
       order += 1;
     };
     add("task_input", "task.primary", input.task, "user");
@@ -133,6 +148,40 @@ export class ContextBuilder {
         input.verificationFeedback,
         "system",
       );
+    }
+    for (const [index, item] of input.transcript.entries()) {
+      if (item.kind === "tool_output") {
+        add(
+          "tool_results",
+          `tool-result.${index.toString().padStart(6, "0")}.${item.callId}`,
+          canonicalize({
+            callId: item.callId,
+            output: item.output,
+            isError: item.isError,
+          }),
+          "user",
+          index,
+          item,
+        );
+      } else if (item.kind === "text") {
+        add(
+          "session_events",
+          `session-event.${index.toString().padStart(6, "0")}`,
+          item.content,
+          item.role,
+          index,
+          item,
+        );
+      } else {
+        add(
+          "session_events",
+          `provider-item.${index.toString().padStart(6, "0")}`,
+          canonicalize(item.value),
+          "assistant",
+          index,
+          item,
+        );
+      }
     }
     for (const [index, tool] of input.tools.entries()) {
       add(
@@ -215,12 +264,13 @@ export class ContextBuilder {
     const selectedInput: ModelInputItem[] = selected
       .filter((candidate) => candidate.role !== "system" && candidate.source !== "tool_catalog")
       .sort((left, right) => left.order - right.order)
-      .map((candidate) => ({
-        kind: "text",
-        role: candidate.role,
-        content: candidate.text,
-      }));
-    selectedInput.push(...input.transcript);
+      .map((candidate) =>
+        candidate.modelItem ?? {
+          kind: "text",
+          role: candidate.role,
+          content: candidate.text,
+        },
+      );
     const manifestIdentity = {
       entries: manifest,
       estimatedTokens: total,
