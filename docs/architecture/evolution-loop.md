@@ -1,6 +1,6 @@
 # Harness Evolution Loop
 
-Status: Gate 2-approved primitives with a deterministic first-class coordinator
+Status: deterministic first-class coordinator with candidate-bundle isolation
 
 ## Contract
 
@@ -60,10 +60,18 @@ Approval is still not deployment. The loop stops at the qualification decision; 
 and rollback remain separate operations in `deployment.ts`.
 
 The evaluator preparation contract requires a non-null snapshot hash and at least one verified receipt
-that binds the candidate. The current integration tests use a separately signed deterministic evaluator
-result to test orchestration. The existing Git worktree manager and OS-external evaluator are tested
-independently. Materializing the component candidate bundle into the Git worktree and exercising that
-combined path remains a declared follow-up; this document does not claim it is already integrated.
+that binds the candidate. `CandidateBundleIsolationService` exports the complete registered component
+closure, writes one canonical bundle, commits only that fixed path in a detached worktree, freezes a
+base/head/tree/blob/mode/byte descriptor, and materializes it read-only.
+`WorktreeExternalEvaluationExecutor` mounts that snapshot in the separately keyed Python evaluator.
+Before accepting a request, the evaluator independently verifies the complete filesystem descriptor,
+bundle content ID, source base commit, candidate HarnessVersion ID, component and payload hashes,
+dependency/behavior closure, and request-to-bundle candidate binding.
+
+The end-to-end bundle test uses the external evaluator's `isolation_emulated` launch because it retains
+the host UID. A separate passing suite proves subordinate-UID evaluator boundaries for a generic frozen
+snapshot. The two have not yet been combined into one subordinate-UID candidate-bundle transaction, so
+that stronger claim remains deferred.
 
 ## Data roles
 

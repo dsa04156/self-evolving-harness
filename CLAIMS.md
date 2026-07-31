@@ -88,14 +88,14 @@ model-specific retuning.
 ## Current evidence status
 
 Evidence snapshot: implementation commit
-`819be3eaa05b159effe2abf0f069cba673055731`, tree
-`eb06f2105811f1b78588d47cfea21dacea917371`.
+`e64967c6d24ad6f070c3783e7115f667b1c92be1`, tree
+`6aaec2130a481291b95ecc8fd6b397794c299891`.
 
 | Claim | Current status | Evidence boundary |
 |---|---|---|
 | C-A1 | partially supported | Local source/import inspection and deterministic runtime tests find no Codex, Gajae-Code, or OpenCode invocation. The real-provider path is intentionally unexecuted under `NP-1`, so no live process-level provider claim is made. |
 | C-A2 | deterministically supported | The signed evolution-run journal requires a new candidate ID distinct from its parent, enforces an independent lifecycle, and passes approve, reject, failure, replay, and illegal-transition tests. |
-| C-A3 | deterministically and locally OS-boundary supported | Registry, closure, admission, evaluator-principal, and immutable-boundary tests pass within the documented local TCB. This is not a broad production-containment claim. |
+| C-A3 | deterministically and locally OS-boundary supported | Registry, closure, admission, canonical bundle, exact Git snapshot, external evaluator, and immutable-boundary tests pass within the documented local TCB. Candidate-bundle end-to-end uses `isolation_emulated`; subordinate-UID enforcement is independently tested on a generic snapshot, not yet in the same transaction. |
 | C-H1–C-H4 | unexecuted and unsupported | No research benchmark, live provider, gate, final, or temporal evaluation has run. |
 
 The current result is an architectural-conformance artifact. It is not evidence that the harness
