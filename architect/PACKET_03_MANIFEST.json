@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate3-readiness-real-provider-pending-1",
+  "createdAt": "2026-07-31T10:40:39+09:00",
+  "status": "awaiting_review",
+  "respondsToDecisionSha256": "f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c",
+  "runtimeSourceCommit": "3588ef6d2d6d743bd0d831cf847210c7e836ed31",
+  "runtimeSourceTree": "2c4e009af7f5fa56f221aa90a793974a91eca369",
+  "evidenceCommit": "10ff6b88e2274d689d397e223529b623ebfc03b7",
+  "evidenceTree": "09384be206503e7c1fd3803d25ac004659a1ddaf",
+  "packet": {
+    "path": "architect/PACKET_03_GATE3_READINESS.md",
+    "sha256": "41d03f8f32a497c445218240c05aaf36c3404b6996173a182c7d512d50b367c6",
+    "characterCount": 15798,
+    "byteCount": 15872
+  },
+  "validation": {
+    "path": "docs/evaluation/gate3-readiness-validation.md",
+    "sha256": "e0604f58790db23895d489232a07c7b39d9e12675248185d4dfca42f658741b9",
+    "changeLogPath": "docs/architecture/gate3-readiness-change-log.md",
+    "changeLogSha256": "82dd04af38ff4aaa71727a2ab35fc7317ec75eff3def9e855c0ae38c25acfe78",
+    "threatModelPath": "docs/architecture/threat-model.md",
+    "threatModelSha256": "8c146c977bc59845633e98e075dd4a7355b6491b46064f9fa8c52857e4865592",
+    "tests": {
+      "total": 59,
+      "passed": 59,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coveragePercentMicros": {
+      "line": 90872428,
+      "branch": 85287611,
+      "function": 88768116
+    },
+    "compiledSchemas": 53,
+    "typecheck": "pass",
+    "build": "pass",
+    "requiredOsBoundary": "pass"
+  },
+  "closedFollowups": {
+    "signedCompleteSessionDefinition": true,
+    "deterministicMatchedBudgetScheduler": true,
+    "signedBudgetFreeze": true,
+    "semanticPhaseLedgerReplay": true,
+    "providerCredentialPrincipal": true,
+    "runtimeProviderUnixAuthentication": true,
+    "providerOsUidSeparation": true,
+    "realProviderPlanFrozen": true,
+    "credentialBlindEgressImplemented": true,
+    "providerReportedModelRecorded": true
+  },
+  "realProviderPlan": {
+    "path": "configs/provider-smoke.openai-luna.json",
+    "fileSha256": "9aedcf260dc68b057c71ab5d146fb0b71f5eb0052f58dea65dc85ba9f09f3a28",
+    "canonicalPlanHash": "sha256:0e51e4b743af62bd8249349df6bb27e288fb2f934286503eea202d8b1e74cbd0",
+    "pricingSourcePath": "configs/provider-pricing.openai-gpt-5.6-luna.json",
+    "pricingSourceFileSha256": "e80b1e0d4bc7781c827241dbc44874888b5010bef988d32a146a4296eaf0f5a1",
+    "canonicalPricingSourceHash": "sha256:264ac32014b845baa24a3134826d4577c052ac21d90742df59f124e55417348d",
+    "brokerImplementationHash": "sha256:d696aee6582ebdf74c9adf48e1cc69254fb49cc2c5adcfc05f5e9fb46fa36fdd",
+    "egressPolicyHash": "sha256:99dc5a00135e06d890799c9ea39f4f3c5c8cacce3dfe0187b8fa29e480207229",
+    "datasetPermissions": [
+      "deterministic"
+    ],
+    "providerCallAttempts": 1,
+    "totalChargedTokens": 256,
+    "providerCostMicros": 1000,
+    "wallClockMillis": 60000,
+    "noHarnessMutation": true,
+    "reproducibilityTier": "provider_alias_non_snapshot_smoke_only"
+  },
+  "realProviderExecution": {
+    "status": "not_executed_missing_credential",
+    "credentialEnvironmentVariable": "OPENAI_API_KEY",
+    "credentialPresentAtAssembly": false,
+    "providerRequestAttempts": 0,
+    "chargedTokens": 0,
+    "providerCostMicros": 0,
+    "response": null,
+    "receipt": null,
+    "threePrincipalLiveEgressEvidence": null
+  },
+  "providerOsEvidence": {
+    "classification": "fake_provider_os_boundary_not_real_provider_result",
+    "path": "architect/evidence/gate3/provider-os-evidence.json",
+    "sha256": "3ee26891e7ccd24b888af6608eaf2062a680be32f94aecd776ffbfe11cd00c34",
+    "smokeManifestPath": "architect/evidence/gate3/provider-smoke-manifest.json",
+    "smokeManifestSha256": "3df39d5be1d2130aac2a7cb787399e00656f7af70d7aa8b1c02eb288442a4d77",
+    "budgetFreezePath": "architect/evidence/gate3/provider-budget-freeze.json",
+    "budgetFreezeSha256": "70754dc8ca684a8acbc4638e76dee62c17186e2b437ae2d4eeb09b763af813dd",
+    "requestPath": "architect/evidence/gate3/provider-synthetic-request.json",
+    "requestSha256": "62a4d677d3ca6b8db6ce78b6fd8f78b1d2cd03cf0c8d81a253e163c95165d613",
+    "isolationClass": "os_enforced_provider_proxy",
+    "runtimeUid": 1102,
+    "providerUid": 1106,
+    "credentialReadDenied": true,
+    "directNetworkDenied": true,
+    "knownSecretRedacted": true
+  },
+  "environment": {
+    "node": "24.18.1",
+    "npm": "11.18.0",
+    "pythonGate": "3.12.3",
+    "bubblewrap": "0.9.0",
+    "rootlesskit": "2.3.6",
+    "kernel": "Linux 7.0.0-28-generic x86_64 GNU/Linux",
+    "packageLockSha256": "6067e8a69a6adfbf2f0f5eb7f395b5afb6dd114b74c131e55cd3f3c8986d3ed2"
+  },
+  "externalActions": {
+    "architectTransmission": false,
+    "paidProviderCall": false,
+    "benchmarkExecution": false,
+    "researchSplitAccess": false,
+    "harnessMutation": false,
+    "promotion": false,
+    "externalRepositoryWrite": false,
+    "deployment": false
+  },
+  "review": {
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserEndpoint": "127.0.0.1:9222",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "newWindowAllowed": false,
+    "transport": "exact-tab direct CDP to the pinned existing target; one submission; no new tab or window",
+    "decision": null,
+    "responsePath": null,
+    "responseSha256": null
+  }
+}
