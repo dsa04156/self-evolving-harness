@@ -76,12 +76,17 @@ interface TextCandidate {
   readonly order: number;
   readonly rank: number;
   readonly modelItem?: ModelInputItem;
+  readonly modelTool?: ModelTool;
 }
 
 function renderSkill(skill: DeclarativeSkill): string {
   return [
     `Skill ${skill.skillId}: ${skill.summary}`,
-    ...skill.steps.map((step) => `[${step.kind}] ${step.instruction}`),
+    ...skill.steps.map((step) =>
+      step.toolId === undefined
+        ? `[${step.kind}] ${step.instruction}`
+        : `[${step.kind} tool=${step.toolId}] ${step.instruction}`,
+    ),
     ...skill.completionChecks.map((check) => `[completion] ${check}`),
   ].join("\n");
 }
@@ -113,6 +118,7 @@ export class ContextBuilder {
       role: TextCandidate["role"],
       rank = 0,
       modelItem?: ModelInputItem,
+      modelTool?: ModelTool,
     ): void => {
       candidates.push({
         source,
@@ -122,6 +128,7 @@ export class ContextBuilder {
         order,
         rank,
         ...(modelItem === undefined ? {} : { modelItem }),
+        ...(modelTool === undefined ? {} : { modelTool }),
       });
       order += 1;
     };
@@ -190,6 +197,8 @@ export class ContextBuilder {
         `${tool.name}: ${tool.description}`,
         "system",
         input.tools.length - index,
+        undefined,
+        tool,
       );
     }
 
@@ -271,6 +280,14 @@ export class ContextBuilder {
           content: candidate.text,
         },
       );
+    const selectedTools = selected
+      .filter(
+        (candidate): candidate is TextCandidate & { readonly modelTool: ModelTool } =>
+          candidate.source === "tool_catalog" &&
+          candidate.modelTool !== undefined,
+      )
+      .sort((left, right) => left.order - right.order)
+      .map((candidate) => candidate.modelTool);
     const manifestIdentity = {
       entries: manifest,
       estimatedTokens: total,
@@ -278,7 +295,7 @@ export class ContextBuilder {
     return {
       instructions: selectedSystem.join("\n\n"),
       input: selectedInput,
-      tools: input.tools,
+      tools: selectedTools,
       manifest: {
         ...manifestIdentity,
         manifestHash: sha256(manifestIdentity),

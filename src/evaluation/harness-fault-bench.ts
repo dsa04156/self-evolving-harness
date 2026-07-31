@@ -173,7 +173,7 @@ export interface HfbBuiltStructuralOracleFixture {
   readonly causalReport: HfbStructuralOracleValidationReport;
 }
 
-interface HfbCaseDefinition {
+export interface HfbAuthoringCaseDefinition {
   readonly fixtureId: string;
   readonly difficulty: HfbDifficulty;
   readonly componentType: HfbMutableComponentType;
@@ -656,7 +656,7 @@ function defineCase(
   mechanismCode: string,
   goodPayload: JsonValue,
   patch: HfbPatchOperation,
-): HfbCaseDefinition {
+): HfbAuthoringCaseDefinition {
   return {
     fixtureId: fixtureId(family, index),
     difficulty: difficultyFor(index),
@@ -668,7 +668,7 @@ function defineCase(
   };
 }
 
-function mineCaseDefinitions(): readonly HfbCaseDefinition[] {
+function mineCaseDefinitions(): readonly HfbAuthoringCaseDefinition[] {
   const systemPrompt = [
     defineCase(
       "system-prompt",
@@ -1074,6 +1074,21 @@ function mineCaseDefinitions(): readonly HfbCaseDefinition[] {
 const MINE_CASES = mineCaseDefinitions();
 const MINE_CASE_BY_ID = new Map(MINE_CASES.map((entry) => [entry.fixtureId, entry]));
 
+/**
+ * Benchmark-author authority only. Runtime execution and attribution adapters
+ * must not import this function because it exposes fault labels and patches.
+ */
+export function hfbMineCasesForSemanticAuthoring():
+  readonly HfbAuthoringCaseDefinition[] {
+  return MINE_CASES.map((definition) => ({
+    ...definition,
+    goodPayload: cloneJson(definition.goodPayload),
+    patch: cloneJson(
+      definition.patch as unknown as JsonValue,
+    ) as unknown as HfbPatchOperation,
+  }));
+}
+
 export function hfbMineFixtureIds(): readonly string[] {
   return MINE_CASES.map((entry) => entry.fixtureId);
 }
@@ -1098,7 +1113,7 @@ function stageAndToolCount(difficulty: HfbDifficulty): {
   return { stages: 6, tools: 3 };
 }
 
-function terminalReasonFor(definition: HfbCaseDefinition): string {
+function terminalReasonFor(definition: HfbAuthoringCaseDefinition): string {
   const index = definition.fixtureId.slice(-2);
   return `verification_failed.required_subgoal_${index}`;
 }
@@ -1198,7 +1213,7 @@ export class HarnessFaultBenchStructuralOracleBuilder {
   }
 
   async #build(
-    definition: HfbCaseDefinition,
+    definition: HfbAuthoringCaseDefinition,
   ): Promise<HfbBuiltStructuralOracleFixture> {
     const implementationBytes = Buffer.from(
       `finite-tool-implementation:${definition.fixtureId}`,

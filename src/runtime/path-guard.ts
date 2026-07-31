@@ -51,7 +51,18 @@ export class WorkspacePathGuard {
     const components = validateRelativePath(relativePath);
     const target = path.join(this.root, ...components);
     await this.#assertAncestry(components.slice(0, -1));
-    const metadata = await lstat(target);
+    let metadata;
+    try {
+      metadata = await lstat(target);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new HarnessError(
+          "ARTIFACT_UNAVAILABLE",
+          `${relativePath} is unavailable`,
+        );
+      }
+      throw error;
+    }
     assertCondition(!metadata.isSymbolicLink(), "AUTHORIZATION_DENIED", "Symlink read denied");
     assertCondition(metadata.isFile(), "AUTHORIZATION_DENIED", "Only regular files may be read");
     assertCondition(metadata.nlink === 1, "AUTHORIZATION_DENIED", "Hard-linked file read denied");
