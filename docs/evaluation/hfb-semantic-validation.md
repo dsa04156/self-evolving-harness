@@ -86,13 +86,15 @@ provider, access `D_gate`/final/temporal data, or perform B0–B6 comparisons. T
 ## Persisted development evidence
 
 - implementation source commit:
-  `709b7974ae1434e07a576a7145b08e3b90b7efe4`
+  `829dd1943954ba64e6e0c08bae35710b3db348e4`
 - semantic suite commitment:
   `sha256:61c5f01ecb135436df55a76d169a26dac48379d18f31eb8e7d78e04a4e9c40be`
 - label-blind corpus commitment:
   `sha256:49f7dcbfaabdc122294b41f30d56f15d5eca6088d7941f07483968bdd58e1a01`
 - development evidence:
   `architect/evidence/harness-fault-bench-semantic/evidence.json`
+- development evidence file SHA-256:
+  `3083ce265e91292582dfbff6320ab8a1f536e9afc50280e18230dcfe434cb876`
 
 The persisted graph contains 28 oracle/report records and 18 unique execution-package files. Identical
 label-free environments are content-addressed and deliberately deduplicated across fixture entries.
