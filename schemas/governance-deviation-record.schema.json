@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/governance-deviation-record.schema.json",
+  "title": "Signed Governance Deviation Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "deviationId",
+    "recordType",
+    "governanceDomainId",
+    "protocolStatus",
+    "priorDecision",
+    "dispositionDecision",
+    "occurred",
+    "exceededAuthorization",
+    "affectedArtifacts",
+    "quarantine",
+    "remediation",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "deviationId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "governance_deviation"
+    },
+    "governanceDomainId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolStatus": {
+      "const": "not_frozen"
+    },
+    "priorDecision": {
+      "$ref": "#/$defs/architectDecision"
+    },
+    "dispositionDecision": {
+      "$ref": "#/$defs/architectDecision"
+    },
+    "occurred": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "firstOperationAt",
+        "lastOperationAt",
+        "actors",
+        "implementationCommits",
+        "evidenceCommits",
+        "operations",
+        "fixtureIds"
+      ],
+      "properties": {
+        "firstOperationAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "lastOperationAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "actors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actorId",
+              "actorType",
+              "displayName"
+            ],
+            "properties": {
+              "actorId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
+              "actorType": {
+                "type": "string",
+                "enum": [
+                  "human_operator",
+                  "coding_agent",
+                  "git_author"
+                ]
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "implementationCommits": {
+          "$ref": "#/$defs/gitCommits"
+        },
+        "evidenceCommits": {
+          "$ref": "#/$defs/gitCommits"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "fixtureIds": {
+          "type": "array",
+          "minItems": 28,
+          "maxItems": 28,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^hfb-v0-[a-z0-9-]+-[0-9]{2}$"
+          }
+        }
+      }
+    },
+    "exceededAuthorization": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "affectedArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifactKind",
+          "artifactId",
+          "contentHash",
+          "path"
+        ],
+        "properties": {
+          "artifactKind": {
+            "type": "string",
+            "enum": [
+              "development_evidence_file",
+              "suite_commitment",
+              "score_report",
+              "fixture_body",
+              "causal_report",
+              "known_good_harness",
+              "faulty_harness"
+            ]
+          },
+          "artifactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "contentHash": {
+            "oneOf": [
+              {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              {
+                "$ref": "./common.schema.json#/$defs/harnessVersionId"
+              }
+            ]
+          },
+          "path": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "quarantine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "developmentOnly",
+        "confirmatory",
+        "authorizedForResearchEvidence",
+        "allowedUseClasses",
+        "prohibitedUseClasses",
+        "replacementPolicy"
+      ],
+      "properties": {
+        "developmentOnly": {
+          "const": true
+        },
+        "confirmatory": {
+          "const": false
+        },
+        "authorizedForResearchEvidence": {
+          "const": false
+        },
+        "allowedUseClasses": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "prefixItems": [
+            {
+              "const": "development_structural_validation"
+            },
+            {
+              "const": "scorer_self_test"
+            },
+            {
+              "const": "governance_audit"
+            },
+            {
+              "const": "semantic_correction"
+            }
+          ]
+        },
+        "prohibitedUseClasses": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "prefixItems": [
+            {
+              "const": "research_protocol_manifest"
+            },
+            {
+              "const": "candidate_input"
+            },
+            {
+              "const": "attribution_evaluation"
+            },
+            {
+              "const": "method_scheduler"
+            },
+            {
+              "const": "promotion_decision"
+            },
+            {
+              "const": "claim_table"
+            },
+            {
+              "const": "research_evidence"
+            }
+          ]
+        },
+        "replacementPolicy": {
+          "const": "retain_as_superseded_development_evidence"
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredActions"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "in_progress",
+            "corrected",
+            "closed"
+          ]
+        },
+        "requiredActions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "architectDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "responsePath",
+        "responseSha256"
+      ],
+      "properties": {
+        "decision": {
+          "const": "REVISE"
+        },
+        "responsePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "responseSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "gitCommits": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{40}$"
+      }
+    }
+  }
+}
