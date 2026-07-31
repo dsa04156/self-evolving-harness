@@ -82,3 +82,25 @@ provider, access `D_gate`/final/temporal data, or perform B0–B6 comparisons. T
 - H1–H4 are not tested;
 - no self-evolution or improvement claim is permitted;
 - research/confirmatory use still requires a later Architect authorization and protocol freeze.
+
+## Persisted development evidence
+
+- implementation source commit:
+  `709b7974ae1434e07a576a7145b08e3b90b7efe4`
+- semantic suite commitment:
+  `sha256:61c5f01ecb135436df55a76d169a26dac48379d18f31eb8e7d78e04a4e9c40be`
+- label-blind corpus commitment:
+  `sha256:49f7dcbfaabdc122294b41f30d56f15d5eca6088d7941f07483968bdd58e1a01`
+- development evidence:
+  `architect/evidence/harness-fault-bench-semantic/evidence.json`
+
+The persisted graph contains 28 oracle/report records and 18 unique execution-package files. Identical
+label-free environments are content-addressed and deliberately deduplicated across fixture entries.
+
+Verify the persisted schemas, inventories, internal content hashes, commitment joins, oracle exclusion,
+and source commit without re-executing fixtures:
+
+```bash
+npm run verify:hfb-semantic-evidence
+npm run verify:hfb-governance
+```

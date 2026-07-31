@@ -18,6 +18,7 @@
     "validate:hfb-structural-oracle": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-structural-oracle.ts",
     "validate:hfb-semantic": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts",
     "generate:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts --write",
+    "verify:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/verify-hfb-semantic-evidence.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

@@ -42,10 +42,17 @@ From a clean Git worktree:
 npm run validate:hfb-semantic
 ```
 
-The generation form writes the committed artifacts:
+The generation form writes the committed artifacts. Content-addressed deduplication may cause multiple
+fixture entries to share one identical execution-package file:
 
 ```bash
 npm run generate:hfb-semantic-evidence
+```
+
+Persisted artifacts can be checked without executing fixtures:
+
+```bash
+npm run verify:hfb-semantic-evidence
 ```
 
 Neither command calls a real provider, generates a candidate, evaluates a promotion, or accesses gate,
