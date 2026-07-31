@@ -68,6 +68,7 @@ export interface ModelUsage {
   readonly outputTokens: number;
   readonly reasoningTokens: number;
   readonly cachedInputTokens: number;
+  readonly cacheWriteTokens?: number;
   readonly totalTokens: number;
 }
 

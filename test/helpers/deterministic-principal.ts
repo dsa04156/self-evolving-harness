@@ -11,6 +11,7 @@ export function deterministicPrincipal(input: {
   role: PrincipalRole;
   implementationDigest: string;
   instanceId: string;
+  modelIdentityHash?: string | null;
   seedByte: number;
 }): PrincipalSigner {
   if (
@@ -40,6 +41,9 @@ export function deterministicPrincipal(input: {
       identityDigest: `sha256:${sha256Bytes(publicDer)}`,
       implementationDigest: input.implementationDigest,
       instanceId: input.instanceId,
+      ...(input.modelIdentityHash === undefined
+        ? {}
+        : { modelIdentityHash: input.modelIdentityHash }),
     },
     keyId: `${input.principalId}.test-ed25519`,
     privateKeyPem: privateKey

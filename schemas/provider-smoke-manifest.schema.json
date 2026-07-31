@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-smoke-manifest.schema.json",
+  "title": "Signed Synthetic Provider Smoke Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hashDomain",
+    "providerSmokeManifestId",
+    "protocolId",
+    "budgetFreezeId",
+    "purpose",
+    "syntheticTaskId",
+    "modelRequestHash",
+    "provider",
+    "credentialPrincipal",
+    "credentialSlotId",
+    "egress",
+    "caps",
+    "permissionPolicyHash",
+    "redactionPolicyHash",
+    "proxyImplementationHash",
+    "sourceConfigHash",
+    "createdAt",
+    "createdBy",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "hashDomain": {
+      "const": "ProviderSmokeManifest.v1"
+    },
+    "providerSmokeManifestId": {
+      "type": "string",
+      "pattern": "^psm-sha256:[a-f0-9]{64}$"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "budgetFreezeId": {
+      "type": "string",
+      "pattern": "^bf-sha256:[a-f0-9]{64}$"
+    },
+    "purpose": {
+      "const": "synthetic_non_benchmark_provider_smoke"
+    },
+    "syntheticTaskId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "modelRequestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "provider": {
+      "$ref": "#/$defs/provider"
+    },
+    "credentialPrincipal": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "credentialSlotId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "egress": {
+      "$ref": "#/$defs/egress"
+    },
+    "caps": {
+      "$ref": "#/$defs/caps"
+    },
+    "permissionPolicyHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "redactionPolicyHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "proxyImplementationHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "sourceConfigHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerId",
+        "apiOrigin",
+        "apiPath",
+        "apiModel",
+        "modelIdentity",
+        "modelIdentityHash",
+        "serviceTier",
+        "reasoningEffort",
+        "maxOutputTokens",
+        "store",
+        "parallelToolCalls",
+        "toolCount",
+        "pricing"
+      ],
+      "properties": {
+        "providerId": {
+          "type": "string",
+          "enum": [
+            "fake-provider",
+            "openai-responses"
+          ]
+        },
+        "apiOrigin": {
+          "type": "string",
+          "enum": [
+            "none",
+            "https://api.openai.com:443"
+          ]
+        },
+        "apiPath": {
+          "type": "string",
+          "enum": [
+            "none",
+            "/v1/responses"
+          ]
+        },
+        "apiModel": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "modelIdentity": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "modelIdentityHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "serviceTier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "auto",
+            "default",
+            "flex",
+            "scale",
+            "priority"
+          ]
+        },
+        "reasoningEffort": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "none",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072
+        },
+        "store": {
+          "const": false
+        },
+        "parallelToolCalls": {
+          "const": false
+        },
+        "toolCount": {
+          "const": 0
+        },
+        "pricing": {
+          "$ref": "#/$defs/pricing"
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currency",
+        "inputMicrosPerMillionTokens",
+        "cachedInputMicrosPerMillionTokens",
+        "cacheWriteMicrosPerMillionTokens",
+        "outputMicrosPerMillionTokens",
+        "reasoningIncludedInOutput",
+        "sourceHash",
+        "effectiveAt"
+      ],
+      "properties": {
+        "currency": {
+          "const": "USD"
+        },
+        "inputMicrosPerMillionTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cachedInputMicrosPerMillionTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheWriteMicrosPerMillionTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputMicrosPerMillionTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoningIncludedInOutput": {
+          "const": true
+        },
+        "sourceHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "effectiveAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        }
+      }
+    },
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transport",
+        "allowedHost",
+        "allowedPort",
+        "tlsServerName",
+        "brokerImplementationHash",
+        "policyHash"
+      ],
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": [
+            "none",
+            "unix_connect_allowlist"
+          ]
+        },
+        "allowedHost": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api.openai.com"
+          ]
+        },
+        "allowedPort": {
+          "type": "integer",
+          "enum": [
+            0,
+            443
+          ]
+        },
+        "tlsServerName": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api.openai.com"
+          ]
+        },
+        "brokerImplementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "policyHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "caps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerCallAttempts",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "wallClockMillis",
+        "requestBytes",
+        "responseBytes"
+      ],
+      "properties": {
+        "providerCallAttempts": {
+          "const": 1
+        },
+        "totalChargedTokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "providerCostMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wallClockMillis": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300000
+        },
+        "requestBytes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1048576
+        },
+        "responseBytes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1048576
+        }
+      }
+    }
+  }
+}

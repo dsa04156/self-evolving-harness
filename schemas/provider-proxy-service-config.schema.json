@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-proxy-service-config.schema.json",
+  "title": "Provider Proxy Service Configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolId",
+    "phaseAccountId",
+    "stateRoot",
+    "schemaDirectory",
+    "budgetFreeze",
+    "smokeManifest",
+    "protocolAuthor",
+    "runtime",
+    "proxy",
+    "proxyPrivateKeyPath",
+    "credentialPath",
+    "credentialSlotId",
+    "upstream"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "phaseAccountId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "stateRoot": {
+      "$ref": "#/$defs/absolutePath"
+    },
+    "schemaDirectory": {
+      "$ref": "#/$defs/absolutePath"
+    },
+    "budgetFreeze": {
+      "$ref": "./budget-freeze-manifest.schema.json"
+    },
+    "smokeManifest": {
+      "$ref": "./provider-smoke-manifest.schema.json"
+    },
+    "protocolAuthor": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "runtime": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "proxy": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "proxyPrivateKeyPath": {
+      "$ref": "#/$defs/absolutePath"
+    },
+    "credentialPath": {
+      "$ref": "#/$defs/absolutePath"
+    },
+    "credentialSlotId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "upstream": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/fakeUpstream"
+        },
+        {
+          "$ref": "#/$defs/openaiUpstream"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/[^\\u0000]*$",
+      "maxLength": 4096
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "reasoningTokens",
+        "cachedInputTokens",
+        "cacheWriteTokens",
+        "totalTokens"
+      ],
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoningTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cachedInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheWriteTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalTokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fakeUpstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "responseId",
+        "outputText",
+        "echoCredential",
+        "usage"
+      ],
+      "properties": {
+        "mode": {
+          "const": "fake"
+        },
+        "responseId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "outputText": {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        "echoCredential": {
+          "type": "boolean"
+        },
+        "usage": {
+          "$ref": "#/$defs/usage"
+        }
+      }
+    },
+    "openaiUpstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "egressSocketPath"
+      ],
+      "properties": {
+        "mode": {
+          "const": "openai_connect"
+        },
+        "egressSocketPath": {
+          "$ref": "#/$defs/absolutePath"
+        }
+      }
+    }
+  }
+}

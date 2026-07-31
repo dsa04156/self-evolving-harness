@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operations-side byte relay for an authenticated evaluator Unix socket.
+"""Client-side byte relay for an authenticated Unix service socket.
 
 The relay is intentionally message-agnostic.  It verifies the kernel-reported
 server credentials before forwarding length-prefixed frames.  Envelope,
@@ -77,7 +77,7 @@ def main() -> int:
         or peer_gid != arguments.expected_server_gid
     ):
         raise PermissionError(
-            "evaluator peer credential mismatch: "
+            "server peer credential mismatch: "
             f"pid={peer_pid} uid={peer_uid} gid={peer_gid}"
         )
 
@@ -107,5 +107,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as error:
-        print(f"evaluator relay failed: {error}", file=sys.stderr)
+        print(f"Unix peer relay failed: {error}", file=sys.stderr)
         raise SystemExit(2)

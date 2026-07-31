@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-call-receipt.schema.json",
+  "title": "Provider Proxy Call Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hashDomain",
+    "providerCallReceiptId",
+    "protocolId",
+    "providerSmokeManifestId",
+    "budgetFreezeId",
+    "phaseAccountId",
+    "providerRequestId",
+    "modelRequestHash",
+    "modelIdentityHash",
+    "status",
+    "responseHash",
+    "responseId",
+    "usage",
+    "requestBytes",
+    "responseBytes",
+    "wallClockMillis",
+    "startedAt",
+    "completedAt",
+    "credentialSlotId",
+    "egressOrigin",
+    "error",
+    "redaction",
+    "producer",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "hashDomain": {
+      "const": "ProviderCallReceipt.v1"
+    },
+    "providerCallReceiptId": {
+      "type": "string",
+      "pattern": "^pcr-sha256:[a-f0-9]{64}$"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "providerSmokeManifestId": {
+      "type": "string",
+      "pattern": "^psm-sha256:[a-f0-9]{64}$"
+    },
+    "budgetFreezeId": {
+      "type": "string",
+      "pattern": "^bf-sha256:[a-f0-9]{64}$"
+    },
+    "phaseAccountId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "providerRequestId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "modelRequestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "modelIdentityHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled",
+        "budget_exhausted"
+      ]
+    },
+    "responseHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "responseId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "usage": {
+      "$ref": "#/$defs/usage"
+    },
+    "requestBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1048576
+    },
+    "responseBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1048576
+    },
+    "wallClockMillis": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "startedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "credentialSlotId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "egressOrigin": {
+      "type": "string",
+      "enum": [
+        "none",
+        "https://api.openai.com:443"
+      ]
+    },
+    "error": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "safeDetail",
+            "retryable"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "AUTHENTICATION_FAILED",
+                "AUTHORIZATION_DENIED",
+                "SCHEMA_INVALID",
+                "HASH_MISMATCH",
+                "REPLAY_DETECTED",
+                "PAYLOAD_TOO_LARGE",
+                "DEADLINE_EXCEEDED",
+                "BUDGET_EXHAUSTED",
+                "PROTOCOL_MISMATCH",
+                "ARTIFACT_UNAVAILABLE",
+                "PEER_CRASHED",
+                "INVALID_STATE_TRANSITION",
+                "TOOL_NOT_FOUND",
+                "TOOL_EXECUTION_FAILED",
+                "VERIFICATION_FAILED",
+                "CONFLICT",
+                "INTERNAL_ERROR"
+              ]
+            },
+            "safeDetail": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containsKnownSecrets",
+        "appliedRuleIds",
+        "scannerHash"
+      ],
+      "properties": {
+        "containsKnownSecrets": {
+          "const": false
+        },
+        "appliedRuleIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "scannerHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usageAvailable",
+        "inputTokens",
+        "cachedInputTokens",
+        "cacheWriteTokens",
+        "outputTokens",
+        "reasoningTokens",
+        "providerTotalTokens",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "costBasis"
+      ],
+      "properties": {
+        "usageAvailable": {
+          "type": "boolean"
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cachedInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheWriteTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoningTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerTotalTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalChargedTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerCostMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "costBasis": {
+          "type": "string",
+          "enum": [
+            "frozen_pricing",
+            "full_reservation_no_usage"
+          ]
+        }
+      }
+    }
+  }
+}

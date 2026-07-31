@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-proxy-result.schema.json",
+  "title": "Persisted Provider Proxy Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "receipt",
+    "response"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "receipt": {
+      "$ref": "./provider-call-receipt.schema.json"
+    },
+    "response": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/response"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "responseId",
+        "modelIdentity",
+        "output",
+        "usage",
+        "providerMetadata"
+      ],
+      "properties": {
+        "responseId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "modelIdentity": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "output": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "text"
+            ],
+            "properties": {
+              "kind": {
+                "const": "assistant_message"
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 1048576
+              }
+            }
+          }
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inputTokens",
+            "outputTokens",
+            "reasoningTokens",
+            "cachedInputTokens",
+            "cacheWriteTokens",
+            "totalTokens"
+          ],
+          "properties": {
+            "inputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "outputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reasoningTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cachedInputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cacheWriteTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "totalTokens": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "providerMetadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "providerId",
+            "upstreamMetadataHash",
+            "normalizedFor"
+          ],
+          "properties": {
+            "providerId": {
+              "type": "string",
+              "enum": [
+                "fake-provider",
+                "openai-responses"
+              ]
+            },
+            "upstreamMetadataHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "normalizedFor": {
+              "const": "provider_smoke"
+            }
+          }
+        }
+      }
+    }
+  }
+}

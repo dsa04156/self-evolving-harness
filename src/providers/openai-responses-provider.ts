@@ -169,6 +169,8 @@ export class OpenAIResponsesProvider implements ModelProvider {
         outputTokens: usage.output_tokens,
         reasoningTokens: usage.output_tokens_details.reasoning_tokens,
         cachedInputTokens: usage.input_tokens_details.cached_tokens,
+        cacheWriteTokens:
+          usage.input_tokens_details.cache_write_tokens,
         totalTokens: usage.total_tokens,
       },
       providerMetadata: {

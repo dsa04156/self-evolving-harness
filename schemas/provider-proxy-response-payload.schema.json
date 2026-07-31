@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-proxy-response-payload.schema.json",
+  "title": "Provider Proxy Wire Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "providerSmokeManifestId",
+    "phaseAccountId",
+    "providerRequestId",
+    "result"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "providerSmokeManifestId": {
+      "type": "string",
+      "pattern": "^psm-sha256:[a-f0-9]{64}$"
+    },
+    "phaseAccountId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "providerRequestId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "result": {
+      "$ref": "./provider-proxy-result.schema.json"
+    }
+  }
+}
