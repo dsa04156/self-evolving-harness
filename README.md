@@ -24,20 +24,22 @@ The deterministic no-provider runtime and a development-only evolution-boundary 
 The prototype uses eight separate Linux principals for attribution, commitment, scoring, proposing,
 quarantine, runtime execution, evaluation, and audit. It proves development plumbing only.
 
-The local body-free evaluator-vault correction now reconstructs task state from one authoritative CAS
-journal, fences cross-process writers by durable lease epoch, and synchronizes/rehashes the committed
-head before releasing a commitment. Its restart, crash-boundary, stale-writer, and actual two-process
-tests are deterministic development evidence awaiting external Architect review; no real task body or
-benchmark evaluator is involved.
+The local trust path now includes the body-free evaluator-vault contract, durable globally serialized
+vault state, an eight-principal OS integration, and a fixed-inert-payload synthetic custody rehearsal.
+The custody path records first-seen denials, makes exact retries idempotent, and recovers seven actual
+SIGKILL boundaries without duplicate materialization. These controls have received narrow Architect
+approval as deterministic development plumbing; no real task body or benchmark evaluator is involved.
 
 All artifacts published through commit
-`a5d82564cece5ecb776a27c86512c3ec56f32787` are permanently classified as
+`8b5f14400a7723c821bc54420e55da58dfa7601b` are permanently classified as
 `publicDevelopment=true`. For all of them and every copied or transitive derivative,
 `authorizedForResearchEvidence=false`, held-out/sealed/gate/final eligibility is false, and promotion
 is unauthorized. They are diagnostic development artifacts, not independent evaluation evidence.
 
 No API key is stored in this repository. No real provider call, B0–B6 experiment, sealed-test access,
 promotion, deployment, or self-improvement claim is represented by the current public evidence.
+The exact unresolved set is maintained in
+[`docs/evaluation/outstanding-obligations.md`](docs/evaluation/outstanding-obligations.md).
 
 ## Verify locally
 
@@ -50,11 +52,13 @@ npm run build
 npm test
 npm run verify:development-process-boundary
 npm run verify:publication-governance
+npm run verify:historical-publication-governance
+npm run verify:trust-plane-conformance
 ```
 
-The publication verifier reconstructs the exact public Git tree, verifies the signed deviation,
-exposure ledger and append-only remediation closure, reruns the secret scan, and exercises the
-anti-laundering policy.
+The trust-plane verifier independently checks the signed local conformance manifest, every referenced
+Git commit/tree/file hash, Architect ruling anchor, evidence and contract identity, append-only
+governance relation, permanent public-development eligibility, and unresolved-authority state.
 
 ## Repository map
 

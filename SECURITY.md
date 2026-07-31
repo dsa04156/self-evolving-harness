@@ -25,6 +25,8 @@ sealed data, budgets, model identity, audit history, or promotion policy.
   stale-handle/obsolete-head rejection, and file/directory sync plus committed-head verification before
   release
 - no secret-bearing private signing key persisted in evidence
+- protocol-author-signed local conformance manifest with an independent aggregate verifier over
+  source commits, trees, evidence, rulings, contracts, governance chains, and false authorities
 
 The public repository snapshot was scanned for private-key PEM blocks, live-key shapes, GitHub token
 shapes, AWS access-key shapes, and actual `.env` files. No actual secret matched. Variable names and
@@ -59,9 +61,13 @@ compromise. The current public evidence is `publicDevelopment=true` and
 promotion authorization, or self-improvement result.
 
 The evaluator-vault result is contract-level only. No real task body is present. Body-free task state,
-two-process lease contention, stale-epoch recovery, and crash boundaries are exercised, but the new
-role mount table and a full evaluator/task-body flow have not been freshly exercised under separate OS
-identities.
+two-process lease contention, stale-epoch recovery, eight-principal role mounts, one-time synthetic
+materialization, and crash boundaries are exercised. A fixed inert payload is not evidence of
+confidentiality for a real benchmark body.
+
+The local conformance signature is tamper-evident evidence under the repository, protocol-author, host,
+Git object database, and key-generation TCB. It does not turn a self-contained repository into an
+external trust anchor and is not a security certification.
 
 No real-provider secret is required for deterministic verification. If a real provider smoke is
 later authorized, credentials must enter only through the local environment/provider proxy, be

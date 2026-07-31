@@ -93,3 +93,18 @@ only and does not create or evaluate a real task body.
 The detailed contract is in
 `docs/architecture/evaluator-vault-contract.md`; the remaining architecture and schemas are in
 `docs/architecture/` and `schemas/`.
+
+## Local conformance closure
+
+`governance/trust-plane/conformance-manifest.json` is a protocol-author-signed, reference-only
+closure over seven already reviewed domains: standalone runtime/Gate 2R, development process
+separation, publication governance, independent authorship and vault admission, durable vault state,
+eight-principal OS integration, and synthetic one-time custody. It does not copy an earlier result or
+create a new evaluation.
+
+The aggregate verifier resolves every reference from its pinned Git commit, checks the exact commit
+tree and raw file hash, verifies ruling and claim-boundary locators, reconstructs both append-only
+governance chains, and checks scoped protocol/component identities for contradictions. The manifest
+separates implemented controls, locally tested controls, deferred controls, and unclaimed properties.
+All provider, research-evidence, selection, promotion, deployment, and claim authorities remain
+false.

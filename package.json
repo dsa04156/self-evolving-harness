@@ -32,6 +32,8 @@
     "verify:publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-publication-governance.ts",
     "create:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-historical-publication-governance.ts",
     "verify:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-historical-publication-governance.ts",
+    "create:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/create-trust-plane-conformance.ts --write",
+    "verify:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/verify-trust-plane-conformance.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

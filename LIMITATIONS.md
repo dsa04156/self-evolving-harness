@@ -22,6 +22,8 @@ demonstrate general harness self-improvement.
 - OxyGent is traced at exact commit `cd96268de5814dfb4e0444cfd687f97508cf996a` through its owned MAS
   call path, ReAct/parallel/reflexion agents, live-prompt versioning, and prompt optimization route.
   Uninspected or unreleased OxyGent behavior remains unknown, and no OxyGent source is reused here.
+- The signed local conformance manifest consolidates already accepted evidence; it does not add an
+  independent trust root, a real-provider receipt, a research protocol freeze, or a research result.
 
 All artifacts in the governed public snapshot and their transitive derivatives remain
 `publicDevelopment=true` and `authorizedForResearchEvidence=false`. A new protocol ID, copied file,
@@ -30,3 +32,7 @@ new filename, Git history rewrite, or repository deletion does not restore secre
 Any later performance claim must use preregistered, inaccessible splits; matched model/token/tool/time
 budgets; independent evaluator authority; multiple seeds; uncertainty intervals; negative results;
 and a frozen harness evaluated without test-time retries.
+
+The complete current blocker matrix is
+[`docs/evaluation/outstanding-obligations.md`](docs/evaluation/outstanding-obligations.md); all seven
+rows remain unresolved.

@@ -33,6 +33,10 @@ They validate plumbing and failure handling only. They do not establish independ
 accuracy, held-out improvement, superiority over test-time scaling, security against host compromise,
 or general self-evolution.
 
+The integrated runtime-and-trust conformance manifest is also not a research result. It verifies
+referential consistency and keeps forbidden authorities false; it does not produce a new score,
+candidate, comparison, provider receipt, confidentiality result, or self-improvement result.
+
 ## Preserved rejected paths
 
 The implementation includes negative cases for wrong peer identity, wrong key, substituted

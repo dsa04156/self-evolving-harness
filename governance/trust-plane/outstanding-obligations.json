@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "trust-plane.outstanding-obligations.2026-07-31",
+  "recordType": "trust_plane_outstanding_obligations",
+  "statusAsOf": "2026-07-31T23:50:00+09:00",
+  "scope": "local_runtime_and_trust_readiness",
+  "obligations": [
+    {
+      "obligationId": "real_provider_receipt",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "signed_real_provider_call_receipt",
+      "blocks": [
+        "provider_readiness"
+      ]
+    },
+    {
+      "obligationId": "real_benchmark_custody",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "real_body_evaluator_vault_custody_receipt",
+      "blocks": [
+        "real_data_custody",
+        "research_execution"
+      ]
+    },
+    {
+      "obligationId": "research_protocol_numeric_freeze",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "signed_protocol_and_numeric_pilot_freeze",
+      "blocks": [
+        "research_protocol_freeze",
+        "research_execution"
+      ]
+    },
+    {
+      "obligationId": "b0_b6_research_execution",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "matched_budget_b0_b6_execution_receipts",
+      "blocks": [
+        "research_execution",
+        "performance_claim"
+      ]
+    },
+    {
+      "obligationId": "held_out_confirmatory_attribution",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "sealed_held_out_confirmatory_attribution_receipts",
+      "blocks": [
+        "confirmatory_claim",
+        "generalization_claim"
+      ]
+    },
+    {
+      "obligationId": "research_candidate_selection_promotion",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "research_candidate_selection_and_promotion_decision",
+      "blocks": [
+        "promotion",
+        "evolution_claim"
+      ]
+    },
+    {
+      "obligationId": "performance_generalization_security_evolution_results",
+      "status": "unresolved",
+      "evidencePresent": false,
+      "requiredEvidenceClass": "independent_claim_specific_confirmatory_evidence",
+      "blocks": [
+        "performance_claim",
+        "generalization_claim",
+        "security_certification",
+        "evolution_claim",
+        "self_improvement_claim"
+      ]
+    }
+  ],
+  "authorityState": {
+    "providerExecutionAuthorized": false,
+    "researchEvidenceAuthorized": false,
+    "candidateSelectionAuthorized": false,
+    "promotionAuthorized": false,
+    "deploymentAuthorized": false,
+    "claimAuthorityGranted": false
+  }
+}

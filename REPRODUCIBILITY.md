@@ -23,6 +23,10 @@ npm run build
 npm test
 npm run verify:development-process-boundary
 npm run verify:publication-governance
+npm run verify:historical-publication-governance
+npm run verify:evaluator-vault-os-boundary
+npm run verify:synthetic-custody-os-boundary
+npm run verify:trust-plane-conformance
 ```
 
 `verify:development-process-boundary` checks the persisted OS-boundary evidence against its source
@@ -36,6 +40,11 @@ complete exposure ledger and closure, then runs direct and transitive rejection 
 The generator `npm run create:publication-governance` uses exclusive creation and refuses to
 overwrite existing signed records. It is not part of routine verification.
 
+`npm run create:trust-plane-conformance` likewise requires a clean Git worktree and exclusively
+creates one signed local manifest. Routine reproduction runs only
+`npm run verify:trust-plane-conformance`; it does not regenerate signatures, custody payloads,
+attribution scores, candidates, or benchmark artifacts.
+
 ## Determinism boundary
 
 Fake-provider/tool tests are deterministic for fixed inputs. Files containing Ed25519 signatures are
@@ -44,4 +53,5 @@ nondeterministic. Real-provider outputs, wall-clock timing, kernel scheduling, a
 rollouts are outside the current deterministic claim.
 
 No B0–B6 comparison, held-out task, sealed test, temporal holdout, pilot, promotion, or provider smoke
-is authorized by these instructions.
+is represented by the conformance result. The machine-readable unresolved set is
+`governance/trust-plane/outstanding-obligations.json`.
