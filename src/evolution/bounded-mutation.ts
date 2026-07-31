@@ -180,6 +180,22 @@ function applyOperation(root: JsonValue, operation: JsonPatchOperation): void {
   }
 }
 
+export function applyJsonPatchOperations(
+  beforePayload: JsonValue,
+  operations: readonly JsonPatchOperation[],
+): JsonValue {
+  assertCondition(
+    operations.length >= 1 && operations.length <= 64,
+    "SCHEMA_INVALID",
+    "Mutation target has an invalid operation count",
+  );
+  const afterPayload = cloneJson(beforePayload);
+  for (const operation of operations) {
+    applyOperation(afterPayload, operation);
+  }
+  return afterPayload;
+}
+
 function tokenSet(value: JsonValue): Set<string> {
   return new Set(
     canonicalize(value)
@@ -340,8 +356,10 @@ export class BoundedMutationEngine {
         "Every structural operation needs one semantic operation label",
       );
       const beforePayload = await this.#registry.getPayload(target.componentManifestId);
-      const afterPayload = cloneJson(beforePayload);
-      target.operations.forEach((operation) => applyOperation(afterPayload, operation));
+      const afterPayload = applyJsonPatchOperations(
+        beforePayload,
+        target.operations,
+      );
       const measure = measurePayloadMutation(
         beforePayload,
         afterPayload,

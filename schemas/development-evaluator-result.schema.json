@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-evaluator-result.schema.json",
+  "title": "Signed development-only external evaluator result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "resultId",
+    "requestHash",
+    "dryRunRecordHash",
+    "candidateHarnessVersionId",
+    "externalProcess",
+    "checks",
+    "syntheticOutcomes",
+    "lifecycleBoundary",
+    "claimBoundary",
+    "evaluatedAt",
+    "evaluator",
+    "resultHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "resultId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "requestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "dryRunRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "externalProcess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementationHash",
+        "exitCode",
+        "stdoutHash",
+        "requestAccepted"
+      ],
+      "properties": {
+        "implementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "exitCode": {
+          "const": 0
+        },
+        "stdoutHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "requestAccepted": {
+          "const": true
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "checkId",
+          "passed"
+        ],
+        "properties": {
+          "checkId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "passed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "syntheticOutcomes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskCount",
+        "parentPassCount",
+        "candidatePassCount",
+        "passToFailCount",
+        "failToPassCount",
+        "researchMetric",
+        "promotionSignal"
+      ],
+      "properties": {
+        "taskCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parentPassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidatePassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passToFailCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failToPassCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "researchMetric": {
+          "const": false
+        },
+        "promotionSignal": {
+          "const": false
+        }
+      }
+    },
+    "lifecycleBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "promotable",
+        "canaryAllowed",
+        "approvedAllowed",
+        "deploymentAllowed"
+      ],
+      "properties": {
+        "state": {
+          "const": "evaluated_development"
+        },
+        "promotable": {
+          "const": false
+        },
+        "canaryAllowed": {
+          "const": false
+        },
+        "approvedAllowed": {
+          "const": false
+        },
+        "deploymentAllowed": {
+          "const": false
+        }
+      }
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "evaluatedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "evaluator": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "resultHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

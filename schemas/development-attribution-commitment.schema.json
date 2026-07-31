@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-attribution-commitment.schema.json",
+  "title": "Signed development-only attribution prediction commitment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "commitmentId",
+    "predictionSetHash",
+    "prototypeManifestHash",
+    "corpusHash",
+    "predictionCount",
+    "occurrenceCount",
+    "statusCounts",
+    "priorDiagnosticResultsVisible",
+    "claimBoundary",
+    "sealedAt",
+    "producer",
+    "commitmentHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "commitmentId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "prototypeManifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurrenceCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "statusCounts": {
+      "$ref": "./development-attribution-prediction-set.schema.json#/$defs/statusCounts"
+    },
+    "priorDiagnosticResultsVisible": {
+      "type": "boolean"
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "sealedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "commitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

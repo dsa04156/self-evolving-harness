@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-artifact-quarantine.schema.json",
+  "title": "Signed quarantine for development attribution and mutation artifacts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "recordType",
+    "authorizationDecisionHash",
+    "artifacts",
+    "allowedUseClasses",
+    "prohibitedUseClasses",
+    "claimBoundary",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "development_artifact_quarantine"
+    },
+    "authorizationDecisionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifactId",
+          "artifactKind",
+          "contentHash",
+          "path"
+        ],
+        "properties": {
+          "artifactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "artifactKind": {
+            "type": "string",
+            "enum": [
+              "prototype_manifest",
+              "prediction_set",
+              "prediction_commitment",
+              "oracle_access_event",
+              "development_score_report",
+              "mutation_dry_run",
+              "parent_harness",
+              "candidate_harness",
+              "component_manifest",
+              "component_payload",
+              "non_promotable_record",
+              "evaluator_request",
+              "evaluator_result",
+              "development_evidence"
+            ]
+          },
+          "contentHash": {
+            "oneOf": [
+              {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              {
+                "$ref": "./common.schema.json#/$defs/harnessVersionId"
+              },
+              {
+                "$ref": "./common.schema.json#/$defs/componentManifestId"
+              }
+            ]
+          },
+          "path": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "allowedUseClasses": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "development_attribution_prototype"
+        },
+        {
+          "const": "development_diagnostic_scoring"
+        },
+        {
+          "const": "development_mutation_dry_run"
+        },
+        {
+          "const": "development_external_evaluation"
+        },
+        {
+          "const": "governance_audit"
+        }
+      ],
+      "minItems": 5,
+      "maxItems": 5,
+      "uniqueItems": true
+    },
+    "prohibitedUseClasses": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "research_protocol_manifest"
+        },
+        {
+          "const": "attribution_gate"
+        },
+        {
+          "const": "research_threshold"
+        },
+        {
+          "const": "research_candidate_selection"
+        },
+        {
+          "const": "promotion_decision"
+        },
+        {
+          "const": "canary"
+        },
+        {
+          "const": "deployment"
+        },
+        {
+          "const": "production_pointer"
+        },
+        {
+          "const": "claim_table"
+        },
+        {
+          "const": "research_evidence"
+        }
+      ],
+      "minItems": 10,
+      "maxItems": 10,
+      "uniqueItems": true
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

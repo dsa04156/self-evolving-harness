@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/non-promotable-harness-record.schema.json",
+  "title": "Signed non-promotable harness quarantine record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "recordType",
+    "harnessVersionId",
+    "reason",
+    "developmentOnly",
+    "promotable",
+    "authorizedForResearchEvidence",
+    "forbiddenDestinations",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "non_promotable_harness"
+    },
+    "harnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "reason": {
+      "const": "development_attribution_mutation_dry_run"
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "promotable": {
+      "const": false
+    },
+    "authorizedForResearchEvidence": {
+      "const": false
+    },
+    "forbiddenDestinations": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "harness_qualification_lifecycle"
+        },
+        {
+          "const": "research_selection"
+        },
+        {
+          "const": "canary"
+        },
+        {
+          "const": "approved"
+        },
+        {
+          "const": "deployment"
+        },
+        {
+          "const": "production_pointer"
+        },
+        {
+          "const": "research_manifest"
+        }
+      ],
+      "minItems": 7,
+      "maxItems": 7,
+      "uniqueItems": true
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-oracle-access-event.schema.json",
+  "title": "Signed development scorer oracle-access event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "accessEventId",
+    "purpose",
+    "predictionCommitmentHash",
+    "predictionCommitmentVerified",
+    "oracleBundleHash",
+    "oracleRecordHashes",
+    "accessedAt",
+    "accessor",
+    "claimBoundary",
+    "eventHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "accessEventId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "purpose": {
+      "const": "development_scoring"
+    },
+    "predictionCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionCommitmentVerified": {
+      "const": true
+    },
+    "oracleBundleHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "oracleRecordHashes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/sha256"
+      }
+    },
+    "accessedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "accessor": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "eventHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-attribution-prototype.schema.json",
+  "title": "Development-only label-blind attribution prototype manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "prototypeId",
+    "semanticVersion",
+    "implementationHash",
+    "approvedCorpusHash",
+    "inputContract",
+    "configuration",
+    "claimBoundary",
+    "manifestHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "prototypeId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "semanticVersion": {
+      "$ref": "./common.schema.json#/$defs/semanticVersion"
+    },
+    "implementationHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "approvedCorpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "inputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaId",
+        "accessibleArtifactKinds",
+        "forbiddenArtifactKinds"
+      ],
+      "properties": {
+        "schemaId": {
+          "const": "https://self-evolving-harness.local/schemas/benchmarks/hfb-label-blind-attribution-corpus.schema.json"
+        },
+        "accessibleArtifactKinds": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "label_blind_attribution_corpus"
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "forbiddenArtifactKinds": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "oracle_package"
+            },
+            {
+              "const": "raw_semantic_execution_package"
+            },
+            {
+              "const": "target_diff"
+            },
+            {
+              "const": "manifest_pairing"
+            },
+            {
+              "const": "fixture_mechanism"
+            },
+            {
+              "const": "expected_outcome"
+            }
+          ],
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rulesVersion",
+        "rankLimit",
+        "minimumEvidenceSignals",
+        "timeoutMillis"
+      ],
+      "properties": {
+        "rulesVersion": {
+          "const": "behavioral-heuristic-v1"
+        },
+        "rankLimit": {
+          "const": 8
+        },
+        "minimumEvidenceSignals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "timeoutMillis": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        }
+      }
+    },
+    "claimBoundary": {
+      "$ref": "#/$defs/claimBoundary"
+    },
+    "manifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "claimBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "developmentOnly",
+        "confirmatory",
+        "publicVisibleFixtures",
+        "authorizedForResearchEvidence",
+        "attributionPerformanceClaim"
+      ],
+      "properties": {
+        "developmentOnly": {
+          "const": true
+        },
+        "confirmatory": {
+          "const": false
+        },
+        "publicVisibleFixtures": {
+          "const": true
+        },
+        "authorizedForResearchEvidence": {
+          "const": false
+        },
+        "attributionPerformanceClaim": {
+          "const": false
+        }
+      }
+    }
+  }
+}

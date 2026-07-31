@@ -15,6 +15,7 @@ import type {
   PrincipalRole,
   PrincipalSigner,
 } from "../trust/identity.js";
+import { NonPromotableHarnessRegistry } from "../governance/non-promotable-harness.js";
 import type { HarnessReferenceLedger } from "./reference-ledger.js";
 
 export const HARNESS_LIFECYCLE_SCHEMA_ID =
@@ -87,6 +88,7 @@ export class HarnessQualificationStore {
   readonly #ids: IdFactory;
   readonly #log: AppendOnlyLog<JsonValue>;
   readonly #references: HarnessReferenceLedger | null;
+  readonly #nonPromotable: NonPromotableHarnessRegistry;
 
   public constructor(input: {
     root: string;
@@ -107,6 +109,11 @@ export class HarnessQualificationStore {
     this.#clock = input.clock;
     this.#ids = input.ids;
     this.#references = input.references ?? null;
+    this.#nonPromotable =
+      new NonPromotableHarnessRegistry({
+        root: input.root,
+        schemas: input.schemas,
+      });
     this.#log = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "evolution"),
       "harness.lifecycle",
@@ -118,6 +125,9 @@ export class HarnessQualificationStore {
     evidenceReceiptIds: readonly string[];
     signer: PrincipalSigner;
   }): Promise<HarnessLifecycleRecord> {
+    await this.#nonPromotable.assertQualificationAllowed(
+      input.harnessVersionId,
+    );
     assertCondition(
       (await this.records(input.harnessVersionId)).length === 0,
       "CONFLICT",
@@ -138,6 +148,9 @@ export class HarnessQualificationStore {
     evidenceReceiptIds: readonly string[];
     signer: PrincipalSigner;
   }): Promise<HarnessLifecycleRecord> {
+    await this.#nonPromotable.assertQualificationAllowed(
+      input.harnessVersionId,
+    );
     const previous = (await this.records(input.harnessVersionId)).at(-1);
     assertCondition(previous !== undefined, "ARTIFACT_UNAVAILABLE", "Unknown harness lifecycle");
     assertCondition(

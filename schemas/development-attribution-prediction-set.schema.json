@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-attribution-prediction-set.schema.json",
+  "title": "Development-only attribution prediction set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "prototypeManifestHash",
+    "corpusHash",
+    "generatedAt",
+    "priorDiagnosticResultsVisible",
+    "predictions",
+    "statusCounts",
+    "occurrenceStatusCounts",
+    "predictionSetHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "prototypeManifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "generatedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "priorDiagnosticResultsVisible": {
+      "type": "boolean"
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/prediction"
+      }
+    },
+    "statusCounts": {
+      "$ref": "#/$defs/statusCounts"
+    },
+    "occurrenceStatusCounts": {
+      "$ref": "#/$defs/statusCounts"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "predicted",
+        "abstained",
+        "invalid_output",
+        "failure",
+        "timeout"
+      ]
+    },
+    "statusCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicted",
+        "abstained",
+        "invalid_output",
+        "failure",
+        "timeout"
+      ],
+      "properties": {
+        "predicted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstained": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_output": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failure": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "componentType": {
+      "type": "string",
+      "enum": [
+        "SystemPrompt",
+        "ContextPolicy",
+        "MemoryRetrievalPolicy",
+        "Skill",
+        "WorkflowPolicy",
+        "RoutingPolicy",
+        "SubagentPrompt",
+        "ToolDescription"
+      ]
+    },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceProjectionId",
+        "occurrenceCount",
+        "status",
+        "rankedComponentTypes",
+        "diagnosticCodes",
+        "terminalReason"
+      ],
+      "properties": {
+        "traceProjectionId": {
+          "type": "string",
+          "pattern": "^lbti-sha256:[a-f0-9]{64}$"
+        },
+        "occurrenceCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "#/$defs/status"
+        },
+        "rankedComponentTypes": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "componentType",
+              "scoreMicros",
+              "evidenceCodes"
+            ],
+            "properties": {
+              "rank": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8
+              },
+              "componentType": {
+                "$ref": "#/$defs/componentType"
+              },
+              "scoreMicros": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "evidenceCodes": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                }
+              }
+            }
+          }
+        },
+        "diagnosticCodes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "terminalReason": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

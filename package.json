@@ -20,6 +20,8 @@
     "validate:hfb-semantic": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts",
     "generate:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts --write",
     "verify:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/verify-hfb-semantic-evidence.ts",
+    "generate:development-attribution-dry-run": "npx -y node@24.18.1 --import tsx scripts/generate-development-attribution-dry-run.ts",
+    "verify:development-attribution-dry-run": "npx -y node@24.18.1 --import tsx scripts/verify-development-attribution-dry-run.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

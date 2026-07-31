@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-attribution-dry-run-evidence.schema.json",
+  "title": "Development attribution and mutation dry-run evidence summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceClass",
+    "sourceCommit",
+    "sourceTree",
+    "authorization",
+    "input",
+    "attribution",
+    "scoring",
+    "mutation",
+    "externalEvaluator",
+    "accessBoundary",
+    "claims",
+    "artifactFiles",
+    "evidenceHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "evidenceClass": {
+      "const": "visible_fixture_development_diagnostic_and_dry_run"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "sourceTree": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architectResponseHash",
+        "remediationClosureHash"
+      ],
+      "properties": {
+        "architectResponseHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "remediationClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semanticSuiteCommitment",
+        "labelBlindCorpusCommitment",
+        "uniqueTraceCount",
+        "occurrenceCount"
+      ],
+      "properties": {
+        "semanticSuiteCommitment": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "labelBlindCorpusCommitment": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "uniqueTraceCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurrenceCount": {
+          "const": 28
+        }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prototypeManifestHash",
+        "implementationHash",
+        "predictionSetHash",
+        "predictionCommitmentHash",
+        "predictionCount",
+        "occurrenceCount",
+        "statusCounts",
+        "priorDiagnosticResultsVisible",
+        "generatedAt",
+        "sealedAt"
+      ],
+      "properties": {
+        "prototypeManifestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "implementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "predictionSetHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "predictionCommitmentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "predictionCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurrenceCount": {
+          "const": 28
+        },
+        "statusCounts": {
+          "$ref": "./development-attribution-prediction-set.schema.json#/$defs/statusCounts"
+        },
+        "priorDiagnosticResultsVisible": {
+          "type": "boolean"
+        },
+        "generatedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "sealedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        }
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scorerImplementationHash",
+        "oracleAccessEventHash",
+        "scoreReportHash",
+        "oracleRecordCount",
+        "oracleAccessedAt",
+        "scoredAt",
+        "diagnosticMetrics",
+        "claimBoundary"
+      ],
+      "properties": {
+        "scorerImplementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "oracleAccessEventHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "scoreReportHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "oracleRecordCount": {
+          "const": 28
+        },
+        "oracleAccessedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "scoredAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "diagnosticMetrics": {
+          "type": "object"
+        },
+        "claimBoundary": {
+          "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dryRunRecordHash",
+        "parentHarnessVersionId",
+        "candidateHarnessVersionId",
+        "selectedComponentType",
+        "changedComponentCount",
+        "expandedClosureEditBytes",
+        "immutableDiffCount",
+        "capabilityDiffCount",
+        "nonPromotableRecordHash",
+        "promotable"
+      ],
+      "properties": {
+        "dryRunRecordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "parentHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "candidateHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "selectedComponentType": {
+          "$ref": "./development-attribution-score-report.schema.json#/$defs/componentType"
+        },
+        "changedComponentCount": {
+          "const": 1
+        },
+        "expandedClosureEditBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "immutableDiffCount": {
+          "const": 0
+        },
+        "capabilityDiffCount": {
+          "const": 0
+        },
+        "nonPromotableRecordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "promotable": {
+          "const": false
+        }
+      }
+    },
+    "externalEvaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestHash",
+        "resultHash",
+        "implementationHash",
+        "syntheticTaskCount",
+        "requestAccepted",
+        "researchMetric",
+        "promotionSignal"
+      ],
+      "properties": {
+        "requestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "resultHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "implementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "syntheticTaskCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requestAccepted": {
+          "const": true
+        },
+        "researchMetric": {
+          "const": false
+        },
+        "promotionSignal": {
+          "const": false
+        }
+      }
+    },
+    "accessBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attributorOracleImports",
+        "mutationProposerOracleImports",
+        "candidateEvaluatorOracleImports",
+        "gateCapability",
+        "finalCapability",
+        "realProviderCalled"
+      ],
+      "properties": {
+        "attributorOracleImports": {
+          "const": 0
+        },
+        "mutationProposerOracleImports": {
+          "const": 0
+        },
+        "candidateEvaluatorOracleImports": {
+          "const": 0
+        },
+        "gateCapability": {
+          "const": false
+        },
+        "finalCapability": {
+          "const": false
+        },
+        "realProviderCalled": {
+          "const": false
+        }
+      }
+    },
+    "claims": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "artifactFiles": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "fileSha256",
+          "contentHash"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "fileSha256": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          },
+          "contentHash": {
+            "oneOf": [
+              {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              },
+              {
+                "$ref": "./common.schema.json#/$defs/harnessVersionId"
+              },
+              {
+                "$ref": "./common.schema.json#/$defs/componentManifestId"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "evidenceHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  }
+}

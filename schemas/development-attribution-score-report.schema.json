@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-attribution-score-report.schema.json",
+  "title": "Signed visible-fixture development attribution diagnostic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "predictionCommitmentHash",
+    "predictionSetHash",
+    "prototypeManifestHash",
+    "corpusHash",
+    "scorer",
+    "oracleAccessEventHash",
+    "caseCount",
+    "statusCounts",
+    "diagnosticMetrics",
+    "confusion",
+    "claimBoundary",
+    "scoredAt",
+    "reportHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "reportId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "predictionCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "prototypeManifestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "scorer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scorerId",
+        "implementationHash",
+        "identity"
+      ],
+      "properties": {
+        "scorerId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "implementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        }
+      }
+    },
+    "oracleAccessEventHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "caseCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "statusCounts": {
+      "$ref": "./development-attribution-prediction-set.schema.json#/$defs/statusCounts"
+    },
+    "diagnosticMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "top1Count",
+        "top3Count",
+        "topKCount",
+        "top1RateMicros",
+        "top3RateMicros",
+        "topKRateMicros",
+        "abstentionCount",
+        "invalidOutputCount",
+        "failureCount",
+        "timeoutCount"
+      ],
+      "properties": {
+        "top1Count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "top3Count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topKCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "top1RateMicros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "top3RateMicros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "topKRateMicros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "abstentionCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidOutputCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failureCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeoutCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "confusion": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "actual",
+          "predicted",
+          "count"
+        ],
+        "properties": {
+          "actual": {
+            "$ref": "#/$defs/componentType"
+          },
+          "predicted": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/componentType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "scoredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "reportHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "componentType": {
+      "type": "string",
+      "enum": [
+        "SystemPrompt",
+        "ContextPolicy",
+        "MemoryRetrievalPolicy",
+        "Skill",
+        "WorkflowPolicy",
+        "RoutingPolicy",
+        "SubagentPrompt",
+        "ToolDescription"
+      ]
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-evaluator-request.schema.json",
+  "title": "Development-only external evaluator request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "dryRunRecordHash",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "selectedComponentType",
+    "changeSurface",
+    "tasks",
+    "capabilities",
+    "developmentOnly",
+    "promotable",
+    "requestHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "requestId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "dryRunRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "selectedComponentType": {
+      "$ref": "./development-attribution-score-report.schema.json#/$defs/componentType"
+    },
+    "changeSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changedComponentCount",
+        "expandedClosureEditBytes",
+        "structuralEditOperations",
+        "capabilityIdsAdded",
+        "capabilityIdsRemoved"
+      ],
+      "properties": {
+        "changedComponentCount": {
+          "const": 1
+        },
+        "expandedClosureEditBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "structuralEditOperations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "capabilityIdsAdded": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "capabilityIdsRemoved": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "taskId",
+          "taskInputHash",
+          "parentPassed",
+          "candidatePassed"
+        ],
+        "properties": {
+          "taskId": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          },
+          "taskInputHash": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          },
+          "parentPassed": {
+            "type": "boolean"
+          },
+          "candidatePassed": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "datasetRole",
+        "providerClass",
+        "toolClass",
+        "oracleAccess",
+        "gateAccess",
+        "finalAccess",
+        "promotionAccess",
+        "deploymentAccess"
+      ],
+      "properties": {
+        "datasetRole": {
+          "const": "synthetic_development"
+        },
+        "providerClass": {
+          "const": "deterministic_fake"
+        },
+        "toolClass": {
+          "const": "immutable_builtin"
+        },
+        "oracleAccess": {
+          "const": false
+        },
+        "gateAccess": {
+          "const": false
+        },
+        "finalAccess": {
+          "const": false
+        },
+        "promotionAccess": {
+          "const": false
+        },
+        "deploymentAccess": {
+          "const": false
+        }
+      }
+    },
+    "developmentOnly": {
+      "const": true
+    },
+    "promotable": {
+      "const": false
+    },
+    "requestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  }
+}

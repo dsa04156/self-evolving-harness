@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-mutation-dry-run.schema.json",
+  "title": "Signed non-promotable development mutation dry run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "dryRunId",
+    "protocolId",
+    "predictionCommitmentHash",
+    "predictionSetHash",
+    "corpusHash",
+    "selectedTraceProjectionId",
+    "selectedComponentType",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "change",
+    "admission",
+    "evaluatorInputPolicy",
+    "lifecycleBoundary",
+    "claimBoundary",
+    "proposer",
+    "createdAt",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "dryRunId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "predictionCommitmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "predictionSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "corpusHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "selectedTraceProjectionId": {
+      "type": "string",
+      "pattern": "^lbti-sha256:[a-f0-9]{64}$"
+    },
+    "selectedComponentType": {
+      "$ref": "./development-attribution-score-report.schema.json#/$defs/componentType"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changedComponentCount",
+        "componentId",
+        "beforeComponentManifestId",
+        "afterComponentManifestId",
+        "nextSemanticVersion",
+        "operations",
+        "semanticOperations",
+        "expandedClosureEditBytes",
+        "replacementSurfaceBytes",
+        "normalizedTokenInsertions",
+        "normalizedTokenDeletions",
+        "structuralEditOperations",
+        "parentClosureHash",
+        "candidateClosureHash",
+        "capabilityIdsAdded",
+        "capabilityIdsRemoved"
+      ],
+      "properties": {
+        "changedComponentCount": {
+          "const": 1
+        },
+        "componentId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "beforeComponentManifestId": {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        },
+        "afterComponentManifestId": {
+          "$ref": "./common.schema.json#/$defs/componentManifestId"
+        },
+        "nextSemanticVersion": {
+          "$ref": "./common.schema.json#/$defs/semanticVersion"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "op",
+              "path"
+            ],
+            "properties": {
+              "op": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "remove",
+                  "replace"
+                ]
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/.+"
+              },
+              "value": {}
+            }
+          }
+        },
+        "semanticOperations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "expandedClosureEditBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "replacementSurfaceBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192
+        },
+        "normalizedTokenInsertions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "normalizedTokenDeletions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "structuralEditOperations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "parentClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "candidateClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "capabilityIdsAdded": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "capabilityIdsRemoved": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid",
+        "checks"
+      ],
+      "properties": {
+        "valid": {
+          "const": true
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "checkId",
+              "passed"
+            ],
+            "properties": {
+              "checkId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
+              "passed": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "evaluatorInputPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "datasetRole",
+        "providerClass",
+        "toolClass",
+        "oracleAvailable",
+        "gateCapability",
+        "finalCapability"
+      ],
+      "properties": {
+        "datasetRole": {
+          "const": "synthetic_development"
+        },
+        "providerClass": {
+          "const": "deterministic_fake"
+        },
+        "toolClass": {
+          "const": "immutable_builtin"
+        },
+        "oracleAvailable": {
+          "const": false
+        },
+        "gateCapability": {
+          "const": false
+        },
+        "finalCapability": {
+          "const": false
+        }
+      }
+    },
+    "lifecycleBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "promotable",
+        "mainQualificationLifecycleAllowed",
+        "allowedDestinations",
+        "forbiddenDestinations"
+      ],
+      "properties": {
+        "state": {
+          "const": "development_candidate"
+        },
+        "promotable": {
+          "const": false
+        },
+        "mainQualificationLifecycleAllowed": {
+          "const": false
+        },
+        "allowedDestinations": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "development_external_evaluator"
+            },
+            {
+              "const": "development_archive"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "forbiddenDestinations": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "research_selection"
+            },
+            {
+              "const": "canary"
+            },
+            {
+              "const": "approved"
+            },
+            {
+              "const": "deployment"
+            },
+            {
+              "const": "production_pointer"
+            },
+            {
+              "const": "research_manifest"
+            }
+          ],
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true
+        }
+      }
+    },
+    "claimBoundary": {
+      "$ref": "./development-attribution-prototype.schema.json#/$defs/claimBoundary"
+    },
+    "proposer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}
