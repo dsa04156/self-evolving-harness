@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/trust-plane-control-lineage.schema.json",
+  "title": "Cross-domain technical-control implementation lineage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lineageVersion",
+    "controlId",
+    "domainIds",
+    "stages",
+    "currentStageId",
+    "statusBindings",
+    "behaviorProof"
+  ],
+  "properties": {
+    "lineageVersion": {
+      "const": 1
+    },
+    "controlId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "domainIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/lineageStage"
+      }
+    },
+    "currentStageId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "statusBindings": {
+      "$ref": "#/$defs/statusBindings"
+    },
+    "behaviorProof": {
+      "$ref": "#/$defs/behaviorProof"
+    }
+  },
+  "$defs": {
+    "controlBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controlId",
+        "evidenceRole"
+      ],
+      "properties": {
+        "controlId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "evidenceRole": {
+          "type": "string",
+          "enum": [
+            "historical",
+            "current"
+          ]
+        }
+      }
+    },
+    "lineageStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stageId",
+        "sequence",
+        "eventType",
+        "disposition",
+        "artifactIds",
+        "predecessorStageId"
+      ],
+      "properties": {
+        "stageId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "eventType": {
+          "type": "string",
+          "enum": [
+            "implementation_introduced",
+            "defect_discovered",
+            "implementation_superseded",
+            "correcting_implementation",
+            "approving_ruling",
+            "current_implementation"
+          ]
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "historical",
+            "superseded",
+            "current"
+          ]
+        },
+        "artifactIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/entityId"
+          }
+        },
+        "predecessorStageId": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "statusBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementedControlId",
+        "locallyTestedControlId",
+        "derivedFromStageId"
+      ],
+      "properties": {
+        "implementedControlId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "locallyTestedControlId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "derivedFromStageId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        }
+      }
+    },
+    "behaviorProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defectDiscoveryArtifactId",
+        "correctionSourceArtifactId",
+        "correctionWorkerArtifactId",
+        "approvingRulingArtifactId",
+        "baselineCurrentSourceArtifactId",
+        "baselineCurrentWorkerArtifactId",
+        "snapshotCurrentSourceArtifactId",
+        "snapshotCurrentWorkerArtifactId",
+        "evidenceArtifactId",
+        "authorIdentityPresentPointer",
+        "rawTaskHandlePresentPointer",
+        "privateKeyPresentPointer",
+        "inputFilesPointer",
+        "expectedInputFiles",
+        "requiredProjectionSourceMarkers",
+        "requiredWorkerSourceMarkers"
+      ],
+      "properties": {
+        "defectDiscoveryArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "correctionSourceArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "correctionWorkerArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "approvingRulingArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "baselineCurrentSourceArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "baselineCurrentWorkerArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "snapshotCurrentSourceArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "snapshotCurrentWorkerArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "evidenceArtifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "authorIdentityPresentPointer": {
+          "$ref": "#/$defs/jsonPointer"
+        },
+        "rawTaskHandlePresentPointer": {
+          "$ref": "#/$defs/jsonPointer"
+        },
+        "privateKeyPresentPointer": {
+          "$ref": "#/$defs/jsonPointer"
+        },
+        "inputFilesPointer": {
+          "$ref": "#/$defs/jsonPointer"
+        },
+        "expectedInputFiles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "requiredProjectionSourceMarkers": {
+          "$ref": "#/$defs/sourceMarkers"
+        },
+        "requiredWorkerSourceMarkers": {
+          "$ref": "#/$defs/sourceMarkers"
+        }
+      }
+    },
+    "jsonPointer": {
+      "type": "string",
+      "pattern": "^/(?:[^~/]|~0|~1)*(?:/(?:[^~/]|~0|~1)*)*$",
+      "maxLength": 1000
+    },
+    "sourceMarkers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 256
+      }
+    }
+  }
+}

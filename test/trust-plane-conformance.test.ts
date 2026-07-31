@@ -13,12 +13,14 @@ import {
   canonicalize,
   createTrustPlaneConformanceManifest,
   parseStrictJson,
+  sha256,
   verifyTrustPlaneAggregate,
   verifyTrustPlaneConformanceManifest,
   verifyTrustPlaneOutstandingObligations,
   type JsonValue,
   type TrustPlaneArtifactReference,
   type TrustPlaneConformanceManifest,
+  type TrustPlaneControlLineage,
   type TrustPlaneEvidenceDomain,
   type TrustPlaneOutstandingObligations,
   type UnsignedTrustPlaneConformanceManifest,
@@ -86,6 +88,110 @@ function domain(
       unclaimedPropertyIds: [`domain${ordinal}.unclaimed`],
     },
     identityBindings: [],
+    canonicalControlBindings:
+      domainId ===
+      "independent_authorship_vault_admission"
+        ? [
+            {
+              controlId: "control.reviewer_blinding",
+              evidenceRole: "historical",
+            },
+          ]
+        : domainId ===
+            "eight_principal_vault_os_integration"
+          ? [
+              {
+                controlId: "control.reviewer_blinding",
+                evidenceRole: "current",
+              },
+            ]
+          : [],
+  };
+}
+
+function reviewerBlindingLineage(): TrustPlaneControlLineage {
+  return {
+    lineageVersion: 1,
+    controlId: "control.reviewer_blinding",
+    domainIds: [
+      "independent_authorship_vault_admission",
+      "eight_principal_vault_os_integration",
+    ],
+    stages: [
+      {
+        stageId: "reviewer_blinding.introduced",
+        sequence: 1,
+        eventType: "implementation_introduced",
+        disposition: "historical",
+        artifactIds: ["domain4.contract"],
+        predecessorStageId: null,
+      },
+      {
+        stageId: "reviewer_blinding.defect_discovered",
+        sequence: 2,
+        eventType: "defect_discovered",
+        disposition: "historical",
+        artifactIds: ["domain6.ruling"],
+        predecessorStageId: "reviewer_blinding.introduced",
+      },
+      {
+        stageId: "reviewer_blinding.superseded",
+        sequence: 3,
+        eventType: "implementation_superseded",
+        disposition: "superseded",
+        artifactIds: ["domain4.contract"],
+        predecessorStageId:
+          "reviewer_blinding.defect_discovered",
+      },
+      {
+        stageId: "reviewer_blinding.correcting",
+        sequence: 4,
+        eventType: "correcting_implementation",
+        disposition: "historical",
+        artifactIds: ["domain6.contract"],
+        predecessorStageId: "reviewer_blinding.superseded",
+      },
+      {
+        stageId: "reviewer_blinding.approved",
+        sequence: 5,
+        eventType: "approving_ruling",
+        disposition: "historical",
+        artifactIds: ["domain6.ruling"],
+        predecessorStageId: "reviewer_blinding.correcting",
+      },
+      {
+        stageId: "reviewer_blinding.current",
+        sequence: 6,
+        eventType: "current_implementation",
+        disposition: "current",
+        artifactIds: ["domain6.contract"],
+        predecessorStageId: "reviewer_blinding.approved",
+      },
+    ],
+    currentStageId: "reviewer_blinding.current",
+    statusBindings: {
+      implementedControlId: "status.test.implemented",
+      locallyTestedControlId: "status.test.tested",
+      derivedFromStageId: "reviewer_blinding.current",
+    },
+    behaviorProof: {
+      defectDiscoveryArtifactId: "domain6.ruling",
+      correctionSourceArtifactId: "domain6.contract",
+      correctionWorkerArtifactId: "domain6.contract",
+      approvingRulingArtifactId: "domain6.ruling",
+      baselineCurrentSourceArtifactId: "domain6.contract",
+      baselineCurrentWorkerArtifactId: "domain6.contract",
+      snapshotCurrentSourceArtifactId: "domain6.contract",
+      snapshotCurrentWorkerArtifactId: "domain6.contract",
+      evidenceArtifactId: "domain6.contract",
+      authorIdentityPresentPointer: "/reviewer/author",
+      rawTaskHandlePresentPointer: "/reviewer/task",
+      privateKeyPresentPointer: "/reviewer/key",
+      inputFilesPointer: "/reviewer/files",
+      expectedInputFiles: ["reviewer-projection.json"],
+      requiredProjectionSourceMarkers: ["projection"],
+      requiredWorkerSourceMarkers: ["worker"],
+    },
   };
 }
 
@@ -180,6 +286,7 @@ async function fixture(): Promise<{
         domain("eight_principal_vault_os_integration", 6),
         domain("synthetic_one_time_custody_recovery", 7),
       ],
+      controlLineages: [reviewerBlindingLineage()],
       governanceChains: [
         {
           chainId: "hfb_structural_oracle_remediation",
@@ -271,23 +378,40 @@ async function resign(
       "protocol.author.aggregate-tamper.test.instance",
     seedByte: 203,
   });
-  return createTrustPlaneConformanceManifest({
-    signer,
-    schemas,
-    value: mutate({
-      manifestId: input.manifestId,
-      scope: input.scope,
-      sourceSnapshot: input.sourceSnapshot,
-      evidenceDomains: input.evidenceDomains,
-      governanceChains: input.governanceChains,
-      authorityState: input.authorityState,
-      eligibilityState: input.eligibilityState,
-      statusDistinction: input.statusDistinction,
-      outstandingObligations: input.outstandingObligations,
-      identityNamespacePolicy: input.identityNamespacePolicy,
-      recordedAt: input.recordedAt,
-    }),
+  const value = mutate({
+    manifestId: input.manifestId,
+    scope: input.scope,
+    sourceSnapshot: input.sourceSnapshot,
+    evidenceDomains: input.evidenceDomains,
+    controlLineages: input.controlLineages,
+    governanceChains: input.governanceChains,
+    authorityState: input.authorityState,
+    eligibilityState: input.eligibilityState,
+    statusDistinction: input.statusDistinction,
+    outstandingObligations: input.outstandingObligations,
+    identityNamespacePolicy: input.identityNamespacePolicy,
+    recordedAt: input.recordedAt,
   });
+  const core = {
+    schemaVersion: 2 as const,
+    ...value,
+    recordType: "trust_plane_conformance_manifest" as const,
+    recordedBy: signer.identity,
+  };
+  const body = {
+    ...core,
+    manifestHash: sha256(core as unknown as JsonValue),
+    publicPrincipal: signer.exportPublic(),
+  };
+  const record = {
+    ...body,
+    attestation: signer.attest(body as unknown as JsonValue),
+  };
+  schemas.validate(
+    "https://self-evolving-harness.local/schemas/trust-plane-conformance-manifest.schema.json",
+    record as unknown as JsonValue,
+  );
+  return record;
 }
 
 describe("trust-plane conformance contracts", () => {
@@ -385,6 +509,7 @@ describe("trust-plane conformance contracts", () => {
                       }
                     : entry,
             ),
+            controlLineages: record.controlLineages,
             governanceChains: record.governanceChains,
             authorityState: record.authorityState,
             eligibilityState: record.eligibilityState,
@@ -567,5 +692,164 @@ test("independent aggregate verification rejects validly re-signed nested drift"
       ),
     }),
     /SCHEMA_INVALID|schema|must have required property|must be equal/u,
+  );
+
+  const preProjectionAsCurrent = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      controlLineages: value.controlLineages.map(
+        (lineage) => ({
+          ...lineage,
+          stages: lineage.stages.map((stage) =>
+            stage.stageId === "reviewer_blinding.current"
+              ? {
+                  ...stage,
+                  artifactIds: ["authorship.transition_source"],
+                }
+              : stage,
+          ),
+        }),
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "pre-projection-as-current",
+        preProjectionAsCurrent,
+      ),
+    }),
+    /reviewer_blinding\.current artifacts differs/u,
+  );
+
+  const withoutStage = async (
+    stageId: string,
+    name: string,
+  ): Promise<void> => {
+    const tampered = await resign(
+      manifest,
+      schemas,
+      (value) => ({
+        ...value,
+        controlLineages: value.controlLineages.map(
+          (lineage) => {
+            const stages = lineage.stages
+              .filter((stage) => stage.stageId !== stageId)
+              .map((stage, index, retained) => ({
+                ...stage,
+                sequence: index + 1,
+                predecessorStageId:
+                  index === 0
+                    ? null
+                    : retained[index - 1]!.stageId,
+              }));
+            return {
+              ...lineage,
+              stages,
+            };
+          },
+        ),
+      }),
+    );
+    await assert.rejects(
+      verifyTrustPlaneAggregate({
+        repositoryRoot: process.cwd(),
+        manifestPath: await writeTamper(name, tampered),
+      }),
+      /incomplete event chain/u,
+    );
+  };
+  await withoutStage(
+    "reviewer_blinding.correcting",
+    "missing-correction",
+  );
+  await withoutStage(
+    "reviewer_blinding.approved",
+    "missing-approval",
+  );
+
+  const unconnectedSharedControl = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      controlLineages: value.controlLineages.map(
+        (lineage) => ({
+          ...lineage,
+          domainIds: [
+            "eight_principal_vault_os_integration",
+          ],
+        }),
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "unconnected-shared-control",
+        unconnectedSharedControl,
+      ),
+    }),
+    /reviewer-blinding lineage domains differs/u,
+  );
+
+  const supersededStatusSource = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      controlLineages: value.controlLineages.map(
+        (lineage) => ({
+          ...lineage,
+          statusBindings: {
+            ...lineage.statusBindings,
+            derivedFromStageId:
+              "reviewer_blinding.superseded",
+          },
+        }),
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "superseded-status-source",
+        supersededStatusSource,
+      ),
+    }),
+    /statuses do not derive from the current implementation/u,
+  );
+
+  const preProjectionProofBinding = await resign(
+    manifest,
+    schemas,
+    (value) => ({
+      ...value,
+      controlLineages: value.controlLineages.map(
+        (lineage) => ({
+          ...lineage,
+          behaviorProof: {
+            ...lineage.behaviorProof,
+            snapshotCurrentSourceArtifactId:
+              "authorship.transition_source",
+          },
+        }),
+      ),
+    }),
+  );
+  await assert.rejects(
+    verifyTrustPlaneAggregate({
+      repositoryRoot: process.cwd(),
+      manifestPath: await writeTamper(
+        "pre-projection-proof-binding",
+        preProjectionProofBinding,
+      ),
+    }),
+    /behavior proof binding differs/u,
   );
 });

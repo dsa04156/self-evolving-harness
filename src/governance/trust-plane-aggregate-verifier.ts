@@ -109,6 +109,41 @@ const EXPECTED_PUBLIC_ROOTS = [
   "8b5f14400a7723c821bc54420e55da58dfa7601b",
 ] as const;
 
+const REVIEWER_BLINDING_CONTROL_ID =
+  "control.reviewer_blinding";
+const REVIEWER_BLINDING_DOMAINS = [
+  "independent_authorship_vault_admission",
+  "eight_principal_vault_os_integration",
+] as const;
+const REVIEWER_BLINDING_BINDINGS = [
+  "independent_authorship_vault_admission\0control.reviewer_blinding\0historical",
+  "eight_principal_vault_os_integration\0control.reviewer_blinding\0current",
+] as const;
+const AUTHORSHIP_PRE_PROJECTION_COMMIT =
+  "af70fd154dd2355891de0a475ce4d593a473b9b7";
+const REVIEWER_PROJECTION_CORRECTION_COMMIT =
+  "864d211484f802ac0d82fe9d3c21382e0ad48e80";
+const REVIEWER_PROJECTION_APPROVAL_COMMIT =
+  "3af82e3c276b8a499a3ff1fd357fc791140df9a2";
+const REVIEWER_PROJECTION_BASELINE_COMMIT =
+  "181fe51bde92384a96953ccdeab432d726bfbc49";
+const REVIEWER_INPUT_FILES = [
+  "config.json",
+  "own-public.json",
+  "review.json",
+  "reviewer-projection.json",
+] as const;
+const REVIEWER_PROJECTION_SOURCE_MARKERS = [
+  "export interface BlindedReviewerContractProjection",
+  "export function createBlindedReviewerContractProjection",
+  "export function verifyBlindedReviewerContractProjection",
+] as const;
+const REVIEWER_WORKER_SOURCE_MARKERS = [
+  "createBlindedReviewerContractProjection",
+  "\"reviewer-projection.json\"",
+  "readInput<BlindedReviewerContractProjection>",
+] as const;
+
 interface ParsedArtifact {
   readonly reference: TrustPlaneArtifactReference;
   readonly bytes: Buffer;
@@ -140,6 +175,8 @@ export interface TrustPlaneAggregateVerification {
   readonly sourceCommitCount: number;
   readonly governanceChainCount: number;
   readonly identityBindingCount: number;
+  readonly controlLineageCount: number;
+  readonly canonicalControlBindingCount: number;
   readonly outstandingObligationCount: number;
   readonly authoritiesGranted: 0;
 }
@@ -726,6 +763,314 @@ function verifyGovernance(
   }
 }
 
+function verifyControlLineages(
+  manifest: TrustPlaneConformanceManifest,
+  artifacts: ReadonlyMap<string, ParsedArtifact>,
+): number {
+  sameStrings(
+    manifest.controlLineages.map((entry) => entry.controlId),
+    [REVIEWER_BLINDING_CONTROL_ID],
+    "canonical control lineages",
+  );
+  const canonicalBindings =
+    manifest.evidenceDomains.flatMap((domain) =>
+      domain.canonicalControlBindings.map(
+        (binding) =>
+          `${domain.domainId}\0${binding.controlId}\0${binding.evidenceRole}`,
+      ),
+    );
+  sameStrings(
+    canonicalBindings,
+    REVIEWER_BLINDING_BINDINGS,
+    "canonical reviewer-blinding domain bindings",
+  );
+
+  const lineage = manifest.controlLineages.find(
+    (entry) =>
+      entry.controlId === REVIEWER_BLINDING_CONTROL_ID,
+  );
+  ensure(
+    lineage !== undefined,
+    "reviewer-blinding lineage is absent",
+  );
+  sameStrings(
+    lineage.domainIds,
+    REVIEWER_BLINDING_DOMAINS,
+    "reviewer-blinding lineage domains",
+  );
+
+  const expectedStages = [
+    {
+      stageId: "reviewer_blinding.introduced",
+      eventType: "implementation_introduced",
+      disposition: "historical",
+      artifactIds: ["authorship.transition_source"],
+    },
+    {
+      stageId: "reviewer_blinding.defect_discovered",
+      eventType: "defect_discovered",
+      disposition: "historical",
+      artifactIds: ["os_vault.packet"],
+    },
+    {
+      stageId: "reviewer_blinding.superseded",
+      eventType: "implementation_superseded",
+      disposition: "superseded",
+      artifactIds: ["authorship.transition_source"],
+    },
+    {
+      stageId: "reviewer_blinding.correcting",
+      eventType: "correcting_implementation",
+      disposition: "historical",
+      artifactIds: [
+        "os_vault.reviewer_projection_correction_source",
+        "os_vault.worker_source",
+      ],
+    },
+    {
+      stageId: "reviewer_blinding.approved",
+      eventType: "approving_ruling",
+      disposition: "historical",
+      artifactIds: ["os_vault.ruling"],
+    },
+    {
+      stageId: "reviewer_blinding.current",
+      eventType: "current_implementation",
+      disposition: "current",
+      artifactIds: [
+        "os_vault.reviewer_projection_baseline_source",
+        "os_vault.worker_baseline_source",
+        "os_vault.reviewer_projection_current_source",
+        "os_vault.worker_current_source",
+      ],
+    },
+  ] as const;
+  ensure(
+    lineage.stages.length === expectedStages.length,
+    "reviewer-blinding lineage has an incomplete event chain",
+  );
+  lineage.stages.forEach((stage, index) => {
+    const expected = expectedStages[index];
+    ensure(
+      expected !== undefined &&
+        stage.sequence === index + 1 &&
+        stage.stageId === expected.stageId &&
+        stage.eventType === expected.eventType &&
+        stage.disposition === expected.disposition &&
+        stage.predecessorStageId ===
+          (index === 0
+            ? null
+            : expectedStages[index - 1]!.stageId),
+      `reviewer-blinding lineage stage ${index + 1} differs`,
+    );
+    sameStrings(
+      stage.artifactIds,
+      expected.artifactIds,
+      `${stage.stageId} artifacts`,
+    );
+  });
+
+  ensure(
+    lineage.currentStageId ===
+      "reviewer_blinding.current" &&
+      lineage.statusBindings.implementedControlId ===
+        "status.independent_authorship_contract" &&
+      lineage.statusBindings.locallyTestedControlId ===
+        "status.authorship_admission" &&
+      lineage.statusBindings.derivedFromStageId ===
+        "reviewer_blinding.current",
+    "reviewer-blinding statuses do not derive from the current implementation",
+  );
+  const statusSource = lineage.stages.find(
+    (stage) =>
+      stage.stageId ===
+      lineage.statusBindings.derivedFromStageId,
+  );
+  ensure(
+    statusSource?.disposition === "current" &&
+      statusSource.eventType === "current_implementation",
+    "a superseded reviewer-blinding implementation satisfies current status",
+  );
+
+  const expectedProof = {
+    defectDiscoveryArtifactId: "os_vault.packet",
+    correctionSourceArtifactId:
+      "os_vault.reviewer_projection_correction_source",
+    correctionWorkerArtifactId: "os_vault.worker_source",
+    approvingRulingArtifactId: "os_vault.ruling",
+    baselineCurrentSourceArtifactId:
+      "os_vault.reviewer_projection_baseline_source",
+    baselineCurrentWorkerArtifactId:
+      "os_vault.worker_baseline_source",
+    snapshotCurrentSourceArtifactId:
+      "os_vault.reviewer_projection_current_source",
+    snapshotCurrentWorkerArtifactId:
+      "os_vault.worker_current_source",
+    evidenceArtifactId: "os_vault.evidence",
+    authorIdentityPresentPointer:
+      "/reviewerBoundary/authorIdentityPresent",
+    rawTaskHandlePresentPointer:
+      "/reviewerBoundary/rawTaskHandlePresent",
+    privateKeyPresentPointer:
+      "/reviewerBoundary/privateKeyPresent",
+    inputFilesPointer: "/reviewerBoundary/inputFiles",
+    expectedInputFiles: REVIEWER_INPUT_FILES,
+    requiredProjectionSourceMarkers:
+      REVIEWER_PROJECTION_SOURCE_MARKERS,
+    requiredWorkerSourceMarkers:
+      REVIEWER_WORKER_SOURCE_MARKERS,
+  };
+  ensure(
+    canonicalize(lineage.behaviorProof as unknown as JsonValue) ===
+      canonicalize(expectedProof as unknown as JsonValue),
+    "reviewer-blinding behavior proof binding differs",
+  );
+
+  const requireArtifact = (
+    artifactId: string,
+  ): ParsedArtifact => {
+    const artifact = artifacts.get(artifactId);
+    ensure(
+      artifact !== undefined,
+      `reviewer-blinding artifact ${artifactId} is absent`,
+    );
+    return artifact;
+  };
+  const introduced = requireArtifact(
+    "authorship.transition_source",
+  );
+  const defectPacket = requireArtifact("os_vault.packet");
+  const correctingSource = requireArtifact(
+    "os_vault.reviewer_projection_correction_source",
+  );
+  const correctingWorker = requireArtifact(
+    "os_vault.worker_source",
+  );
+  const approvingRuling = requireArtifact("os_vault.ruling");
+  const baselineSource = requireArtifact(
+    "os_vault.reviewer_projection_baseline_source",
+  );
+  const baselineWorker = requireArtifact(
+    "os_vault.worker_baseline_source",
+  );
+  const currentSource = requireArtifact(
+    "os_vault.reviewer_projection_current_source",
+  );
+  const currentWorker = requireArtifact(
+    "os_vault.worker_current_source",
+  );
+  const behaviorEvidence = requireArtifact(
+    "os_vault.evidence",
+  );
+
+  ensure(
+    introduced.reference.sourceCommit ===
+      AUTHORSHIP_PRE_PROJECTION_COMMIT &&
+      correctingSource.reference.sourceCommit ===
+        REVIEWER_PROJECTION_CORRECTION_COMMIT &&
+      correctingWorker.reference.sourceCommit ===
+        REVIEWER_PROJECTION_CORRECTION_COMMIT &&
+      defectPacket.reference.sourceCommit ===
+        REVIEWER_PROJECTION_APPROVAL_COMMIT &&
+      approvingRuling.reference.sourceCommit ===
+        REVIEWER_PROJECTION_APPROVAL_COMMIT &&
+      behaviorEvidence.reference.sourceCommit ===
+        REVIEWER_PROJECTION_CORRECTION_COMMIT &&
+      baselineSource.reference.sourceCommit ===
+        REVIEWER_PROJECTION_BASELINE_COMMIT &&
+      baselineWorker.reference.sourceCommit ===
+        REVIEWER_PROJECTION_BASELINE_COMMIT &&
+      currentSource.reference.sourceCommit ===
+        manifest.sourceSnapshot.sourceCommit &&
+      currentWorker.reference.sourceCommit ===
+        manifest.sourceSnapshot.sourceCommit,
+    "reviewer-blinding implementation commits differ",
+  );
+  ensure(
+    !introduced.bytes.includes(
+      Buffer.from("BlindedReviewerContractProjection"),
+    ),
+    "pre-projection implementation is not historical",
+  );
+  ensure(
+    correctingSource.bytes.equals(baselineSource.bytes) &&
+      correctingSource.bytes.equals(currentSource.bytes) &&
+      correctingWorker.bytes.equals(baselineWorker.bytes) &&
+      correctingWorker.bytes.equals(currentWorker.bytes),
+    "current reviewer-blinding implementation differs from the approved correction",
+  );
+
+  const defectText = defectPacket.bytes.toString("utf8");
+  ensure(
+    defectText.includes(
+      "The integration exposed a real projection defect in the previously accepted in-process authorship",
+    ) &&
+      defectText.includes(
+        "Passing that full object to the reviewer therefore contradicted the intended blinded boundary",
+      ),
+    "reviewer-identity exposure discovery is not bound",
+  );
+  ensure(
+    approvingRuling.bytes
+      .toString("utf8")
+      .includes(
+        "The BlindedReviewerContractProjection corrects the direct author-identity exposure discovered by the OS integration.",
+      ),
+    "reviewer-blinding approval does not bind the correction",
+  );
+  const projectionText = currentSource.bytes.toString("utf8");
+  for (const marker of REVIEWER_PROJECTION_SOURCE_MARKERS) {
+    ensure(
+      projectionText.includes(marker),
+      `current reviewer projection lacks ${marker}`,
+    );
+  }
+  const workerText = currentWorker.bytes.toString("utf8");
+  for (const marker of REVIEWER_WORKER_SOURCE_MARKERS) {
+    ensure(
+      workerText.includes(marker),
+      `current reviewer worker lacks ${marker}`,
+    );
+  }
+  ensure(
+    behaviorEvidence.json !== null,
+    "reviewer-blinding behavior evidence is not JSON",
+  );
+  ensure(
+    jsonPointer(
+      behaviorEvidence.json,
+      lineage.behaviorProof.authorIdentityPresentPointer,
+    ) === false &&
+      jsonPointer(
+        behaviorEvidence.json,
+        lineage.behaviorProof.rawTaskHandlePresentPointer,
+      ) === false &&
+      jsonPointer(
+        behaviorEvidence.json,
+        lineage.behaviorProof.privateKeyPresentPointer,
+      ) === false,
+    "current reviewer input exposes an excluded identity, handle, or key",
+  );
+  const inputFiles = jsonPointer(
+    behaviorEvidence.json,
+    lineage.behaviorProof.inputFilesPointer,
+  );
+  ensure(
+    Array.isArray(inputFiles) &&
+      inputFiles.every(
+        (entry): entry is string => typeof entry === "string",
+      ),
+    "reviewer input-file evidence is malformed",
+  );
+  ensure(
+    canonicalize(inputFiles) ===
+      canonicalize(REVIEWER_INPUT_FILES),
+    "reviewer input contains the full contract or another unbound file",
+  );
+
+  return canonicalBindings.length;
+}
+
 function verifyAuthorities(
   manifest: TrustPlaneConformanceManifest,
 ): void {
@@ -1101,6 +1446,8 @@ export async function verifyTrustPlaneAggregate(input: {
     "distinct local contract scopes collapsed to one identity",
   );
 
+  const canonicalControlBindingCount =
+    verifyControlLineages(manifest, artifacts);
   verifyGovernance(manifest, artifacts);
   verifyObligations(
     manifest,
@@ -1118,6 +1465,8 @@ export async function verifyTrustPlaneAggregate(input: {
     sourceCommitCount: sourceKeys.size,
     governanceChainCount: manifest.governanceChains.length,
     identityBindingCount: identityValues.size,
+    controlLineageCount: manifest.controlLineages.length,
+    canonicalControlBindingCount,
     outstandingObligationCount:
       REQUIRED_OBLIGATIONS.length,
     authoritiesGranted: 0,

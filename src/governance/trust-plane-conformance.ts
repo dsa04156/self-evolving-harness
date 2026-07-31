@@ -42,6 +42,10 @@ export const TRUST_PLANE_OBLIGATION_IDS = [
   "performance_generalization_security_evolution_results",
 ] as const;
 
+export const TRUST_PLANE_SHARED_CONTROL_IDS = [
+  "control.reviewer_blinding",
+] as const;
+
 export interface TrustPlaneAuthorityState {
   readonly providerExecutionAuthorized: false;
   readonly researchEvidenceAuthorized: false;
@@ -115,6 +119,12 @@ export interface TrustPlaneIdentityBinding {
   readonly jsonPointer: string;
 }
 
+export interface TrustPlaneCanonicalControlBinding {
+  readonly controlId:
+    (typeof TRUST_PLANE_SHARED_CONTROL_IDS)[number];
+  readonly evidenceRole: "historical" | "current";
+}
+
 export interface TrustPlaneEvidenceDomain {
   readonly domainId: (typeof TRUST_PLANE_DOMAIN_IDS)[number];
   readonly sourceCommits: readonly TrustPlaneGitSource[];
@@ -130,6 +140,60 @@ export interface TrustPlaneEvidenceDomain {
   readonly controlDisposition: TrustPlaneControlDisposition;
   readonly identityBindings:
     readonly TrustPlaneIdentityBinding[];
+  readonly canonicalControlBindings:
+    readonly TrustPlaneCanonicalControlBinding[];
+}
+
+export interface TrustPlaneControlLineageStage {
+  readonly stageId: string;
+  readonly sequence: number;
+  readonly eventType:
+    | "implementation_introduced"
+    | "defect_discovered"
+    | "implementation_superseded"
+    | "correcting_implementation"
+    | "approving_ruling"
+    | "current_implementation";
+  readonly disposition:
+    | "historical"
+    | "superseded"
+    | "current";
+  readonly artifactIds: readonly string[];
+  readonly predecessorStageId: string | null;
+}
+
+export interface TrustPlaneControlLineage {
+  readonly lineageVersion: 1;
+  readonly controlId:
+    (typeof TRUST_PLANE_SHARED_CONTROL_IDS)[number];
+  readonly domainIds:
+    readonly TrustPlaneEvidenceDomain["domainId"][];
+  readonly stages: readonly TrustPlaneControlLineageStage[];
+  readonly currentStageId: string;
+  readonly statusBindings: {
+    readonly implementedControlId: string;
+    readonly locallyTestedControlId: string;
+    readonly derivedFromStageId: string;
+  };
+  readonly behaviorProof: {
+    readonly defectDiscoveryArtifactId: string;
+    readonly correctionSourceArtifactId: string;
+    readonly correctionWorkerArtifactId: string;
+    readonly approvingRulingArtifactId: string;
+    readonly baselineCurrentSourceArtifactId: string;
+    readonly baselineCurrentWorkerArtifactId: string;
+    readonly snapshotCurrentSourceArtifactId: string;
+    readonly snapshotCurrentWorkerArtifactId: string;
+    readonly evidenceArtifactId: string;
+    readonly authorIdentityPresentPointer: string;
+    readonly rawTaskHandlePresentPointer: string;
+    readonly privateKeyPresentPointer: string;
+    readonly inputFilesPointer: string;
+    readonly expectedInputFiles: readonly string[];
+    readonly requiredProjectionSourceMarkers:
+      readonly string[];
+    readonly requiredWorkerSourceMarkers: readonly string[];
+  };
 }
 
 export interface TrustPlaneGovernanceChain {
@@ -166,7 +230,7 @@ export interface TrustPlaneOutstandingObligations {
 }
 
 export interface TrustPlaneConformanceManifest {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly manifestId: string;
   readonly recordType: "trust_plane_conformance_manifest";
   readonly scope: "local_runtime_and_trust_readiness";
@@ -178,6 +242,8 @@ export interface TrustPlaneConformanceManifest {
     readonly additionalPushPerformed: false;
   };
   readonly evidenceDomains: readonly TrustPlaneEvidenceDomain[];
+  readonly controlLineages:
+    readonly TrustPlaneControlLineage[];
   readonly governanceChains:
     readonly TrustPlaneGovernanceChain[];
   readonly authorityState: TrustPlaneAuthorityState;
@@ -293,6 +359,13 @@ function validateInternalReferences(
   );
 
   const identityValues = new Map<string, string>();
+  const controlBindings = new Map<
+    string,
+    {
+      readonly domainId: TrustPlaneEvidenceDomain["domainId"];
+      readonly evidenceRole: "historical" | "current";
+    }[]
+  >();
   for (const domain of record.evidenceDomains) {
     const referenced = new Set(
       domain.artifacts.map((entry) => entry.artifactId),
@@ -334,6 +407,133 @@ function validateInternalReferences(
       );
       identityValues.set(key, binding.value);
     }
+    assertUnique(
+      domain.canonicalControlBindings.map(
+        (binding) => binding.controlId,
+      ),
+      `${domain.domainId} canonical control bindings`,
+    );
+    for (const binding of domain.canonicalControlBindings) {
+      const entries =
+        controlBindings.get(binding.controlId) ?? [];
+      entries.push({
+        domainId: domain.domainId,
+        evidenceRole: binding.evidenceRole,
+      });
+      controlBindings.set(binding.controlId, entries);
+    }
+  }
+
+  assertUnique(
+    record.controlLineages.map((entry) => entry.controlId),
+    "Trust-plane control lineage IDs",
+  );
+  assertCondition(
+    canonicalize(
+      record.controlLineages
+        .map((entry) => entry.controlId)
+        .sort(),
+    ) ===
+      canonicalize([...TRUST_PLANE_SHARED_CONTROL_IDS].sort()),
+    "SCHEMA_INVALID",
+    "Trust-plane manifest does not contain the exact shared-control lineages",
+  );
+  const lineageByControl = new Map(
+    record.controlLineages.map((entry) => [
+      entry.controlId,
+      entry,
+    ]),
+  );
+  for (const [controlId, bindings] of controlBindings) {
+    const lineage = lineageByControl.get(
+      controlId as TrustPlaneControlLineage["controlId"],
+    );
+    assertCondition(
+      lineage !== undefined,
+      "SCHEMA_INVALID",
+      `Canonical control ${controlId} has no lineage`,
+    );
+    for (const binding of bindings) {
+      assertCondition(
+        lineage.domainIds.includes(binding.domainId),
+        "SCHEMA_INVALID",
+        `Canonical control ${controlId} does not connect ${binding.domainId}`,
+      );
+    }
+  }
+  for (const lineage of record.controlLineages) {
+    assertUnique(
+      lineage.domainIds,
+      `${lineage.controlId} lineage domains`,
+    );
+    for (const domainId of lineage.domainIds) {
+      assertCondition(
+        record.evidenceDomains.some(
+          (domain) => domain.domainId === domainId,
+        ),
+        "SCHEMA_INVALID",
+        `${lineage.controlId} references absent domain ${domainId}`,
+      );
+    }
+    assertUnique(
+      lineage.stages.map((stage) => stage.stageId),
+      `${lineage.controlId} lineage stages`,
+    );
+    lineage.stages.forEach((stage, index) => {
+      assertCondition(
+        stage.sequence === index + 1,
+        "INVALID_STATE_TRANSITION",
+        `${lineage.controlId} lineage sequence is not contiguous`,
+      );
+      assertCondition(
+        stage.predecessorStageId ===
+          (index === 0
+            ? null
+            : lineage.stages[index - 1]!.stageId),
+        "INVALID_STATE_TRANSITION",
+        `${lineage.controlId} lineage is not ordered`,
+      );
+      assertUnique(
+        stage.artifactIds,
+        `${stage.stageId} lineage artifacts`,
+      );
+      for (const artifactId of stage.artifactIds) {
+        assertCondition(
+          artifacts.has(artifactId),
+          "SCHEMA_INVALID",
+          `${stage.stageId} references absent artifact ${artifactId}`,
+        );
+      }
+    });
+    const currentStage = lineage.stages.find(
+      (stage) => stage.stageId === lineage.currentStageId,
+    );
+    assertCondition(
+      currentStage !== undefined,
+      "SCHEMA_INVALID",
+      `${lineage.controlId} current stage is absent`,
+    );
+    assertCondition(
+      lineage.stages.some(
+        (stage) =>
+          stage.stageId ===
+          lineage.statusBindings.derivedFromStageId,
+      ),
+      "SCHEMA_INVALID",
+      `${lineage.controlId} status source stage is absent`,
+    );
+    for (const artifactId of Object.entries(
+      lineage.behaviorProof,
+    )
+      .filter(([key]) => key.endsWith("ArtifactId"))
+      .map(([, value]) => value)) {
+      assertCondition(
+        typeof artifactId === "string" &&
+          artifacts.has(artifactId),
+        "SCHEMA_INVALID",
+        `${lineage.controlId} behavior proof references absent artifact ${String(artifactId)}`,
+      );
+    }
   }
 
   assertUnique(
@@ -373,6 +573,22 @@ function validateInternalReferences(
   ];
   const allStatuses = statusBuckets.flat();
   assertUnique(allStatuses, "Trust-plane status identifiers");
+  for (const lineage of record.controlLineages) {
+    assertCondition(
+      record.statusDistinction.implementedControlIds.includes(
+        lineage.statusBindings.implementedControlId,
+      ),
+      "SCHEMA_INVALID",
+      `${lineage.controlId} implemented status binding is absent`,
+    );
+    assertCondition(
+      record.statusDistinction.locallyTestedControlIds.includes(
+        lineage.statusBindings.locallyTestedControlId,
+      ),
+      "SCHEMA_INVALID",
+      `${lineage.controlId} locally tested status binding is absent`,
+    );
+  }
 }
 
 export function createTrustPlaneConformanceManifest(input: {
@@ -386,12 +602,13 @@ export function createTrustPlaneConformanceManifest(input: {
     "Only a protocol author may sign the conformance manifest",
   );
   const core: ManifestCore = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     manifestId: input.value.manifestId,
     recordType: "trust_plane_conformance_manifest",
     scope: input.value.scope,
     sourceSnapshot: input.value.sourceSnapshot,
     evidenceDomains: input.value.evidenceDomains,
+    controlLineages: input.value.controlLineages,
     governanceChains: input.value.governanceChains,
     authorityState: input.value.authorityState,
     eligibilityState: input.value.eligibilityState,

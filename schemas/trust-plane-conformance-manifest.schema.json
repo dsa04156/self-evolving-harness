@@ -11,6 +11,7 @@
     "scope",
     "sourceSnapshot",
     "evidenceDomains",
+    "controlLineages",
     "governanceChains",
     "authorityState",
     "eligibilityState",
@@ -25,7 +26,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "manifestId": {
       "$ref": "./common.schema.json#/$defs/entityId"
@@ -70,6 +71,14 @@
       "maxItems": 7,
       "items": {
         "$ref": "#/$defs/evidenceDomain"
+      }
+    },
+    "controlLineages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "./trust-plane-control-lineage.schema.json"
       }
     },
     "governanceChains": {
@@ -421,7 +430,8 @@
         "claimBoundaryReference",
         "contractArtifactIds",
         "controlDisposition",
-        "identityBindings"
+        "identityBindings",
+        "canonicalControlBindings"
       ],
       "properties": {
         "domainId": {
@@ -496,6 +506,13 @@
           "maxItems": 16,
           "items": {
             "$ref": "#/$defs/identityBinding"
+          }
+        },
+        "canonicalControlBindings": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "./trust-plane-control-lineage.schema.json#/$defs/controlBinding"
           }
         }
       }

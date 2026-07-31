@@ -17,6 +17,7 @@ import {
   verifyTrustPlaneOutstandingObligations,
   type JsonValue,
   type TrustPlaneArtifactReference,
+  type TrustPlaneControlLineage,
   type TrustPlaneEvidenceDomain,
   type TrustPlaneGitSource,
   type TrustPlaneOutstandingObligations,
@@ -63,6 +64,8 @@ const commits = {
     "4e0125bc5ccbe6e3e340d05166d0718c0bc0ce99",
   custodyDecision:
     "ad9cfc2f6004b7c4d9dc35cd2474ff9294420356",
+  integratedConformanceSource:
+    "181fe51bde92384a96953ccdeab432d726bfbc49",
 } as const;
 
 async function gitText(args: readonly string[]): Promise<string> {
@@ -281,6 +284,7 @@ async function runtimeDomain(
         jsonPointer: "/typeRegistryId",
       },
     ],
+    canonicalControlBindings: [],
   };
 }
 
@@ -399,6 +403,7 @@ async function developmentBoundaryDomain(
       ],
     },
     identityBindings: [],
+    canonicalControlBindings: [],
   };
 }
 
@@ -572,6 +577,7 @@ async function publicationDomain(
         jsonPointer: "/ledgerHash",
       },
     ],
+    canonicalControlBindings: [],
   };
 }
 
@@ -658,7 +664,7 @@ async function authorshipDomain(
     ],
     controlDisposition: {
       implementedControlIds: [
-        "authorship.blinded_independent_chain",
+        "authorship.assignment_commitment_chain",
         "vault.commitment_only_admission",
         "vault.role_bound_capabilities",
       ],
@@ -682,6 +688,12 @@ async function authorshipDomain(
         value: commits.authorshipVault,
         artifactId: "authorship.packet_manifest",
         jsonPointer: "/implementationCommit",
+      },
+    ],
+    canonicalControlBindings: [
+      {
+        controlId: "control.reviewer_blinding",
+        evidenceRole: "historical",
       },
     ],
   };
@@ -806,6 +818,7 @@ async function durableVaultDomain(
         jsonPointer: "/implementation/contractSha256",
       },
     ],
+    canonicalControlBindings: [],
   };
 }
 
@@ -813,25 +826,50 @@ async function osVaultDomain(
   sourceCommit: string,
 ): Promise<TrustPlaneEvidenceDomain> {
   const artifacts = await Promise.all([
-    currentArtifact(
+    artifact(
       "os_vault.packet",
       "architect/PACKET_03RRRRRRRRR_OS_PRINCIPAL_VAULT_BOUNDARY.md",
-      sourceCommit,
+      commits.osVaultDecision,
     ),
-    currentArtifact(
+    artifact(
       "os_vault.ruling",
       ".codex/gpt-pro-architect/responses/response-3rrrrrrrrr.md",
-      sourceCommit,
+      commits.osVaultDecision,
     ),
-    currentArtifact(
+    artifact(
       "os_vault.evidence",
       "architect/evidence/evaluator-vault-os-boundary/evidence.json",
-      sourceCommit,
+      commits.osVault,
     ),
     artifact(
       "os_vault.worker_source",
       "scripts/evaluator-vault-os-worker.ts",
       commits.osVault,
+    ),
+    artifact(
+      "os_vault.reviewer_projection_correction_source",
+      "src/trust/independent-authorship.ts",
+      commits.osVault,
+    ),
+    artifact(
+      "os_vault.reviewer_projection_baseline_source",
+      "src/trust/independent-authorship.ts",
+      commits.integratedConformanceSource,
+    ),
+    artifact(
+      "os_vault.worker_baseline_source",
+      "scripts/evaluator-vault-os-worker.ts",
+      commits.integratedConformanceSource,
+    ),
+    currentArtifact(
+      "os_vault.reviewer_projection_current_source",
+      "src/trust/independent-authorship.ts",
+      sourceCommit,
+    ),
+    currentArtifact(
+      "os_vault.worker_current_source",
+      "scripts/evaluator-vault-os-worker.ts",
+      sourceCommit,
     ),
     artifact(
       "os_vault.evidence_schema",
@@ -844,6 +882,10 @@ async function osVaultDomain(
     sourceCommits: await Promise.all([
       source("primary", commits.osVault),
       source("decision", commits.osVaultDecision),
+      source(
+        "supporting",
+        commits.integratedConformanceSource,
+      ),
     ]),
     artifacts,
     evidenceAssertions: [
@@ -872,6 +914,21 @@ async function osVaultDomain(
         jsonPointer: "/researchEvidenceAuthorized",
         equals: false,
       },
+      {
+        artifactId: "os_vault.evidence",
+        jsonPointer: "/reviewerBoundary/authorIdentityPresent",
+        equals: false,
+      },
+      {
+        artifactId: "os_vault.evidence",
+        jsonPointer: "/reviewerBoundary/rawTaskHandlePresent",
+        equals: false,
+      },
+      {
+        artifactId: "os_vault.evidence",
+        jsonPointer: "/reviewerBoundary/privateKeyPresent",
+        equals: false,
+      },
     ],
     ruling: {
       artifactId: "os_vault.ruling",
@@ -891,6 +948,7 @@ async function osVaultDomain(
     },
     contractArtifactIds: [
       "os_vault.worker_source",
+      "os_vault.reviewer_projection_correction_source",
       "os_vault.evidence_schema",
     ],
     controlDisposition: {
@@ -898,10 +956,12 @@ async function osVaultDomain(
         "os_vault.eight_distinct_principals",
         "os_vault.role_owned_keys_and_mounts",
         "os_vault.authenticated_peer_transport",
+        "os_vault.blinded_reviewer_projection",
       ],
       locallyTestedControlIds: [
         "os_vault.os_denial_matrix",
         "os_vault.sigkill_recovery",
+        "os_vault.reviewer_projection_boundary",
       ],
       deferredControlIds: [
         "os_vault.production_deployment",
@@ -938,6 +998,12 @@ async function osVaultDomain(
           "sha256:727d4c0ed60d217e1d0781f0af4a74183f65319949156f149051722c7289baea",
         artifactId: "os_vault.evidence",
         jsonPointer: "/evidenceHash",
+      },
+    ],
+    canonicalControlBindings: [
+      {
+        controlId: "control.reviewer_blinding",
+        evidenceRole: "current",
       },
     ],
   };
@@ -1088,6 +1154,7 @@ async function custodyDomain(
         jsonPointer: "/evidenceHash",
       },
     ],
+    canonicalControlBindings: [],
   };
 }
 
@@ -1137,6 +1204,122 @@ const evidenceDomains = await Promise.all([
   custodyDomain(sourceCommit),
 ]);
 
+const controlLineages: readonly TrustPlaneControlLineage[] = [
+  {
+    lineageVersion: 1,
+    controlId: "control.reviewer_blinding",
+    domainIds: [
+      "independent_authorship_vault_admission",
+      "eight_principal_vault_os_integration",
+    ],
+    stages: [
+      {
+        stageId: "reviewer_blinding.introduced",
+        sequence: 1,
+        eventType: "implementation_introduced",
+        disposition: "historical",
+        artifactIds: ["authorship.transition_source"],
+        predecessorStageId: null,
+      },
+      {
+        stageId: "reviewer_blinding.defect_discovered",
+        sequence: 2,
+        eventType: "defect_discovered",
+        disposition: "historical",
+        artifactIds: ["os_vault.packet"],
+        predecessorStageId: "reviewer_blinding.introduced",
+      },
+      {
+        stageId: "reviewer_blinding.superseded",
+        sequence: 3,
+        eventType: "implementation_superseded",
+        disposition: "superseded",
+        artifactIds: ["authorship.transition_source"],
+        predecessorStageId:
+          "reviewer_blinding.defect_discovered",
+      },
+      {
+        stageId: "reviewer_blinding.correcting",
+        sequence: 4,
+        eventType: "correcting_implementation",
+        disposition: "historical",
+        artifactIds: [
+          "os_vault.reviewer_projection_correction_source",
+          "os_vault.worker_source",
+        ],
+        predecessorStageId: "reviewer_blinding.superseded",
+      },
+      {
+        stageId: "reviewer_blinding.approved",
+        sequence: 5,
+        eventType: "approving_ruling",
+        disposition: "historical",
+        artifactIds: ["os_vault.ruling"],
+        predecessorStageId: "reviewer_blinding.correcting",
+      },
+      {
+        stageId: "reviewer_blinding.current",
+        sequence: 6,
+        eventType: "current_implementation",
+        disposition: "current",
+        artifactIds: [
+          "os_vault.reviewer_projection_baseline_source",
+          "os_vault.worker_baseline_source",
+          "os_vault.reviewer_projection_current_source",
+          "os_vault.worker_current_source",
+        ],
+        predecessorStageId: "reviewer_blinding.approved",
+      },
+    ],
+    currentStageId: "reviewer_blinding.current",
+    statusBindings: {
+      implementedControlId:
+        "status.independent_authorship_contract",
+      locallyTestedControlId: "status.authorship_admission",
+      derivedFromStageId: "reviewer_blinding.current",
+    },
+    behaviorProof: {
+      defectDiscoveryArtifactId: "os_vault.packet",
+      correctionSourceArtifactId:
+        "os_vault.reviewer_projection_correction_source",
+      correctionWorkerArtifactId: "os_vault.worker_source",
+      approvingRulingArtifactId: "os_vault.ruling",
+      baselineCurrentSourceArtifactId:
+        "os_vault.reviewer_projection_baseline_source",
+      baselineCurrentWorkerArtifactId:
+        "os_vault.worker_baseline_source",
+      snapshotCurrentSourceArtifactId:
+        "os_vault.reviewer_projection_current_source",
+      snapshotCurrentWorkerArtifactId:
+        "os_vault.worker_current_source",
+      evidenceArtifactId: "os_vault.evidence",
+      authorIdentityPresentPointer:
+        "/reviewerBoundary/authorIdentityPresent",
+      rawTaskHandlePresentPointer:
+        "/reviewerBoundary/rawTaskHandlePresent",
+      privateKeyPresentPointer:
+        "/reviewerBoundary/privateKeyPresent",
+      inputFilesPointer: "/reviewerBoundary/inputFiles",
+      expectedInputFiles: [
+        "config.json",
+        "own-public.json",
+        "review.json",
+        "reviewer-projection.json",
+      ],
+      requiredProjectionSourceMarkers: [
+        "export interface BlindedReviewerContractProjection",
+        "export function createBlindedReviewerContractProjection",
+        "export function verifyBlindedReviewerContractProjection",
+      ],
+      requiredWorkerSourceMarkers: [
+        "createBlindedReviewerContractProjection",
+        "\"reviewer-projection.json\"",
+        "readInput<BlindedReviewerContractProjection>",
+      ],
+    },
+  },
+];
+
 const signer = PrincipalSigner.generate({
   principalId:
     "protocol.author.local-trust-conformance.2026-07-31",
@@ -1165,6 +1348,7 @@ const manifest = createTrustPlaneConformanceManifest({
       additionalPushPerformed: false,
     },
     evidenceDomains,
+    controlLineages,
     governanceChains: [
       {
         chainId: "hfb_structural_oracle_remediation",
