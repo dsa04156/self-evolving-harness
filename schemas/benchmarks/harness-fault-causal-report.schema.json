@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-causal-report.schema.json",
+  "title": "HarnessFaultBench Single-Fault Causal Validation Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "fixtureId",
+    "fixtureContentHash",
+    "knownGoodPassed",
+    "faultyPassed",
+    "singleChangedComponent",
+    "declaredPatchMatchesPayloads",
+    "groundTruthRestorationPassed",
+    "nonGroundTruthRestorationPassed",
+    "replayCount",
+    "replayHashesIdentical",
+    "staticRegistryValidationPassed",
+    "immutableTrustPinsIdentical",
+    "capabilitySetUnchanged",
+    "reportHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "fixtureId": {
+      "type": "string",
+      "pattern": "^hfb-v0-[a-z0-9-]+$"
+    },
+    "fixtureContentHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    },
+    "knownGoodPassed": {
+      "const": true
+    },
+    "faultyPassed": {
+      "const": false
+    },
+    "singleChangedComponent": {
+      "const": true
+    },
+    "declaredPatchMatchesPayloads": {
+      "const": true
+    },
+    "groundTruthRestorationPassed": {
+      "const": true
+    },
+    "nonGroundTruthRestorationPassed": {
+      "const": false
+    },
+    "replayCount": {
+      "const": 3
+    },
+    "replayHashesIdentical": {
+      "const": true
+    },
+    "staticRegistryValidationPassed": {
+      "const": true
+    },
+    "immutableTrustPinsIdentical": {
+      "const": true
+    },
+    "capabilitySetUnchanged": {
+      "const": true
+    },
+    "reportHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}

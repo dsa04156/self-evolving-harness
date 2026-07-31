@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-development-evidence.schema.json",
+  "title": "HarnessFaultBench Deterministic Development Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceClass",
+    "sourceCommit",
+    "specVersion",
+    "datasetRole",
+    "suiteCommitment",
+    "causalValidation",
+    "scorerSelfTest",
+    "accessBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "evidenceClass": {
+      "const": "deterministic_development_validation"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "specVersion": {
+      "const": "hfb-fixture-spec-1.0.1"
+    },
+    "datasetRole": {
+      "const": "mine"
+    },
+    "suiteCommitment": {
+      "$ref": "./harness-fault-mine-commitment.schema.json"
+    },
+    "causalValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validatedFixtureCount",
+        "knownGoodPassCount",
+        "faultyFailCount",
+        "singleChangedComponentCount",
+        "groundTruthRestorePassCount",
+        "nonGroundTruthRestoreFailCount",
+        "replayStableCount",
+        "immutableTrustPinsIdenticalCount",
+        "capabilitySetUnchangedCount"
+      ],
+      "properties": {
+        "validatedFixtureCount": {
+          "const": 28
+        },
+        "knownGoodPassCount": {
+          "const": 28
+        },
+        "faultyFailCount": {
+          "const": 28
+        },
+        "singleChangedComponentCount": {
+          "const": 28
+        },
+        "groundTruthRestorePassCount": {
+          "const": 28
+        },
+        "nonGroundTruthRestoreFailCount": {
+          "const": 28
+        },
+        "replayStableCount": {
+          "const": 28
+        },
+        "immutableTrustPinsIdenticalCount": {
+          "const": 28
+        },
+        "capabilitySetUnchangedCount": {
+          "const": 28
+        }
+      }
+    },
+    "scorerSelfTest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracleWasGivenGroundTruthLabels",
+        "attributionPerformanceClaim",
+        "scoreReport"
+      ],
+      "properties": {
+        "oracleWasGivenGroundTruthLabels": {
+          "const": true
+        },
+        "attributionPerformanceClaim": {
+          "const": false
+        },
+        "scoreReport": {
+          "$ref": "./harness-fault-score-report.schema.json"
+        }
+      }
+    },
+    "accessBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateBodiesInstantiated",
+        "finalBodiesInstantiated",
+        "multiCauseBodiesInstantiated",
+        "publicMultiCauseMetadataValidated"
+      ],
+      "properties": {
+        "gateBodiesInstantiated": {
+          "const": false
+        },
+        "finalBodiesInstantiated": {
+          "const": false
+        },
+        "multiCauseBodiesInstantiated": {
+          "const": false
+        },
+        "publicMultiCauseMetadataValidated": {
+          "const": true
+        }
+      }
+    }
+  }
+}

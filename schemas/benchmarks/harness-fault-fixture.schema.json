@@ -27,7 +27,7 @@
       "const": 1
     },
     "specVersion": {
-      "const": "hfb-fixture-spec-1.0.0"
+      "const": "hfb-fixture-spec-1.0.1"
     },
     "fixtureId": {
       "type": "string",

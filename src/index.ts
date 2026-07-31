@@ -11,6 +11,7 @@ export * from "./evidence/unix-audit-client.js";
 export * from "./evidence/receipts.js";
 export * from "./evidence/runtime-events.js";
 export * from "./evaluation/budget-freeze.js";
+export * from "./evaluation/harness-fault-bench.js";
 export * from "./evaluation/phase-budget.js";
 export * from "./evaluation/matched-budget-scheduler.js";
 export * from "./evolution/harness-lifecycle.js";

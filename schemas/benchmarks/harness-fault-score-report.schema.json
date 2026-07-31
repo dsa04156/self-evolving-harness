@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-score-report.schema.json",
+  "title": "HarnessFaultBench Single-Fault Score Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scorerVersion",
+    "datasetRole",
+    "fixtureCommitment",
+    "predictionCommitment",
+    "fixtureCount",
+    "top1Correct",
+    "top3Correct",
+    "top1Micros",
+    "top3Micros",
+    "perFixture",
+    "reportHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "scorerVersion": {
+      "const": "hfb-scorer-1.0.1"
+    },
+    "datasetRole": {
+      "type": "string",
+      "enum": [
+        "mine",
+        "gate",
+        "sealed_test"
+      ]
+    },
+    "fixtureCommitment": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    },
+    "predictionCommitment": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    },
+    "fixtureCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 70
+    },
+    "top1Correct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 70
+    },
+    "top3Correct": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 70
+    },
+    "top1Micros": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "top3Micros": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "perFixture": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 70,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixtureId",
+          "top1Correct",
+          "top3Correct"
+        ],
+        "properties": {
+          "fixtureId": {
+            "type": "string",
+            "pattern": "^hfb-v0-[a-z0-9-]+$"
+          },
+          "top1Correct": {
+            "type": "boolean"
+          },
+          "top3Correct": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "reportHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}
