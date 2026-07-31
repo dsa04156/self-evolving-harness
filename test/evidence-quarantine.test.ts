@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -17,6 +17,7 @@ import {
   SchemaRegistry,
   createGovernanceDeviationRecord,
   hfbMineFixtureIds,
+  parseStrictJson,
   verifyGovernanceDeviationRecord,
   type GovernanceDeviationRecord,
   type GovernanceDeviationUnsignedInput,
@@ -272,4 +273,46 @@ test("deviation timestamps remain caller-supplied facts, not clock side effects"
   assert.equal(value.recordedAt, clock.now().toISOString());
 });
 
-type _SchemaCoverage = GovernanceDeviationRecord;
+test("persisted HFB deviation covers the complete old artifact graph", async () => {
+  const schemas = await SchemaRegistry.load(path.resolve("schemas"));
+  const record = parseStrictJson(
+    await readFile(
+      path.resolve(
+        "governance/deviations/hfb-structural-oracle-2026-07-31.json",
+      ),
+      "utf8",
+    ),
+  ) as unknown as GovernanceDeviationRecord;
+  verifyGovernanceDeviationRecord({ record, schemas });
+  assert.equal(record.occurred.fixtureIds.length, 28);
+  assert.equal(record.affectedArtifacts.length, 115);
+  assert.equal(
+    record.priorDecision.responseSha256,
+    "sha256:52992fdac76c72d306de937e386191ca1dc82a9685a993317d7ffcf01d1bf62d",
+  );
+  assert.equal(
+    record.dispositionDecision.responseSha256,
+    "sha256:29aff8598f70bd5453c1cb7c46b529229c6c07df1ec4427228cae00f101c161d",
+  );
+  assert.equal(
+    JSON.stringify(record).includes("PRIVATE KEY"),
+    false,
+  );
+  const policy = new EvidenceQuarantinePolicy({
+    records: [record],
+    schemas,
+  });
+  assert.equal(policy.quarantinedReferences().length, 115);
+  for (const useClass of RESEARCH_PROHIBITED_USE_CLASSES) {
+    assert.throws(
+      () =>
+        policy.assertReferencesAllowed({
+          useClass,
+          references: policy.quarantinedReferences(),
+        }),
+      (error: unknown) =>
+        error instanceof HarnessError &&
+        error.code === "AUTHORIZATION_DENIED",
+    );
+  }
+});
