@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evaluator-vault-contract.schema.json",
+  "title": "Body-free evaluator-vault trust contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "recordType",
+    "protocolId",
+    "historicalExposureLedgerHash",
+    "syntheticMetadataOnly",
+    "taskBodiesPresent",
+    "principalMatrix",
+    "keyPolicy",
+    "mountPolicy",
+    "actionAuthority",
+    "handlePolicy",
+    "releasePolicy",
+    "accessLedgerPolicy",
+    "frozenAt",
+    "frozenBy",
+    "contractHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "evaluator_vault_contract"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "historicalExposureLedgerHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "syntheticMetadataOnly": {
+      "const": true
+    },
+    "taskBodiesPresent": {
+      "const": false
+    },
+    "principalMatrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmarkAuthor",
+        "benchmarkReviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit",
+        "protocolAuthor"
+      ],
+      "properties": {
+        "benchmarkAuthor": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "benchmarkReviewer": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "vault": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "evaluator": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "scorer": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "promoter": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "audit": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "protocolAuthor": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        }
+      }
+    },
+    "keyPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distinctPrincipalIds",
+        "distinctInstanceIds",
+        "distinctIdentityDigests",
+        "distinctKeyIds",
+        "privateKeysPersistedInContract",
+        "crossRoleSigningAllowed"
+      ],
+      "properties": {
+        "distinctPrincipalIds": {
+          "const": true
+        },
+        "distinctInstanceIds": {
+          "const": true
+        },
+        "distinctIdentityDigests": {
+          "const": true
+        },
+        "distinctKeyIds": {
+          "const": true
+        },
+        "privateKeysPersistedInContract": {
+          "const": false
+        },
+        "crossRoleSigningAllowed": {
+          "const": false
+        }
+      }
+    },
+    "mountPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmarkAuthor",
+        "benchmarkReviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit",
+        "protocolAuthor"
+      ],
+      "properties": {
+        "benchmarkAuthor": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "benchmarkReviewer": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "vault": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "scorer": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "promoter": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "audit": {
+          "$ref": "#/$defs/mountSet"
+        },
+        "protocolAuthor": {
+          "$ref": "#/$defs/mountSet"
+        }
+      }
+    },
+    "actionAuthority": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "allowedRoles"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "seal",
+              "enumerate",
+              "unlock",
+              "evaluate",
+              "score",
+              "audit"
+            ]
+          },
+          "allowedRoles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "./common.schema.json#/$defs/principalRole"
+            }
+          }
+        }
+      }
+    },
+    "handlePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "contentDerived",
+        "revealsPath",
+        "revealsLabel",
+        "revealsTaskBody",
+        "singleUseUnlockCapability",
+        "capabilityBoundToEvaluator",
+        "capabilityBoundToProtocol"
+      ],
+      "properties": {
+        "format": {
+          "const": "opaque-task-sha256:<64-lower-hex>"
+        },
+        "contentDerived": {
+          "const": false
+        },
+        "revealsPath": {
+          "const": false
+        },
+        "revealsLabel": {
+          "const": false
+        },
+        "revealsTaskBody": {
+          "const": false
+        },
+        "singleUseUnlockCapability": {
+          "const": true
+        },
+        "capabilityBoundToEvaluator": {
+          "const": true
+        },
+        "capabilityBoundToProtocol": {
+          "const": true
+        }
+      }
+    },
+    "releasePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oneWay",
+        "authorReceivesRunResults",
+        "vaultReceivesCandidateIdentity",
+        "evaluatorReceivesScore",
+        "scorerReceivesTaskBody",
+        "promoterReceivesTaskHandle",
+        "deniedAttemptReleasesFields"
+      ],
+      "properties": {
+        "oneWay": {
+          "const": true
+        },
+        "authorReceivesRunResults": {
+          "const": false
+        },
+        "vaultReceivesCandidateIdentity": {
+          "const": false
+        },
+        "evaluatorReceivesScore": {
+          "const": false
+        },
+        "scorerReceivesTaskBody": {
+          "const": false
+        },
+        "promoterReceivesTaskHandle": {
+          "const": false
+        },
+        "deniedAttemptReleasesFields": {
+          "const": 0
+        }
+      }
+    },
+    "accessLedgerPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appendOnly",
+        "hashChained",
+        "vaultSigned",
+        "recordsAllowedAttempts",
+        "recordsDeniedAttempts",
+        "recordsObservedAndClaimedRequestHashes",
+        "replayFailsClosed",
+        "substitutionFailsClosed",
+        "earlyAccessFailsClosed",
+        "protocolMismatchFailsClosed"
+      ],
+      "properties": {
+        "appendOnly": {
+          "const": true
+        },
+        "hashChained": {
+          "const": true
+        },
+        "vaultSigned": {
+          "const": true
+        },
+        "recordsAllowedAttempts": {
+          "const": true
+        },
+        "recordsDeniedAttempts": {
+          "const": true
+        },
+        "recordsObservedAndClaimedRequestHashes": {
+          "const": true
+        },
+        "replayFailsClosed": {
+          "const": true
+        },
+        "substitutionFailsClosed": {
+          "const": true
+        },
+        "earlyAccessFailsClosed": {
+          "const": true
+        },
+        "protocolMismatchFailsClosed": {
+          "const": true
+        }
+      }
+    },
+    "frozenAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "frozenBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "mountId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._/-]{2,127}$"
+    },
+    "mountSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "osIdentityClass",
+        "readOnly",
+        "writeOnly",
+        "appendOnly",
+        "denied",
+        "taskBodyAccess"
+      ],
+      "properties": {
+        "osIdentityClass": {
+          "const": "distinct_subordinate_identity"
+        },
+        "readOnly": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/mountId"
+          }
+        },
+        "writeOnly": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/mountId"
+          }
+        },
+        "appendOnly": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/mountId"
+          }
+        },
+        "denied": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/mountId"
+          }
+        },
+        "taskBodyAccess": {
+          "const": "contract_only_not_exercised"
+        }
+      }
+    }
+  }
+}

@@ -15,6 +15,12 @@ sealed data, budgets, model identity, audit history, or promotion policy.
 - prediction commitment and durable seal before scorer oracle release
 - recursive candidate taint and non-promotability
 - permanent public-exposure propagation across copies, aliases, dependencies, wrappers, and provenance
+- distinct benchmark-author/reviewer/vault/evaluator/scorer/promoter/audit/protocol keys in the
+  body-free evaluator-vault contract
+- one-time evaluator capability bound to protocol, contract, task commitment, authorship commitment,
+  evaluator identity, expiry, and nonce
+- vault-signed allowed/denied access ledger with durable sequence/nonce commitments and zero-release
+  denials
 - no secret-bearing private signing key persisted in evidence
 
 The public repository snapshot was scanned for private-key PEM blocks, live-key shapes, GitHub token
@@ -35,6 +41,10 @@ credential placeholders are not credentials.
 | laundering through wrapper/dependency | recursive graph traversal |
 | protocol bump/history rewrite restores secrecy | permanent reset-denial rules |
 | diagnostic result described as independent evaluation | claim-table use class is denied |
+| unreviewed/contaminated task admitted | signed assignment/commit/blind/include flow and historical-union check |
+| wrong vault role/key/protocol/capability | exact frozen principal and commitment binding |
+| denial leaks handle/body/result | fixed zero-field denial projection and unchanged state |
+| request replay after process restart | accepted sequence and nonce reconstructed from the access ledger |
 
 ## Trusted computing base and non-claims
 
@@ -43,6 +53,10 @@ protocol-author authority are trusted. It does not claim containment against hos
 compromise. The current public evidence is `publicDevelopment=true` and
 `authorizedForResearchEvidence=false`; it is not a security certification, independent benchmark,
 promotion authorization, or self-improvement result.
+
+The evaluator-vault result is contract-level only. No real task body is present, its new mount table
+has not been freshly exercised under separate OS identities, and private vault task-state crash
+recovery remains unimplemented.
 
 No real-provider secret is required for deterministic verification. If a real provider smoke is
 later authorized, credentials must enter only through the local environment/provider proxy, be

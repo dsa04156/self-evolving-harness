@@ -78,4 +78,15 @@ For the published snapshot and every transitive derivative:
 `publicDevelopment=true`, `authorizedForResearchEvidence=false`, held-out/sealed/temporal/gate/final
 eligibility is false, confirmatory use is false, and promotion authorization is false.
 
-The detailed contracts are in `docs/architecture/` and `schemas/`.
+## Evaluator-vault precondition
+
+Before any future private task can be admitted, the body-free contract requires a separate protocol
+author, benchmark author, blinded reviewer, vault, evaluator, scorer, promoter, and audit identity.
+Assignment, commitment, blinding, inclusion/rejection, vault seal, one-time unlock, evaluation
+commitment, score commitment, and audit are distinct signed transitions. Denied accesses release no
+fields and preserve state. The current implementation uses synthetic metadata only and does not create
+or evaluate a real task body.
+
+The detailed contract is in
+`docs/architecture/evaluator-vault-contract.md`; the remaining architecture and schemas are in
+`docs/architecture/` and `schemas/`.

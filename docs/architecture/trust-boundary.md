@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR and Gate 2R externally approved; Round 03RRR development-only process hardening
-implemented and awaiting its narrow follow-up review
+Status: Gate 1RRR and Gate 2R externally approved; historical publication governance approved;
+local synthetic-metadata evaluator-vault contract implemented and awaiting narrow review
 
 ## Security objective
 
@@ -148,6 +148,21 @@ Missing or conflicting evidence makes the run invalid, not a task failure and ne
   pretraining.
 
 The metric/split and temporal authorship contracts are separate evaluation artifacts.
+
+## Body-free evaluator-vault contract
+
+The local deterministic contract in `evaluator-vault-contract.md` freezes eight distinct principals,
+keys, mount declarations, action authorities, opaque-handle semantics, one-way commitment releases, and
+a vault-signed access ledger. Its independent-authorship lifecycle records assignment, author
+commitment, vault blinding, reviewer inclusion/rejection, timestamps, and historical-exposure
+declarations without creating a task body, verifier implementation, label, or path.
+
+The access ledger records both allowed and denied attempts, claimed/observed request hashes, sequence
+and nonce commitments, state transitions, and zero-leakage flags. Wrong role/key, replay after
+re-instantiation, capability substitution, early access, protocol mismatch, and signed-record
+modification fail closed in deterministic tests. This is a contract-level result. The new role mount
+table has not been exercised as a fresh multi-process OS-isolation claim, and no benchmark evaluator
+was run.
 
 ## Trust assumptions and residual limits
 

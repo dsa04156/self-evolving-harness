@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/blinded-authorship-decision.schema.json",
+  "title": "Identity-free blinded authorship decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "decisionId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "reviewPacketId",
+    "reviewPacketHash",
+    "decision",
+    "rejectionReasonCommitment",
+    "decidedAt",
+    "decidedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "blinded_authorship_decision"
+    },
+    "decisionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "reviewPacketId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "reviewPacketHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "include",
+        "reject"
+      ]
+    },
+    "rejectionReasonCommitment": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decidedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "decidedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

@@ -10,6 +10,9 @@ demonstrate general harness self-improvement.
   protocol author.
 - The eight-principal prototype is local and development-only; it is not a production deployment
   design.
+- The evaluator-vault round contains synthetic commitments only. Its frozen mount declarations were
+  not newly exercised under separate OS identities, and private vault task-state crash recovery remains
+  unimplemented.
 - The current synthetic fixture corpus is public and cannot become independent evaluation data.
 - The bounded mutation prototype does not establish that attribution improves generalization.
 - The external Architect is a governance reviewer, not the immutable benchmark evaluator.

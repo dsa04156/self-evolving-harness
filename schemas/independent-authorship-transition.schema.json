@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/independent-authorship-transition.schema.json",
+  "title": "Synthetic-metadata independent authorship transition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "transitionId",
+    "workflowId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "taskHandle",
+    "action",
+    "previousState",
+    "nextState",
+    "authorPrincipalId",
+    "reviewerPrincipalId",
+    "blindReviewId",
+    "reviewPacketHash",
+    "reviewDecision",
+    "rejectionReasonCommitment",
+    "blindedReview",
+    "blindedDecision",
+    "metadata",
+    "priorRecordHash",
+    "occurredAt",
+    "actor",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "independent_authorship_transition"
+    },
+    "transitionId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "workflowId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskHandle": {
+      "$ref": "#/$defs/taskHandle"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "assign",
+        "commit",
+        "begin_blinded_review",
+        "include",
+        "reject"
+      ]
+    },
+    "previousState": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/authorshipState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nextState": {
+      "$ref": "#/$defs/authorshipState"
+    },
+    "authorPrincipalId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "reviewerPrincipalId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "blindReviewId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reviewPacketHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reviewDecision": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "include",
+            "reject"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rejectionReasonCommitment": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blindedReview": {
+      "oneOf": [
+        {
+          "$ref": "./blinded-authorship-review.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blindedDecision": {
+      "oneOf": [
+        {
+          "$ref": "./blinded-authorship-decision.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/$defs/syntheticMetadata"
+    },
+    "priorRecordHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "actor": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "taskHandle": {
+      "type": "string",
+      "pattern": "^opaque-task-sha256:[a-f0-9]{64}$"
+    },
+    "authorshipState": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "committed",
+        "under_blinded_review",
+        "included",
+        "rejected"
+      ]
+    },
+    "nullableSha256": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contaminationNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeId",
+        "contentHash",
+        "gitObjectId",
+        "aliases",
+        "dependencies",
+        "wrappers",
+        "provenanceReferences"
+      ],
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "contentHash": {
+          "$ref": "#/$defs/nullableSha256"
+        },
+        "gitObjectId": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "wrappers": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "provenanceReferences": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "contaminationDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declaredClear",
+        "publicExposureLedgerHash",
+        "rootReferences",
+        "nodes",
+        "declarationHash"
+      ],
+      "properties": {
+        "declaredClear": {
+          "type": "boolean"
+        },
+        "publicExposureLedgerHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "rootReferences": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/contaminationNode"
+          }
+        },
+        "declarationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "syntheticMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contentCommitment",
+        "verifierCommitment",
+        "inclusionRuleHash",
+        "collectionWindowHash",
+        "contaminationDeclaration",
+        "bodyPresent",
+        "verifierLogicPresent",
+        "labelsPresent",
+        "pathsPresent",
+        "syntheticMetadataOnly"
+      ],
+      "properties": {
+        "contentCommitment": {
+          "$ref": "#/$defs/nullableSha256"
+        },
+        "verifierCommitment": {
+          "$ref": "#/$defs/nullableSha256"
+        },
+        "inclusionRuleHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "collectionWindowHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "contaminationDeclaration": {
+          "$ref": "#/$defs/contaminationDeclaration"
+        },
+        "bodyPresent": {
+          "const": false
+        },
+        "verifierLogicPresent": {
+          "const": false
+        },
+        "labelsPresent": {
+          "const": false
+        },
+        "pathsPresent": {
+          "const": false
+        },
+        "syntheticMetadataOnly": {
+          "const": true
+        }
+      }
+    }
+  }
+}

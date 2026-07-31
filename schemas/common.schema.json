@@ -48,10 +48,13 @@
         "operations_owner",
         "proposer",
         "evaluator",
+        "scorer",
+        "vault",
         "promoter",
         "audit_store",
         "model_provider_proxy",
         "benchmark_author",
+        "benchmark_reviewer",
         "protocol_author",
         "human_operator",
         "fake_provider"
@@ -92,6 +95,28 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
         }
       }
     },

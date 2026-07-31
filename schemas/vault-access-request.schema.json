@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/vault-access-request.schema.json",
+  "title": "Authenticated evaluator-vault access request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "requestId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "action",
+    "taskHandle",
+    "capability",
+    "subjectCommitment",
+    "senderSequence",
+    "nonce",
+    "requestedAt",
+    "actor",
+    "requestHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "vault_access_request"
+    },
+    "requestId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "seal",
+        "enumerate",
+        "unlock",
+        "evaluate",
+        "score",
+        "audit"
+      ]
+    },
+    "taskHandle": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^opaque-task-sha256:[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capability": {
+      "oneOf": [
+        {
+          "$ref": "./opaque-task-capability.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "subjectCommitment": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "senderSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "requestedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "actor": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "requestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

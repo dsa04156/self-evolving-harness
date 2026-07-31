@@ -100,9 +100,10 @@ schema.
 
 ## Next integration gaps
 
-1. Obtain the narrow Architect decision on the Round 03RRR process-boundary follow-up.
-2. Implement the separate evaluator-vault and independent authorship workflow before creating any
-   HarnessFaultBench gate/final body.
+1. Obtain the narrow Architect decision on the local body-free evaluator-vault and independent
+   authorship contract.
+2. After explicit authorization, add private vault-state crash recovery and exercise the frozen mount
+   table under distinct OS identities before any real benchmark body is admitted.
 3. Add root shipping documentation and reproducibility commands.
 4. Preserve the local-only security wording: malicious host root/kernel, distributed deployment, and
    public-provider behavior remain outside this evidence.

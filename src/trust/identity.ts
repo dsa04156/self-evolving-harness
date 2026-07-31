@@ -20,10 +20,13 @@ export type PrincipalRole =
   | "operations_owner"
   | "proposer"
   | "evaluator"
+  | "scorer"
+  | "vault"
   | "promoter"
   | "audit_store"
   | "model_provider_proxy"
   | "benchmark_author"
+  | "benchmark_reviewer"
   | "protocol_author"
   | "human_operator"
   | "fake_provider";

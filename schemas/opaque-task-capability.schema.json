@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/opaque-task-capability.schema.json",
+  "title": "Single-use evaluator unlock capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "capabilityId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "taskHandle",
+    "authorshipRecordHash",
+    "recipient",
+    "allowedAction",
+    "singleUse",
+    "bodyAccess",
+    "issuedAt",
+    "expiresAt",
+    "nonce",
+    "issuedBy",
+    "capabilityHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "opaque_task_capability"
+    },
+    "capabilityId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskHandle": {
+      "type": "string",
+      "pattern": "^opaque-task-sha256:[a-f0-9]{64}$"
+    },
+    "authorshipRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "recipient": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "allowedAction": {
+      "const": "unlock"
+    },
+    "singleUse": {
+      "const": true
+    },
+    "bodyAccess": {
+      "const": "none_in_body_free_contract_prototype"
+    },
+    "issuedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "expiresAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "issuedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "capabilityHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

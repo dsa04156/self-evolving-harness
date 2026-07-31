@@ -79,5 +79,8 @@ export * from "./storage/append-only-log.js";
 export * from "./storage/artifact-store.js";
 export * from "./tools/builtins.js";
 export * from "./trust/identity.js";
+export * from "./trust/evaluator-vault-contract.js";
+export * from "./trust/evaluator-vault.js";
+export * from "./trust/independent-authorship.js";
 export * from "./trust/protected-file.js";
 export * from "./trust/wire.js";

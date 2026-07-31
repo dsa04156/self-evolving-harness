@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/blinded-authorship-review.schema.json",
+  "title": "Identity-free authorship review projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "reviewPacketId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "workflowId",
+    "taskHandleCommitment",
+    "contentCommitment",
+    "verifierCommitment",
+    "inclusionRuleHash",
+    "collectionWindowHash",
+    "contaminationDeclarationHash",
+    "authorIdentityIncluded",
+    "taskHandleIncluded",
+    "taskBodyIncluded",
+    "verifierLogicIncluded",
+    "labelsIncluded",
+    "pathsIncluded",
+    "issuedAt",
+    "issuedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "blinded_authorship_review"
+    },
+    "reviewPacketId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "workflowId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "taskHandleCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "contentCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "verifierCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "inclusionRuleHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "collectionWindowHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "contaminationDeclarationHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "authorIdentityIncluded": {
+      "const": false
+    },
+    "taskHandleIncluded": {
+      "const": false
+    },
+    "taskBodyIncluded": {
+      "const": false
+    },
+    "verifierLogicIncluded": {
+      "const": false
+    },
+    "labelsIncluded": {
+      "const": false
+    },
+    "pathsIncluded": {
+      "const": false
+    },
+    "issuedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "issuedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

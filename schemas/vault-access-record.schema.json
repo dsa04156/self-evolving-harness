@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/vault-access-record.schema.json",
+  "title": "Vault-signed append-only access decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "accessRecordId",
+    "protocolId",
+    "requestedProtocolId",
+    "contractId",
+    "contractHash",
+    "requestIdCommitment",
+    "claimedRequestHash",
+    "observedRequestHash",
+    "action",
+    "taskHandleCommitment",
+    "actorRole",
+    "actorIdentityCommitment",
+    "actorKeyIdCommitment",
+    "senderSequence",
+    "nonceCommitment",
+    "decision",
+    "reasonCode",
+    "stateBefore",
+    "stateAfter",
+    "release",
+    "occurredAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "vault_access_record"
+    },
+    "accessRecordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "requestedProtocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "requestIdCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "claimedRequestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "observedRequestHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "seal",
+        "enumerate",
+        "unlock",
+        "evaluate",
+        "score",
+        "audit"
+      ]
+    },
+    "taskHandleCommitment": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "actorRole": {
+      "$ref": "./common.schema.json#/$defs/principalRole"
+    },
+    "actorIdentityCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "actorKeyIdCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "senderSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonceCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "allowed",
+        "denied"
+      ]
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{1,95}$"
+    },
+    "stateBefore": {
+      "$ref": "#/$defs/nullableVaultState"
+    },
+    "stateAfter": {
+      "$ref": "#/$defs/nullableVaultState"
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "releaseClass",
+        "recipientRole",
+        "fieldNames",
+        "taskBodyReleased",
+        "rawTaskHandleReleased",
+        "authorIdentityReleased",
+        "candidateIdentityReleased"
+      ],
+      "properties": {
+        "releaseClass": {
+          "type": "string",
+          "enum": [
+            "none",
+            "opaque_handle_commitments",
+            "unlock_authorization",
+            "evaluation_commitment",
+            "score_commitment",
+            "access_chain_head"
+          ]
+        },
+        "recipientRole": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/principalRole"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fieldNames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]{1,63}$"
+          }
+        },
+        "taskBodyReleased": {
+          "const": false
+        },
+        "rawTaskHandleReleased": {
+          "const": false
+        },
+        "authorIdentityReleased": {
+          "const": false
+        },
+        "candidateIdentityReleased": {
+          "const": false
+        }
+      }
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "vaultState": {
+      "type": "string",
+      "enum": [
+        "sealed",
+        "unlocked",
+        "evaluated",
+        "scored"
+      ]
+    },
+    "nullableVaultState": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/vaultState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

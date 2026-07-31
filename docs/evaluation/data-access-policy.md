@@ -52,6 +52,12 @@ protocol run.
 Every access records principal, opaque task/split handle, recipient, exact released fields, timestamp,
 protocol ID, and purpose.
 
+The body-free contract prototype refines this into a signed vault access record. It persists only
+commitments for the request ID, actor identity, actor key, and opaque handle; claimed and observed
+request hashes; claimed role; sender sequence; nonce commitment; before/after state; decision code; and
+release class. Denials have no release fields and do not change state. Accepted sequence/nonce history
+is reconstructed from the append-only ledger after re-instantiation.
+
 ## Principal mounts
 
 ### Proposer
@@ -116,6 +122,9 @@ The principal/mount/network/secret matrix is authoritative in
 - Gate/final task bodies live outside candidate repositories when independently authored; Git
   worktrees are not access control. Public mine structural fixtures carry no secrecy claim, but their
   exact artifact graph is forbidden from research, candidate, scheduler, promotion, and claim inputs.
+- Before vault admission, an independent workflow must reach `included` through protocol assignment,
+  author commitment, vault blinding, and a distinct reviewer key. The admitted pair contains only the
+  handle commitment and signed included-record hash.
 - Final role capabilities require Gate 3 protocol freeze and one signed final-batch authorization.
 - Every access logs principal, protocol, dataset role, opaque handle, purpose, and content commitment.
 

@@ -21,6 +21,9 @@ further restricted to content-addressed or append-only APIs.
 | Audit store | `seh-audit` isolated append service | protocol/public keys; its prior log segments | append-only audit segments and signed checkpoints | accepts audit append; emits acknowledgements and verified heads | audit-store signing key; optional external-witness credential | local authenticated sockets; optional pinned witness endpoint only | append size/rate, disk quota | audit sequence assignment, chain record, checkpoint |
 | Model-provider proxy | `seh-provider-proxy` isolated egress container | protocol model allowlist and budget accounts | provider request/usage ledger only | accepts scoped provider requests; emits responses and usage records | provider API key, proxy signing key | DNS/IP/TLS allowlist for pinned provider endpoints only | calls/tokens/cost/concurrency/rate/time for all roles | provider usage and charge receipts |
 | Benchmark author | separate blinded `seh-benchmark-author` account/environment | preregistered fixture/temporal-task authoring contract; contamination inputs | new task/verifier staging and authorship log | emits candidate-independent task package to protocol author; receives no run result | author signing key; no provider/evaluator/proposer credentials | sources permitted only under documented collection policy; no project result endpoints | task count, collection window, artifact size | authorship and independent-review records; not split activation |
+| Benchmark reviewer | separate blinded `seh-benchmark-reviewer` account/environment | identity-free task/verifier commitments, collection and inclusion-rule commitments | inclusion/rejection decision only | accepts vault-blinded commitment; emits signed include/reject transition | reviewer signing key; no author/evaluator/proposer credentials | none during review | review count and short wall-clock/CPU limit | blinded inclusion/rejection; cannot author or activate a split |
+| Evaluator vault | isolated `seh-vault` custody service | frozen vault contract, admitted commitment pairs, historical-exposure ledger | private opaque-handle state and append-only access decisions | accepts role-authenticated create/seal/enumerate/unlock/evaluate/score/audit requests; emits one-way commitments | vault signing key and private task custody key when real bodies are later authorized | authenticated local evaluator/audit sockets only | task/capability count, request rate, expiry, sequence/nonce | blinding projection, task seal, one-time unlock capability, access decisions |
+| Scorer | ephemeral `seh-scorer-<run>` | frozen scorer contract and evaluation outcome commitments | score commitment staging | accepts an exact evaluator commitment; emits score commitment to promoter | scorer signing key; no vault/evaluator/promoter key | authenticated local vault/audit sockets only | score count and short wall-clock/CPU limit; zero model calls | score commitment only; cannot see task body or promote |
 | Protocol author | offline or isolated `seh-protocol-author` account | all reviewed design artifacts, benchmark package, public keys | new protocol staging only | signs protocol/type registry/split freeze; cannot alter an existing protocol | protocol signing key kept outside runtime hosts | none during freeze/signing | one freeze transaction per semantic version | protocol manifest and protocol-supersession record |
 
 ## Data mounts by split
@@ -35,6 +38,9 @@ further restricted to content-addressed or append-only APIs.
 | Audit store | hashes/roles only | hashes/roles only | hashes/roles only | hashes/roles only | hashes/roles only |
 | Provider proxy | encrypted/model request content in transit only; no persistent benchmark mount | same | same | same | same |
 | Benchmark author | authoring source only | authoring source only | independently reviewed source | public source acknowledged | own blinded task only; no candidate results |
+| Benchmark reviewer | blinded commitments only | blinded commitments only | blinded commitments only | public-source declaration only | blinded commitments only |
+| Evaluator vault | admitted commitments; body custody only after a separate authorization | one-shot private custody | final-unlock private custody only | final-unlock private custody only | final-unlock private custody only |
+| Scorer | signed outcome commitment only | signed outcome commitment only | signed outcome commitment only | signed outcome commitment only | signed outcome commitment only |
 
 ## Record-creation matrix
 
@@ -51,6 +57,8 @@ further restricted to content-addressed or append-only APIs.
 | `DeploymentDecision` | no | no | no | no | create | verify link | no | bootstrap authorization only |
 | `DeploymentPointerRecord` | no | registry service applies CAS | no | no | request only | verify link | no | initialize only under signed bootstrap policy |
 | `ProtocolManifest` | no | no | no | no | no | archive | no | protocol author creates/signs |
+| authorship transition / blinded review | no | no | no | no | no | verify link | no | protocol author assigns; author commits; vault blinds; reviewer includes/rejects |
+| vault capability / access decision | no | no | no | consume capability | score commitment only | verify link | no | vault alone issues capability and signs every allowed/denied access record |
 
 ## Delegation
 
