@@ -99,3 +99,16 @@ any paid-provider request.
 - Benchmark evolution, gate/final/temporal/withheld-public access, empirical B0–B6 comparison,
   research-task pilot tuning, broad performance/security/generalization/self-improvement claims, live
   deployment, push/release, and publication claims remain prohibited.
+
+## Durable Gate 3 readiness decision
+
+- External decision: `REVISE`.
+- No new code correction was required before the frozen provider smoke, but the actual one-call smoke
+  did not run because the credential was absent.
+- Gate 3 remains incomplete without a real signed receipt, provider-reported model, usage/cost,
+  exact-output result, and real three-principal egress evidence.
+- The decision authorized only that exact smoke and prohibited benchmark/`D_mine` execution.
+- Subsequent visible deterministic `D_mine` construction must therefore be disclosed as a possible
+  governance deviation and cannot become research evidence without a new architect disposition.
+- The current fixture runner chooses good/fault outcomes from manifest identity; it is plumbing
+  evidence, not meaningful attribution accuracy.

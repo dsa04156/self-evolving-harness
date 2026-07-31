@@ -8,6 +8,7 @@
 | 1RRR | `architect/PACKET_01RRR_NARROW_CONTRACT_CORRECTIONS.md` | `9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d` | `responses/response-1rrr.md` (`32b7b0841baff34177dcc39ac3092873df32d5c7cb48519ca3548cb64e3c3b82`) | APPROVE |
 | 2 | `architect/PACKET_02_RUNTIME_AND_TRUST.md` | `f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d` | `responses/response-2.md` (`e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1`) | REVISE |
 | 2R | `architect/PACKET_02R_RUNTIME_AND_TRUST.md` | `123f3a048bc92ce606ce6bb5415e8f8b8e4c59ab29dd9986f4fe59d2f485f792` | `responses/response-2r.md` (`f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c`) | APPROVE |
+| 3 | `architect/PACKET_03_GATE3_READINESS.md` | `41d03f8f32a497c445218240c05aaf36c3404b6996173a182c7d512d50b367c6` | `responses/response-3.md` (`52992fdac76c72d306de937e386191ca1dc82a9685a993317d7ffcf01d1bf62d`) | REVISE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -248,3 +249,36 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: benchmark evolution, gate/final/temporal/withheld-public access, empirical B0–B6
   comparison, research-task pilot tuning, broad performance/security/generalization/self-improvement
   claims, live deployment, push/release, and publication claims
+
+## Round 3 — 2026-07-31
+
+- sent: `architect/PACKET_03_GATE3_READINESS.md`
+- transport: exact-tab direct CDP to the pinned project conversation
+- topic id: `self-evolving-harness-architecture`
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab; no new Chrome/window/tab
+- packet hash: `41d03f8f32a497c445218240c05aaf36c3404b6996173a182c7d512d50b367c6`
+- raw response: `.codex/gpt-pro-architect/responses/response-3.md`
+- response hash: `52992fdac76c72d306de937e386191ca1dc82a9685a993317d7ffcf01d1bf62d`
+- architect decision: `REVISE`
+- blocking finding: the frozen one-call provider smoke was not executed because no API credential was
+  available; no real receipt/model/usage/egress evidence exists
+- authorized next: the exact one-call protected provider smoke and a correction-only result packet
+- prohibited by that decision: benchmark and `D_mine` execution, gate/final/temporal access,
+  empirical B0–B6, harness mutation, candidate selection, promotion/deployment, and performance,
+  generalization, security, or self-improvement claims
+
+## Round 3R preparation — 2026-07-31
+
+- packet: `.codex/gpt-pro-architect/packets/packet-3r.md`
+- authoritative project copy: `architect/PACKET_03R_HFB_MINE_REVIEW.md`
+- packet hash: `6d3be1dd8707e820098f52b16976c7f8b90a9d4cd989819202ffe570479b3e4c`
+- packet size: 8,635 bytes
+- scope: visible deterministic mine construction, exact aggregate evidence, governance deviation, and
+  manifest-oracle correctness limitation
+- excluded: source upload, full evidence body, credentials, private keys, gate/final data, raw traces,
+  provider call, paid action, deployment, push, release, and publication
+- authorized transport: same exact project conversation, endpoint, and browser target only
+- status: prepared, not yet transmitted
