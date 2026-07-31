@@ -19,6 +19,7 @@ the next gate:
 | 03RRRRR | `PACKET_03RRRRR_PUBLICATION_GOVERNANCE_CLOSURE.md` | REVISE: snapshot policy accepted; historical public-object union required |
 | 03RRRRRR | `PACKET_03RRRRRR_HISTORICAL_PUBLICATION_COMPLETENESS.md` | APPROVE: four-root historical publication governance closed |
 | 03RRRRRRR | `PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md` | REVISE: logical trust contract accepted; durable globally serialized task state required |
+| 03RRRRRRRR | `PACKET_03RRRRRRRR_DURABLE_VAULT_STATE.md` | APPROVE: durable globally serialized task-state authority closed |
 
 External transmission, code upload, paid-provider use, and sealed-test access require explicit user
 approval at the time of the action. Preparing a local packet does not grant those permissions.
@@ -40,6 +41,13 @@ in its `REVISE`: one authoritative task-state journal, expected-head CAS, cross-
 commit-before-release, deterministic crash recovery, restart/fresh-request rejection, and a narrow
 follow-up packet. It does not authorize a push, provider/API, real task body, research/B0–B6,
 selection, promotion, deployment, release, or empirical/security/self-improvement claim.
+
+Round 03RRRRRRRR approves that durable-state correction and authorizes only a local deterministic
+body-free OS-principal integration of the accepted authorship and evaluator-vault contracts. It
+requires eight distinct subordinate UID/GID roles, role-owned keys and mounts, authenticated
+process boundaries, the full commitment-only workflow, and OS-level negative tests. It does not
+authorize a push, provider/API, real benchmark material, research/B0–B6, selection, promotion,
+deployment, release, publication, or empirical/security/self-improvement claim.
 
 Valid decisions are:
 

@@ -288,3 +288,27 @@ any paid-provider request.
 - Authorized next scope is only that local deterministic body-free durability correction and a
   narrow packet. No push, real task body, provider/API, research, selection, promotion, deployment,
   release, or empirical/security/self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRR durable-vault decision
+
+- External decision: `APPROVE`; no blocking findings remain for the deterministic body-free durable
+  globally serialized evaluator-vault state contract.
+- `vault_state_cas_journal` is accepted as the sole task-state and access-decision authority. The
+  lease journal is coordination only; task transitions bind exact global and per-task predecessors.
+- Monotonic lease epochs plus signed resource-side writer fences, direct fence-to-transition
+  linkage, exclusive expected-head publication, file/directory synchronization, committed-head
+  reread, and full reconstruction before response close stale-writer and release-before-durability
+  risks under the stated local host/filesystem TCB.
+- Restart recovery now reconstructs task state, used capabilities, accepted sequence/nonce,
+  evaluation/score commitments, and exact request dispositions. Actual child-process races,
+  killed-holder recovery, stale-head rejection, exact retries, and all declared crash boundaries
+  produce one successor.
+- The approval is not evidence of real-body confidentiality, production containment, distributed
+  consistency, provider interoperability, benchmark validity, performance, generalization,
+  security certification, or self-improvement.
+- Authorized next: a local deterministic body-free OS-principal integration using eight distinct
+  subordinate UID/GID roles, role-owned keys/mounts, authenticated transports, the complete
+  commitment-only workflow, and OS-level read/write/socket/signal/network denial tests.
+- No push, API credential/provider, real task/verifier/label/path data, research scheduler/B0–B6,
+  pilot, attribution evaluation, candidate selection, promotion, deployment, release, publication,
+  or empirical/security/self-improvement claim is authorized.

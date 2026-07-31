@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 03RRRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,25 +16,26 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRR direct CDP verified target
+- last reuse preflight: Round 03RRRRRRRR direct CDP verified target
   `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no stop button,
-  and the prior Round 03RRRRRR response. The first insert operation timed out; recovery verified the
-  exact complete 15,645-character composer and submitted it once without opening a new tab or window.
+  and the prior Round 03RRRRRRR response. The first insert operation timed out; recovery verified the
+  complete 17,087-character rendered composer and submitted it once without opening a new tab or
+  window.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-07-31
-- last packet: `architect/PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md`
-- last packet sha256: `c2f263172a11ee2a8f504a8ecd750f1db4bba257e6c62ee218081f58fae182a4`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrr.md`
-- last response sha256: `a54958e0e9888aff29f644c94f3b1e0cebb53442be4ec435cd02f4c0995eefcb`
-- next packet: durable globally serialized vault-state correction
+- last packet: `architect/PACKET_03RRRRRRRR_DURABLE_VAULT_STATE.md`
+- last packet sha256: `e65aac7f3026f460906f3f3a1fe41ab3d13e9eadae366730a62a1efa8bc6bc03`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrr.md`
+- last response sha256: `c4e4cfd5ae678ab44d4ab979323c50aaa7661c9d59aa97cc66ef838bb786dd11`
+- next packet: deterministic body-free OS-principal integration
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
 - continuation limitation: Oracle profile-metadata attach cannot find this pre-existing browser.
   Future continuation must use the same manual direct-CDP exact-tab path or another method that proves
   the same target; a new window/tab is not an automatic fallback.
-- model evidence: Oracle 0.16.1; Round 3RRRR requested `gpt-5-pro` and dry-run resolved the existing
+- model evidence: Oracle 0.16.1; the same topic originally requested `gpt-5-pro` and resolved the existing
   target. Manual fallback reused the same prior Pro-selected project tab, but did not independently
   expose the picker label; server-side generation identity remains vendor-opaque.
 - Round 03RRRR decision: `REVISE`. The technical eight-principal process boundary, prediction seal,
@@ -56,10 +57,21 @@
   contamination, signed included-record admission, release projections, access-record shape, and
   claim discipline are accepted. The single remaining defect is the absence of a durable globally
   serialized task-state authority across crash/restart and multiple vault processes.
-- current authorization: only a local deterministic body-free durable vault-state correction.
+- prior correction authorization: only a local deterministic body-free durable vault-state correction.
   Select one authoritative state journal/projection, bind expected prior state and ledger head, add
   an exclusive durable lease or atomic append/CAS, commit and synchronize before release, recover
   every crash boundary, and prove two-process contention plus fresh-request restart denials.
   No Git push, real task body, provider/API, research scheduler/B0–B6, attribution evaluation,
   selection, promotion, deployment, release, or empirical/security/self-improvement claim is
+  authorized.
+- Round 03RRRRRRRR decision: `APPROVE`. The sole authoritative CAS state journal, embedded access
+  decisions, per-task predecessor binding, monotonic lease epochs, resource-side writer fences,
+  commit-before-release, restart reconstruction, exact retry disposition, hard-link crash recovery,
+  and actual child-process contention close the durable-state blocker.
+- current authorization: a local deterministic body-free OS-principal integration only. Run the
+  eight frozen roles under distinct subordinate UID/GID principals with role keys and mounts,
+  exercise the complete synthetic commitment-only workflow and durable vault protocol, and prove
+  wrong-principal file/socket/signal/network denials. No push, API credential/provider, real task
+  body/verifier/label/path, research scheduler/B0–B6, pilot, attribution evaluation, selection,
+  promotion/canary/deployment, empirical/security/self-improvement claim, release, or publication is
   authorized.

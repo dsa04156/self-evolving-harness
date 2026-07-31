@@ -544,3 +544,45 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: push/release, provider/API, real task body or split access, research scheduler or
   B0–B6, attribution evaluation, selection, promotion/canary/deployment, and empirical,
   containment, security, generalization, or self-improvement claims
+
+## Round 3RRRRRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRRRRR_DURABLE_VAULT_STATE.md`
+- packet hash: `e65aac7f3026f460906f3f3a1fe41ab3d13e9eadae366730a62a1efa8bc6bc03`
+- packet size: 16,495 characters / 16,533 bytes
+- implementation commit/tree:
+  `ed498251a2382e06a147152604ec52346029c6ed` /
+  `2d453ec56c6454212ed5ed0d81e55ddf004d4e58`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no additional push
+- validation: exact Node 24.18.1 full deterministic suite 128/128 and focused vault suite 11/11;
+  build and both publication verifiers pass; correction-file secret scan and environment-file scan
+  found zero matches
+- transport: one recovered direct-CDP submission to the exact existing tab after the long insert
+  timed out; complete 17,087-character rendered composer state was verified before exactly one send
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- submission count: exactly one; observed user-message count increased from two to three
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrr.md`
+- raw-response verification: browser and local content both 10,713 characters / 10,765 bytes with
+  SHA-256 `c4e4cfd5ae678ab44d4ab979323c50aaa7661c9d59aa97cc66ef838bb786dd11`
+- architect decision: `APPROVE`
+- blocking findings: none for the narrow durable globally serialized vault-state correction
+- accepted: sole task-state/access-decision CAS journal, exact global and per-task predecessors,
+  durable lease epochs, resource-side fences, stale-writer rejection, commit-before-release,
+  restart reconstruction, exact retry dispositions, hard-link crash recovery, and actual
+  child-process contention
+- claim boundary: deterministic body-free durability evidence only; no confidentiality,
+  containment, distributed-consistency, provider, benchmark, performance, generalization, security,
+  or self-improvement result
+- authorized next: local deterministic body-free integration of eight distinct subordinate UID/GID
+  principals, role-owned keys and mounts, authenticated process transport, complete commitment-only
+  workflow, durable-vault contention/recovery, and OS-level denial tests
+- still prohibited: push/release/publication, API credential/provider, real task/verifier/label/path
+  data, research scheduler or B0–B6, pilot/attribution evaluation, candidate selection,
+  promotion/canary/deployment, and empirical, containment, security, generalization, or
+  self-improvement claims
