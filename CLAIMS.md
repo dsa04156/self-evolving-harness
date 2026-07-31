@@ -9,8 +9,10 @@ Status: **preregistered; no performance result exists**
 The system owns its model loop, context, tools, session, evidence, verification, and recovery. It
 does not invoke Codex, Gajae-Code, OpenCode, or another coding-agent runtime as its core executor.
 
-Required evidence: executable call graph, provider/tool fakes, source inspection, and an
-environment test proving no external harness binary is present.
+Required evidence: executable call graph, provider/tool fakes, source/import inspection, and process
+evidence proving that an agent run does not invoke an external harness binary. Codex CLI may be present
+and used to develop the repository; presence in the development environment is not a runtime
+dependency.
 
 ### C-A2 — Lifecycle separation
 
@@ -68,6 +70,9 @@ model-specific retuning.
 
 ## Claim-strength rules
 
+- Under development profile `NP-1`, only deterministic architectural-conformance evidence is
+  generated. The live OpenAI adapter, benchmark, and all C-H1–C-H4 claims remain unexecuted and
+  unsupported.
 - A single improved score is reported as a case result, never as self-improvement.
 - Training/validation gains without final held-out gains support only an engineering case study.
 - “Better than test-time scaling” requires Holm-adjusted positive intervals versus all three

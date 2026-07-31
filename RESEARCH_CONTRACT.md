@@ -1,7 +1,11 @@
 # Research Contract
 
-Status: **revised preregistration; Gate 1RR pending**
+Status: **Gate 1 and Gate 2 approved; deterministic no-paid-provider work continues**
 Protocol version: `draft-1`
+
+Development resource profile: `NP-1` (2026-07-31). This profile changes no benchmark, evaluator,
+budget, promotion, model, or statistical contract because no empirical provider or benchmark run has
+started.
 
 ## Terminology
 
@@ -29,8 +33,12 @@ candidate-version event.
 3. Obtain explicit Gate 1 approval after all revision rounds and freeze the implementation ADR.
 4. Implement deterministic runtime/evolution tests without a live provider.
 5. Obtain Architect Gate 2 decision.
-6. With separate user approval, run a bounded live-provider smoke test.
-7. Pilot only on mine/dedicated-pilot data, validate the non-adaptive gate protocol without final access,
+6. If a separately provisioned provider credential is available, run the preregistered bounded
+   live-provider smoke test. Under `NP-1`, this step is deferred and remains a prerequisite for any
+   provider-interoperability claim, but it does not block additional deterministic implementation,
+   documentation, or synthetic non-research tests.
+7. Pilot only after a successful provider smoke, on mine/dedicated-pilot data; validate the
+   non-adaptive gate protocol without final access,
    then obtain Gate 3 and freeze `protocol-v1`.
 8. Run the single preregistered gate batch, freeze selected artifacts, unlock final roles once, run final
    experiments, and obtain the final evidence gate.
@@ -40,13 +48,21 @@ or reporting method.
 
 ## External-action policy
 
-The user granted blanket authorization for the planned external review, provider smoke/pilot, repository
-operations, and publication workflow on 2026-07-30. That authorization does not override the gates,
-budgets, data roles, or trust boundaries. The following remain impossible before their protocol phase:
+The user granted blanket authorization for the planned external review, repository operations, and
+publication workflow on 2026-07-30, then clarified on 2026-07-31 that only Codex CLI subscription access
+is available and no Platform API credential should be assumed. Authorization does not create a
+credential, approve secret extraction, or override gates, budgets, data roles, or trust boundaries.
+The following remain impossible before their protocol phase:
 
 - runtime/provider execution before Gate 1/2 authorization;
 - gate/final access before the corresponding signed phase capability;
 - external publication of performance/security claims before the final evidence gate.
+
+Codex CLI may be used to research, author, inspect, and test this repository. Its authenticated model
+service, executable, browser session, local credential store, and access token are excluded from the
+new harness's model-provider abstraction and execution path. Spawning `codex exec`, importing Codex
+runtime code as the core executor, or reusing its login material would violate the standalone-system
+contract.
 
 External Architect packets remain redacted: no secrets, raw private traces, sealed task content, or
 unnecessary source upload.
@@ -85,3 +101,7 @@ Any change to a protocol-pinned schema, type registry, runtime/evaluator, hypoth
 semantics, thresholds, budgets, model/environment, permission/safety, trace/audit/promotion policy,
 baseline/statistical plan, or report-selection rule creates a new content-addressed protocol ID. Earlier
 experiments cannot be mixed into confirmatory evidence for the new protocol.
+
+The `NP-1` resource profile is not an empirical protocol version. It authorizes only deterministic
+implementation and synthetic non-research verification. No result produced under it may be reported as
+provider, benchmark, evolution-performance, generalization, or self-improvement evidence.
