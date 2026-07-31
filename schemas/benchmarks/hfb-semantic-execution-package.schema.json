@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/hfb-semantic-execution-package.schema.json",
+  "title": "HarnessFaultBench Label-Free Semantic Execution Package",
+  "description": "Runtime-readable package. Oracle labels, component targets, known-good/fault labels, and mutation patches are forbidden by the closed top-level contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocolId",
+    "environment",
+    "providerRows",
+    "outcomeContract",
+    "packageHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "protocolId": {
+      "$ref": "../common.schema.json#/$defs/protocolId"
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "taskText",
+        "initialFiles",
+        "initialMemory",
+        "workflowInput",
+        "routingInput"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "taskText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "initialFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "content"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "content": {
+                "type": "string",
+                "maxLength": 1048576
+              }
+            }
+          }
+        },
+        "initialMemory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["namespace", "content", "authority"],
+            "properties": {
+              "namespace": {
+                "type": "string",
+                "enum": [
+                  "project_facts",
+                  "user_preferences",
+                  "accepted_lessons",
+                  "rejected_mutations",
+                  "session_summaries"
+                ]
+              },
+              "content": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 65536
+              },
+              "authority": {
+                "type": "string",
+                "enum": ["untrusted_context", "operator_approved"]
+              }
+            }
+          }
+        },
+        "workflowInput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "trigger", "facts"],
+          "properties": {
+            "from": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 96
+            },
+            "trigger": {
+              "type": "string",
+              "enum": [
+                "action_succeeded",
+                "action_failed",
+                "tool_result",
+                "job_completed",
+                "job_failed",
+                "verification_passed",
+                "verification_failed",
+                "budget_exhausted",
+                "permission_denied"
+              ]
+            },
+            "facts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["retryRemaining", "evidenceComplete"],
+              "properties": {
+                "retryRemaining": {
+                  "type": "boolean"
+                },
+                "evidenceComplete": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "routingInput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["taskClass", "riskClass"],
+          "properties": {
+            "taskClass": {
+              "type": "string",
+              "enum": [
+                "analysis",
+                "code_change",
+                "test",
+                "documentation",
+                "recovery",
+                "unknown"
+              ]
+            },
+            "riskClass": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            }
+          }
+        }
+      }
+    },
+    "providerRows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requestProjectionHash", "output"],
+        "properties": {
+          "requestProjectionHash": {
+            "$ref": "../common.schema.json#/$defs/sha256"
+          },
+          "output": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object"
+            }
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "inputTokens",
+              "outputTokens",
+              "reasoningTokens",
+              "cachedInputTokens",
+              "totalTokens"
+            ],
+            "properties": {
+              "inputTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "outputTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reasoningTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cachedInputTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cacheWriteTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "totalTokens": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "outcomeContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requiredFinalText",
+        "requiredFiles"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "requiredFinalText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "contentHash"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "contentHash": {
+                "$ref": "../common.schema.json#/$defs/sha256"
+              }
+            }
+          }
+        }
+      }
+    },
+    "packageHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}

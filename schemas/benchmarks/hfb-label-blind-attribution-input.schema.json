@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/hfb-label-blind-attribution-input.schema.json",
+  "title": "HarnessFaultBench Label-Blind Attribution Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "traceProjectionId",
+    "outcome",
+    "workflow",
+    "routing",
+    "providerRequestMatches",
+    "observations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "traceProjectionId": {
+      "type": "string",
+      "pattern": "^lbti-sha256:[a-f0-9]{64}$"
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "passed"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["completed", "blocked", "terminated"]
+        },
+        "passed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fromClass",
+        "trigger",
+        "toClass",
+        "terminal",
+        "dispatchedActions"
+      ],
+      "properties": {
+        "fromClass": {
+          "type": "string",
+          "enum": [
+            "start",
+            "context",
+            "model",
+            "recover",
+            "verify",
+            "pre_job",
+            "post_job",
+            "complete",
+            "blocked",
+            "other"
+          ]
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "action_succeeded",
+            "action_failed",
+            "tool_result",
+            "job_completed",
+            "job_failed",
+            "verification_passed",
+            "verification_failed",
+            "budget_exhausted",
+            "permission_denied"
+          ]
+        },
+        "toClass": {
+          "type": "string",
+          "enum": [
+            "start",
+            "context",
+            "model",
+            "recover",
+            "verify",
+            "pre_job",
+            "post_job",
+            "complete",
+            "blocked",
+            "other"
+          ]
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "dispatchedActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "construct_context",
+              "model_turn",
+              "retrieve_memory",
+              "invoke_skill",
+              "request_tool",
+              "spawn_subagent",
+              "wait_job",
+              "verify",
+              "emit_completion",
+              "emit_block"
+            ]
+          }
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taskClass", "riskClass", "targetKind"],
+      "properties": {
+        "taskClass": {
+          "type": "string",
+          "enum": [
+            "analysis",
+            "code_change",
+            "test",
+            "documentation",
+            "recovery",
+            "unknown"
+          ]
+        },
+        "riskClass": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "targetKind": {
+          "type": "string",
+          "enum": ["primary", "subagent"]
+        }
+      }
+    },
+    "providerRequestMatches": {
+      "type": "array",
+      "items": {
+        "type": "boolean"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ordinal",
+          "eventType",
+          "epistemicClass",
+          "originClass",
+          "facts"
+        ],
+        "properties": {
+          "ordinal": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "session_state_changed",
+              "task_submitted",
+              "context_constructed",
+              "model_request_started",
+              "model_response_received",
+              "tool_call_requested",
+              "tool_call_completed",
+              "verification_completed",
+              "runtime_failure_observed",
+              "session_blocked",
+              "other_runtime_event"
+            ]
+          },
+          "epistemicClass": {
+            "type": "string",
+            "enum": [
+              "recorded_observation",
+              "verifier_outcome",
+              "inference"
+            ]
+          },
+          "originClass": {
+            "type": "string",
+            "enum": [
+              "user",
+              "model",
+              "tool",
+              "runtime",
+              "operations",
+              "provider",
+              "evaluator",
+              "promoter"
+            ]
+          },
+          "facts": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

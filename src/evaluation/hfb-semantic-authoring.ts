@@ -19,7 +19,10 @@ import type {
   ModelResponse,
   ModelUsage,
 } from "../domain/model.js";
-import type { SchemaRegistry } from "../contracts/schema-registry.js";
+import {
+  SCHEMA_BASE_URL,
+  type SchemaRegistry,
+} from "../contracts/schema-registry.js";
 import type { HarnessComponentRegistry } from "../harness/component-registry.js";
 import {
   CanonicalRequestTableProvider,
@@ -50,6 +53,8 @@ const SEMANTIC_RUNTIME_CONTRACT_HASH = sha256({
   contract: "hfb-semantic-runtime",
   version: "1.0.0",
 });
+export const HFB_SEMANTIC_SPEC_VERSION =
+  "hfb-semantic-development-1.0.0" as const;
 const SEMANTIC_PROTOCOL_ID =
   `protocol-sha256:${sha256({
     protocol: "hfb-semantic-development",
@@ -57,6 +62,14 @@ const SEMANTIC_PROTOCOL_ID =
   }).slice("sha256:".length)}`;
 const SEMANTIC_MODEL_IDENTITY =
   "canonical-request-table-fake-v1/hfb-semantic-model-v1";
+export const HFB_SEMANTIC_EXECUTION_PACKAGE_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}benchmarks/hfb-semantic-execution-package.schema.json`;
+export const HFB_SEMANTIC_ORACLE_RECORD_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}benchmarks/hfb-semantic-oracle-record.schema.json`;
+export const HFB_SEMANTIC_VALIDATION_REPORT_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}benchmarks/hfb-semantic-validation-report.schema.json`;
+export const HFB_SEMANTIC_SUITE_COMMITMENT_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}benchmarks/hfb-semantic-suite-commitment.schema.json`;
 const ZERO_USAGE: ModelUsage = Object.freeze({
   inputTokens: 0,
   outputTokens: 0,
@@ -197,6 +210,32 @@ export interface HfbBuiltSemanticFixture {
   readonly knownGoodResult: SemanticHarnessExecutionResult;
   readonly faultyResult: SemanticHarnessExecutionResult;
   readonly validationReport: HfbSemanticValidationReport;
+}
+
+export interface HfbSemanticSuiteCommitment {
+  readonly schemaVersion: 1;
+  readonly specVersion:
+    typeof HFB_SEMANTIC_SPEC_VERSION;
+  readonly evidenceClass:
+    "deterministic_semantic_development_validation";
+  readonly datasetRole: "mine";
+  readonly fixtureCount: 28;
+  readonly authorityBoundary: {
+    readonly oracleSeparatedFromExecution: true;
+    readonly executionPackagesContainLabels: false;
+    readonly proposerInputRequiresLabelBlindAdapter: true;
+    readonly attributionPerformanceClaim: false;
+    readonly selfEvolutionClaim: false;
+  };
+  readonly entries: readonly {
+    readonly fixtureId: string;
+    readonly oracleHash: string;
+    readonly executionPackageHash: string;
+    readonly validationReportHash: string;
+    readonly knownGoodEventChainHash: string;
+    readonly faultyEventChainHash: string;
+  }[];
+  readonly commitmentHash: string;
 }
 
 interface HarnessPair {
@@ -850,6 +889,60 @@ function fixedRuntimePrincipal() {
   });
 }
 
+export function hfbSemanticSuiteCommitment(
+  fixtures: readonly HfbBuiltSemanticFixture[],
+): HfbSemanticSuiteCommitment {
+  assertCondition(
+    fixtures.length === 28,
+    "SCHEMA_INVALID",
+    "Semantic suite commitment requires exactly 28 D_mine fixtures",
+  );
+  const entries = fixtures
+    .map((fixture) => ({
+      fixtureId: fixture.oracle.fixtureId,
+      oracleHash: fixture.oracle.oracleHash,
+      executionPackageHash:
+        fixture.executionPackage.packageHash,
+      validationReportHash:
+        fixture.validationReport.reportHash,
+      knownGoodEventChainHash:
+        fixture.knownGoodResult.eventChainHash,
+      faultyEventChainHash:
+        fixture.faultyResult.eventChainHash,
+    }))
+    .sort((left, right) =>
+      left.fixtureId.localeCompare(right.fixtureId),
+    );
+  assertCondition(
+    new Set(entries.map((entry) => entry.fixtureId))
+      .size === 28,
+    "SCHEMA_INVALID",
+    "Semantic suite commitment has duplicate fixture IDs",
+  );
+  const core = {
+    schemaVersion: 1 as const,
+    specVersion: HFB_SEMANTIC_SPEC_VERSION,
+    evidenceClass:
+      "deterministic_semantic_development_validation" as const,
+    datasetRole: "mine" as const,
+    fixtureCount: 28 as const,
+    authorityBoundary: {
+      oracleSeparatedFromExecution: true as const,
+      executionPackagesContainLabels: false as const,
+      proposerInputRequiresLabelBlindAdapter: true as const,
+      attributionPerformanceClaim: false as const,
+      selfEvolutionClaim: false as const,
+    },
+    entries,
+  };
+  return {
+    ...core,
+    commitmentHash: sha256(
+      core as unknown as JsonValue,
+    ),
+  };
+}
+
 export class HarnessFaultBenchSemanticAuthoringBuilder {
   readonly #schemas: SchemaRegistry;
   readonly #artifacts: ArtifactStore;
@@ -875,6 +968,12 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
       hfbMineCasesForSemanticAuthoring()) {
       built.push(await this.#build(definition));
     }
+    this.#schemas.validate(
+      HFB_SEMANTIC_SUITE_COMMITMENT_SCHEMA_ID,
+      hfbSemanticSuiteCommitment(
+        built,
+      ) as unknown as JsonValue,
+    );
     return built;
   }
 
@@ -1228,6 +1327,10 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
       providerRows,
       outcomeContract: contract,
     });
+    this.#schemas.validate(
+      HFB_SEMANTIC_EXECUTION_PACKAGE_SCHEMA_ID,
+      executionPackage as unknown as JsonValue,
+    );
 
     const executeTable = async (
       harnessVersionId: string,
@@ -1338,8 +1441,17 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
           reportCore as unknown as JsonValue,
         ),
       };
+    const oracle = oracleRecord(definition, pair);
+    this.#schemas.validate(
+      HFB_SEMANTIC_ORACLE_RECORD_SCHEMA_ID,
+      oracle as unknown as JsonValue,
+    );
+    this.#schemas.validate(
+      HFB_SEMANTIC_VALIDATION_REPORT_SCHEMA_ID,
+      validationReport as unknown as JsonValue,
+    );
     return {
-      oracle: oracleRecord(definition, pair),
+      oracle,
       executionPackage,
       knownGoodResult,
       faultyResult,

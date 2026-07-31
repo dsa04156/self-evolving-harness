@@ -16,6 +16,8 @@
     "create:hfb-governance-deviation": "npx -y node@24.18.1 --import tsx scripts/create-hfb-governance-deviation.ts",
     "verify:hfb-governance": "npx -y node@24.18.1 --import tsx scripts/verify-hfb-governance-quarantine.ts",
     "validate:hfb-structural-oracle": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-structural-oracle.ts",
+    "validate:hfb-semantic": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts",
+    "generate:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/validate-hfb-semantic.ts --write",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

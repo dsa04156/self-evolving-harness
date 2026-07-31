@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/hfb-label-blind-attribution-corpus.schema.json",
+  "title": "HarnessFaultBench Label-Blind Attribution Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "traces", "corpusHash"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "traces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trace", "occurrenceCount"],
+        "properties": {
+          "trace": {
+            "$ref": "./hfb-label-blind-attribution-input.schema.json"
+          },
+          "occurrenceCount": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "corpusHash": {
+      "$ref": "../common.schema.json#/$defs/sha256"
+    }
+  }
+}

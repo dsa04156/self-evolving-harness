@@ -103,10 +103,13 @@ The principal/mount/network/secret matrix is authoritative in
 
 ## Split commitments
 
-- HarnessFaultBench IDs and role membership are in `benchmarks/splits.json`. The existing 28 visible
-  `D_mine` bodies are structural-oracle plumbing, not executable semantics, and are quarantined under
-  the signed governance-deviation record. Gate/final bodies are not instantiated and cannot be
-  requested through the public structural builder.
+- HarnessFaultBench IDs and role membership are in `benchmarks/splits.json`. The old 28 visible
+  structural-oracle artifacts remain quarantined under the signed governance-deviation record. A
+  fresh, separately hashed semantic-development graph now executes the same public `D_mine`
+  mechanisms through the standalone runtime. Only its label-blind trace projection may cross into
+  attribution/proposer input; oracle records stay in the benchmark-author/scorer authority domain.
+  This new graph is still non-confirmatory. Gate/final bodies are not instantiated and cannot be
+  requested through either public builder.
 - Terminal-Bench 2.1 uses the exact public 45/10/34 IDs from
   `rethinking-harness-evolution/code@ffd1ba1c2c3e31099264f630b9ed44aec63a86a7`.
 - Its 34-task final role is named `withheldPublicTest`, not sealed.

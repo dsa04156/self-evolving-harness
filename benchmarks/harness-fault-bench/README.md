@@ -1,7 +1,7 @@
 # HarnessFaultBench-v0
 
-Status: `D_mine` has 28 quarantined structural-oracle plumbing cases; semantic implementation pending;
-`D_gate` and final bodies absent
+Status: `D_mine` has 28 fresh deterministic semantic-development cases plus a separately quarantined
+legacy structural-oracle artifact graph; `D_gate` and final bodies absent
 Purpose: eventual measurement of harness-defect attribution, not general LLM coding ability.
 
 ## Design
@@ -35,23 +35,23 @@ The authoritative construction contract is [FIXTURE_SPEC.md](FIXTURE_SPEC.md). I
 01–08 fault mechanisms, difficulty bands, causal intervention oracle, 14-pair multi-cause graph,
 deterministic scorer, ambiguity rejection, and independent review before any fixture is implemented.
 
-Each existing structural-oracle `D_mine` case contains:
+The current semantic `D_mine` cases contain:
 
 - a known-good component bundle;
 - one deterministic injected mutation per declared fault;
-- a fake-provider script and fake-tool environment;
-- expected runtime events and verifier outcome;
+- a label-free canonical request-table provider package and actual immutable builtin tools;
+- standalone-runtime events and an observable-only verifier outcome;
 - visible development ground-truth component IDs;
 - a label oracle restricted in code to scorer self-tests on `D_mine`;
-- a superseded development commitment prohibited from experiments.
+- a fresh semantic-development commitment that remains non-confirmatory.
 
 `D_gate` and final fixture bodies and labels have not been instantiated. Their IDs and construction
 contract remain public, but their future bodies require the separate benchmark-author/evaluator-vault
 workflow. The public multi-cause file is graph metadata, not executable task data.
 
-The current structural implementation creates content-addressed good/faulty whole-harness manifests
-whose only changing binding is the declared mutable component. Its runner reads ground truth and
-manifest identities; payload semantics do not cause the outcome. Permission, safety, budget, model
+The semantic implementation creates content-addressed good/faulty whole-harness manifests whose only
+changing binding is the declared mutable component. The standalone runtime executes the selected
+component payloads; the execution module cannot import the oracle. Permission, safety, budget, model
 identity, runtime contract, tool implementation, and capability set remain pinned.
 
 Single-fault tasks measure top-1 and top-3 component attribution. Multi-cause tasks measure recall@2 and
@@ -88,6 +88,13 @@ The signed record at
 `governance/deviations/hfb-structural-oracle-2026-07-31.json` covers all 115 affected artifact
 identifiers and mechanically blocks research, candidate, scheduler, promotion, and claim use. Run
 `npm run verify:hfb-governance` to verify it.
+
+## Fresh semantic development validation
+
+Run `npm run validate:hfb-semantic` from a clean worktree. The new artifact layout and strict non-claims
+are documented in `semantic/mine/README.md` and
+`docs/evaluation/hfb-semantic-validation.md`. This path does not rehabilitate the old structural
+evidence and does not measure attribution, evolution, or held-out performance.
 
 ## Remaining pre-experiment validation
 

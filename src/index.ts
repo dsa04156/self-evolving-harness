@@ -15,6 +15,7 @@ export * from "./evaluation/development-fixture-principal.js";
 export * from "./evaluation/harness-fault-bench.js";
 export * from "./evaluation/hfb-semantic-execution.js";
 export * from "./evaluation/hfb-semantic-authoring.js";
+export * from "./evaluation/hfb-label-blind-adapter.js";
 export * from "./evaluation/observable-outcome-verifier.js";
 export * from "./evaluation/phase-budget.js";
 export * from "./evaluation/matched-budget-scheduler.js";

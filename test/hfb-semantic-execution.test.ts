@@ -9,6 +9,8 @@ import {
   HarnessComponentRegistry,
   HarnessFaultBenchSemanticAuthoringBuilder,
   SchemaRegistry,
+  assertLabelBlindBoundary,
+  toLabelBlindAttributionInput,
 } from "../src/index.js";
 
 test("semantic execution keeps oracle labels outside the runtime module", async () => {
@@ -102,5 +104,20 @@ test("all 28 D_mine fixtures exercise mutable runtime semantics", async (t) => {
       ),
       false,
     );
+    const labelBlind =
+      toLabelBlindAttributionInput(
+        built.faultyResult,
+      );
+    schemas.validate(
+      "https://self-evolving-harness.local/schemas/benchmarks/hfb-label-blind-attribution-input.schema.json",
+      labelBlind as never,
+    );
+    assertLabelBlindBoundary(labelBlind, [
+      built.oracle.fixtureId,
+      built.oracle.mechanismCode,
+      built.oracle.targetComponentId,
+      built.oracle.knownGoodHarnessVersionId,
+      built.oracle.faultyHarnessVersionId,
+    ]);
   }
 });

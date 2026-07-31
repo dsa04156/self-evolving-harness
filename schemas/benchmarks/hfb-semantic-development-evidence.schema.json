@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/benchmarks/hfb-semantic-development-evidence.schema.json",
+  "title": "HarnessFaultBench Semantic Development Evidence",
+  "description": "Fresh post-deviation deterministic semantic evidence. Development-only and non-confirmatory; it contains no attribution-accuracy or self-evolution claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceClass",
+    "sourceCommit",
+    "specVersion",
+    "datasetRole",
+    "suiteCommitment",
+    "semanticValidation",
+    "labelBlindBoundary",
+    "accessBoundary",
+    "claims"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "evidenceClass": {
+      "const": "deterministic_semantic_development_validation"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "specVersion": {
+      "const": "hfb-semantic-development-1.0.0"
+    },
+    "datasetRole": {
+      "const": "mine"
+    },
+    "suiteCommitment": {
+      "$ref": "./hfb-semantic-suite-commitment.schema.json"
+    },
+    "semanticValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validatedFixtureCount",
+        "knownGoodPassCount",
+        "faultyFailCount",
+        "singleChangedComponentCount",
+        "immutableDiffCount",
+        "behaviorDivergedBeforeVerificationCount",
+        "groundTruthRestorePassCount",
+        "nonGroundTruthRestoreFailCount",
+        "goodReplayStableCount",
+        "faultyReplayStableCount"
+      ],
+      "properties": {
+        "validatedFixtureCount": {
+          "const": 28
+        },
+        "knownGoodPassCount": {
+          "const": 28
+        },
+        "faultyFailCount": {
+          "const": 28
+        },
+        "singleChangedComponentCount": {
+          "const": 28
+        },
+        "immutableDiffCount": {
+          "const": 0
+        },
+        "behaviorDivergedBeforeVerificationCount": {
+          "const": 28
+        },
+        "groundTruthRestorePassCount": {
+          "const": 28
+        },
+        "nonGroundTruthRestoreFailCount": {
+          "const": 28
+        },
+        "goodReplayStableCount": {
+          "const": 28
+        },
+        "faultyReplayStableCount": {
+          "const": 28
+        }
+      }
+    },
+    "labelBlindBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "validatedTraceCount",
+        "oracleImportsInExecutionModule",
+        "oracleImportsInAdapterModule",
+        "forbiddenValueLeakCount",
+        "inputOrderInvariant",
+        "opaqueIdRenameInvariant",
+        "corpusHash"
+      ],
+      "properties": {
+        "validatedTraceCount": {
+          "const": 28
+        },
+        "oracleImportsInExecutionModule": {
+          "const": 0
+        },
+        "oracleImportsInAdapterModule": {
+          "const": 0
+        },
+        "forbiddenValueLeakCount": {
+          "const": 0
+        },
+        "inputOrderInvariant": {
+          "const": true
+        },
+        "opaqueIdRenameInvariant": {
+          "const": true
+        },
+        "corpusHash": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "accessBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateBodiesInstantiated",
+        "finalBodiesInstantiated",
+        "multiCauseBodiesInstantiated",
+        "realProviderCalled",
+        "candidateGenerated",
+        "promotionEvaluated"
+      ],
+      "properties": {
+        "gateBodiesInstantiated": {
+          "const": false
+        },
+        "finalBodiesInstantiated": {
+          "const": false
+        },
+        "multiCauseBodiesInstantiated": {
+          "const": false
+        },
+        "realProviderCalled": {
+          "const": false
+        },
+        "candidateGenerated": {
+          "const": false
+        },
+        "promotionEvaluated": {
+          "const": false
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeSemanticFidelityValidated",
+        "attributionAccuracyMeasured",
+        "harnessImprovementMeasured",
+        "selfEvolutionDemonstrated",
+        "researchEvidenceAuthorized"
+      ],
+      "properties": {
+        "runtimeSemanticFidelityValidated": {
+          "const": true
+        },
+        "attributionAccuracyMeasured": {
+          "const": false
+        },
+        "harnessImprovementMeasured": {
+          "const": false
+        },
+        "selfEvolutionDemonstrated": {
+          "const": false
+        },
+        "researchEvidenceAuthorized": {
+          "const": false
+        }
+      }
+    }
+  }
+}
