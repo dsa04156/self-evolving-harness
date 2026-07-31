@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import {
+  createPublicKey,
+  verify,
+} from "node:crypto";
 import { existsSync } from "node:fs";
 import {
   mkdir,
@@ -14,6 +18,7 @@ import test from "node:test";
 
 import {
   PrincipalSigner,
+  SchemaRegistry,
   canonicalBytes,
   parseStrictJson,
   sha256Text,
@@ -271,11 +276,19 @@ test(
     const evidence = JSON.parse(lines.at(-1)!) as {
       isolationClass: string;
       roleUids: Record<string, number>;
+      publicPrincipals: Record<
+        string,
+        {
+          publicKeyPem: string;
+        }
+      >;
       hostRoleUids: Record<string, number>;
       roleProbes: Record<
         string,
         {
           uid: number;
+          challenge: string;
+          challengeSignature: string;
           effectiveCapabilities: string;
           noNewPrivileges: string;
           forbiddenReadsDenied: number;
@@ -330,6 +343,13 @@ test(
       researchEvidenceAuthorized: boolean;
       promotionAuthorized: boolean;
     };
+    const schemas = await SchemaRegistry.load(
+      path.resolve("schemas"),
+    );
+    schemas.validate(
+      "https://self-evolving-harness.local/schemas/development-process-boundary-evidence.schema.json",
+      evidence as unknown as JsonValue,
+    );
     assert.equal(
       evidence.isolationClass,
       "os_enforced_subordinate_uids",
@@ -351,6 +371,25 @@ test(
       assert.equal(probe.forbiddenReadsDenied, 7);
       assert.equal(probe.forbiddenWritesDenied, 7);
       assert.notEqual(probe.networkDenied, "");
+      assert.equal(
+        verify(
+          null,
+          Buffer.from(
+            evidence.roleProbes[role]!.challenge,
+            "utf8",
+          ),
+          createPublicKey(
+            evidence.publicPrincipals[role]!
+              .publicKeyPem,
+          ),
+          Buffer.from(
+            evidence.roleProbes[role]!
+              .challengeSignature,
+            "base64url",
+          ),
+        ),
+        true,
+      );
     }
     assert.equal(evidence.earlyScorerSocketAbsent, true);
     assert.equal(

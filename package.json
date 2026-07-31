@@ -22,6 +22,8 @@
     "verify:hfb-semantic-evidence": "npx -y node@24.18.1 --import tsx scripts/verify-hfb-semantic-evidence.ts",
     "generate:development-attribution-dry-run": "npx -y node@24.18.1 --import tsx scripts/generate-development-attribution-dry-run.ts",
     "verify:development-attribution-dry-run": "npx -y node@24.18.1 --import tsx scripts/verify-development-attribution-dry-run.ts",
+    "generate:development-process-boundary": "SEH_REQUIRE_DEVELOPMENT_OS_BOUNDARY=1 SEH_DEVELOPMENT_BOUNDARY_EVIDENCE_OUTPUT=architect/evidence/development-process-boundary/os-boundary.json npx -y node@24.18.1 --import tsx --test test/development-os-boundary.test.ts",
+    "verify:development-process-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-development-process-boundary.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

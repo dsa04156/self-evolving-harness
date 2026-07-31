@@ -644,6 +644,18 @@ async function propose(
       proposal.candidateHarnessVersionId,
     ) as unknown as JsonValue,
   );
+  await writeJson(
+    "parent-closure.json",
+    await parent.registry.exportHarnessClosure(
+      proposal.parentHarnessVersionId,
+    ) as unknown as JsonValue,
+  );
+  await writeJson(
+    "candidate-closure.json",
+    await parent.registry.exportHarnessClosure(
+      proposal.candidateHarnessVersionId,
+    ) as unknown as JsonValue,
+  );
   await receipt({
     receiptId:
       "development.os-boundary.mutation-proposer",

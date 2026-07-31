@@ -1192,6 +1192,18 @@ def main() -> int:
             root / "state" / "evaluator" / "evaluation.json"
         )
         corpus = read_json(root / "source" / "corpus.json")
+        oracle_join = read_json(
+            root / "source" / "oracle-join.json"
+        )
+        parent_closure = read_json(
+            root / "state" / "proposer" / "parent-closure.json"
+        )
+        candidate_closure = read_json(
+            root
+            / "state"
+            / "proposer"
+            / "candidate-closure.json"
+        )
         taint_artifacts = [
             {
                 "artifactId": "development.os.corpus",
@@ -1311,6 +1323,15 @@ def main() -> int:
         final_summary = read_json(
             root / "state" / "audit_final" / "summary.json"
         )
+        taint_record = read_json(
+            root / "state" / "audit_final" / "taint.json"
+        )
+        final_receipt = read_json(
+            root / "state" / "audit_final" / "receipt.json"
+        )
+        manifest = read_json(
+            root / "state" / "attributor" / "manifest.json"
+        )
         evidence = {
             "schemaVersion": 1,
             "isolationClass": "os_enforced_subordinate_uids",
@@ -1318,6 +1339,7 @@ def main() -> int:
             .read_text()
             .strip(),
             "roleUids": ROLE_UIDS,
+            "publicPrincipals": principals,
             "hostRoleUids": {
                 role: outer_uid_for(uid)
                 for role, uid in ROLE_UIDS.items()
@@ -1362,6 +1384,25 @@ def main() -> int:
                 "sourceClass": evaluation["sourceClass"],
             },
             "finalAudit": final_summary,
+            "artifacts": {
+                "labelBlindCorpus": corpus,
+                "oracleJoin": oracle_join,
+                "prototypeManifest": manifest,
+                "predictionSet": predictions,
+                "predictionCommitment": commitment,
+                "predictionSeal": seal_record,
+                "oracleAccessEvent": oracle_access,
+                "scoreReport": score_report,
+                "mutationProposal": proposal,
+                "parentClosure": parent_closure,
+                "candidateClosure": candidate_closure,
+                "nonPromotableRecord": non_promotable,
+                "runtimeExecution": execution,
+                "candidateEvaluation": evaluation,
+                "taintRecord": taint_record,
+                "roleReceipts": receipts,
+                "finalReceipt": final_receipt,
+            },
             "providerUsed": False,
             "researchEvidenceAuthorized": False,
             "promotionAuthorized": False,

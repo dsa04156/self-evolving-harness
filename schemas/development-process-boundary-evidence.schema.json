@@ -1,0 +1,749 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/development-process-boundary-evidence.schema.json",
+  "title": "Development-only OS process boundary evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "isolationClass",
+    "uidMap",
+    "roleUids",
+    "publicPrincipals",
+    "hostRoleUids",
+    "roleProbes",
+    "keyOwners",
+    "earlyScorerSocketAbsent",
+    "predictionSeal",
+    "scorerRelease",
+    "candidate",
+    "actualRuntimeEvaluation",
+    "finalAudit",
+    "artifacts",
+    "providerUsed",
+    "researchEvidenceAuthorized",
+    "promotionAuthorized"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "isolationClass": {
+      "const": "os_enforced_subordinate_uids"
+    },
+    "uidMap": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "roleUids": {
+      "$ref": "#/$defs/roleUidMap"
+    },
+    "publicPrincipals": {
+      "$ref": "#/$defs/publicPrincipals"
+    },
+    "hostRoleUids": {
+      "$ref": "#/$defs/integerRoleMap"
+    },
+    "roleProbes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attributor",
+        "committer",
+        "scorer",
+        "proposer",
+        "operations",
+        "runtime",
+        "evaluator",
+        "audit"
+      ],
+      "properties": {
+        "attributor": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "committer": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "scorer": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "proposer": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "operations": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "runtime": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "audit": {
+          "$ref": "#/$defs/roleProbe"
+        }
+      }
+    },
+    "keyOwners": {
+      "$ref": "#/$defs/roleUidMap"
+    },
+    "earlyScorerSocketAbsent": {
+      "const": true
+    },
+    "predictionSeal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordHash",
+        "commitmentVerified",
+        "durability"
+      ],
+      "properties": {
+        "recordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "commitmentVerified": {
+          "const": true
+        },
+        "durability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "appendMode",
+            "fileSyncRequired",
+            "directorySyncRequired"
+          ],
+          "properties": {
+            "appendMode": {
+              "const": "exclusive_create"
+            },
+            "fileSyncRequired": {
+              "const": true
+            },
+            "directorySyncRequired": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "scorerRelease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted",
+        "adversarial",
+        "oracleMountRoles",
+        "proposerReceivedScorerOutput"
+      ],
+      "properties": {
+        "accepted": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "accepted",
+            "reportHash",
+            "claimAuthorized",
+            "promotionAuthorized",
+            "requestOrdinal"
+          ],
+          "properties": {
+            "accepted": {
+              "const": true
+            },
+            "reportHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "claimAuthorized": {
+              "const": false
+            },
+            "promotionAuthorized": {
+              "const": false
+            },
+            "requestOrdinal": {
+              "const": 6
+            }
+          }
+        },
+        "adversarial": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mode",
+              "response"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "wrong_peer",
+                  "wrong_key",
+                  "commitment_substitution",
+                  "prediction_substitution",
+                  "corpus_substitution",
+                  "seal_substitution",
+                  "replay"
+                ]
+              },
+              "response": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "accepted",
+                  "errorCode"
+                ],
+                "properties": {
+                  "accepted": {
+                    "const": false
+                  },
+                  "errorCode": {
+                    "type": "string",
+                    "enum": [
+                      "PermissionError",
+                      "REPLAY_REJECTED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "oracleMountRoles": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "scorer"
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "proposerReceivedScorerOutput": {
+          "const": false
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parentHarnessVersionId",
+        "candidateHarnessVersionId",
+        "proposalHash",
+        "nonPromotableRecordHash"
+      ],
+      "properties": {
+        "parentHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "candidateHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "proposalHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "nonPromotableRecordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "actualRuntimeEvaluation": {
+      "$ref": "#/$defs/evaluationSummary"
+    },
+    "finalAudit": {
+      "$ref": "#/$defs/finalAudit"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/artifacts"
+    },
+    "providerUsed": {
+      "const": false
+    },
+    "researchEvidenceAuthorized": {
+      "const": false
+    },
+    "promotionAuthorized": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "roleUidMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attributor",
+        "committer",
+        "scorer",
+        "proposer",
+        "operations",
+        "runtime",
+        "evaluator",
+        "audit"
+      ],
+      "properties": {
+        "attributor": {
+          "const": 1201
+        },
+        "committer": {
+          "const": 1202
+        },
+        "scorer": {
+          "const": 1203
+        },
+        "proposer": {
+          "const": 1204
+        },
+        "operations": {
+          "const": 1205
+        },
+        "runtime": {
+          "const": 1206
+        },
+        "evaluator": {
+          "const": 1207
+        },
+        "audit": {
+          "const": 1208
+        }
+      }
+    },
+    "integerRoleMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attributor",
+        "committer",
+        "scorer",
+        "proposer",
+        "operations",
+        "runtime",
+        "evaluator",
+        "audit"
+      ],
+      "properties": {
+        "attributor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "committer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scorer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "proposer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "operations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runtime": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "audit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "publicPrincipals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attributor",
+        "committer",
+        "scorer",
+        "proposer",
+        "operations",
+        "runtime",
+        "evaluator",
+        "audit"
+      ],
+      "properties": {
+        "attributor": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "committer": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "scorer": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "proposer": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "operations": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "runtime": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "evaluator": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        },
+        "audit": {
+          "$ref": "./development-artifact-taint.schema.json#/$defs/publicPrincipal"
+        }
+      }
+    },
+    "roleProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "role",
+        "uid",
+        "gid",
+        "ownKeyReadable",
+        "challenge",
+        "challengeSignature",
+        "effectiveCapabilities",
+        "noNewPrivileges",
+        "forbiddenReadsDenied",
+        "forbiddenWritesDenied",
+        "signalsDenied",
+        "ptraceDenied",
+        "networkDenied"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 1201,
+          "maximum": 1208
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1201,
+          "maximum": 1208
+        },
+        "ownKeyReadable": {
+          "const": true
+        },
+        "challenge": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "challengeSignature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{80,128}$"
+        },
+        "effectiveCapabilities": {
+          "const": "0000000000000000"
+        },
+        "noNewPrivileges": {
+          "const": "1"
+        },
+        "forbiddenReadsDenied": {
+          "const": 7
+        },
+        "forbiddenWritesDenied": {
+          "const": 7
+        },
+        "signalsDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ptraceDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "networkDenied": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskCount",
+        "parentPassCount",
+        "candidatePassCount",
+        "passToFailCount",
+        "failToPassCount",
+        "researchMetric",
+        "promotionSignal"
+      ],
+      "properties": {
+        "taskCount": {
+          "const": 2
+        },
+        "parentPassCount": {
+          "const": 1
+        },
+        "candidatePassCount": {
+          "const": 2
+        },
+        "passToFailCount": {
+          "const": 0
+        },
+        "failToPassCount": {
+          "const": 1
+        },
+        "researchMetric": {
+          "const": false
+        },
+        "promotionSignal": {
+          "const": false
+        }
+      }
+    },
+    "evaluationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executionBundleHash",
+        "resultHash",
+        "aggregate",
+        "sourceClass"
+      ],
+      "properties": {
+        "executionBundleHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "resultHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "aggregate": {
+          "$ref": "#/$defs/aggregate"
+        },
+        "sourceClass": {
+          "const": "derived_from_actual_standalone_runtime_evidence"
+        }
+      }
+    },
+    "finalAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "isolationClass",
+        "roleUids",
+        "receiptHashes",
+        "taintRecordHash",
+        "researchEvidenceAuthorized",
+        "promotionAuthorized",
+        "providerUsed",
+        "oracleMountRoles",
+        "summaryHash"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "isolationClass": {
+          "const": "os_enforced_subordinate_uids"
+        },
+        "roleUids": {
+          "type": "object",
+          "minProperties": 8,
+          "maxProperties": 8,
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1201,
+            "maximum": 1208
+          }
+        },
+        "receiptHashes": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          }
+        },
+        "taintRecordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "researchEvidenceAuthorized": {
+          "const": false
+        },
+        "promotionAuthorized": {
+          "const": false
+        },
+        "providerUsed": {
+          "const": false
+        },
+        "oracleMountRoles": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "scorer"
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "summaryHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "labelBlindCorpus",
+        "oracleJoin",
+        "prototypeManifest",
+        "predictionSet",
+        "predictionCommitment",
+        "predictionSeal",
+        "oracleAccessEvent",
+        "scoreReport",
+        "mutationProposal",
+        "parentClosure",
+        "candidateClosure",
+        "nonPromotableRecord",
+        "runtimeExecution",
+        "candidateEvaluation",
+        "taintRecord",
+        "roleReceipts",
+        "finalReceipt"
+      ],
+      "properties": {
+        "labelBlindCorpus": {
+          "$ref": "./benchmarks/hfb-label-blind-attribution-corpus.schema.json"
+        },
+        "oracleJoin": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "caseId",
+              "traceProjectionId",
+              "targetComponentType",
+              "oracleRecordHash"
+            ],
+            "properties": {
+              "caseId": {
+                "$ref": "./common.schema.json#/$defs/entityId"
+              },
+              "traceProjectionId": {
+                "type": "string",
+                "pattern": "^lbti-sha256:[a-f0-9]{64}$"
+              },
+              "targetComponentType": {
+                "$ref": "./development-attribution-score-report.schema.json#/$defs/componentType"
+              },
+              "oracleRecordHash": {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "prototypeManifest": {
+          "$ref": "./development-attribution-prototype.schema.json"
+        },
+        "predictionSet": {
+          "$ref": "./development-attribution-prediction-set.schema.json"
+        },
+        "predictionCommitment": {
+          "$ref": "./development-attribution-commitment.schema.json"
+        },
+        "predictionSeal": {
+          "$ref": "./development-prediction-seal.schema.json"
+        },
+        "oracleAccessEvent": {
+          "$ref": "./development-oracle-access-event.schema.json"
+        },
+        "scoreReport": {
+          "$ref": "./development-attribution-score-report.schema.json"
+        },
+        "mutationProposal": {
+          "$ref": "./development-boundary-mutation.schema.json"
+        },
+        "parentClosure": {
+          "$ref": "#/$defs/harnessClosure"
+        },
+        "candidateClosure": {
+          "$ref": "#/$defs/harnessClosure"
+        },
+        "nonPromotableRecord": {
+          "$ref": "./non-promotable-harness-record.schema.json"
+        },
+        "runtimeExecution": {
+          "$ref": "./development-synthetic-execution.schema.json"
+        },
+        "candidateEvaluation": {
+          "$ref": "./development-synthetic-evaluation.schema.json"
+        },
+        "taintRecord": {
+          "$ref": "./development-artifact-taint.schema.json"
+        },
+        "roleReceipts": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "$ref": "./development-boundary-receipt.schema.json"
+          }
+        },
+        "finalReceipt": {
+          "$ref": "./development-boundary-receipt.schema.json"
+        }
+      }
+    },
+    "harnessClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "harnessManifest",
+        "componentEntries"
+      ],
+      "properties": {
+        "harnessManifest": {
+          "$ref": "./harness-version.schema.json"
+        },
+        "componentEntries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "componentManifest",
+              "payload"
+            ],
+            "properties": {
+              "componentManifest": {
+                "$ref": "./harness-component.schema.json"
+              },
+              "payload": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}
