@@ -8,8 +8,11 @@ import path from "node:path";
 import test from "node:test";
 
 import {
+  ArtifactStore,
   canonicalBytes,
+  createCandidateHarnessBundle,
   GitWorktreeManager,
+  HarnessComponentRegistry,
   PrincipalSigner,
   SchemaRegistry,
   type JsonValue,
@@ -99,18 +102,121 @@ test(
       "SEH_REQUIRE_OS_BOUNDARY=1 forbids a skipped uidmap prerequisite",
     );
     const root = await mkdtemp(path.join(os.tmpdir(), "seh-os-principals-"));
+    const schemas = await SchemaRegistry.load(path.resolve("schemas"));
+    const components = new HarnessComponentRegistry({
+      root: path.join(root, "candidate-registry"),
+      schemas,
+      artifacts: new ArtifactStore(
+        path.join(root, "candidate-registry-artifacts"),
+      ),
+      requiredSlotIds: ["permission", "system_prompt"],
+    });
+    await components.initialize(
+      path.resolve("configs/component-type-registry.json"),
+    );
+    const permission = await components.createComponent({
+      componentId: "component.permission-policy",
+      semanticVersion: "1.0.0",
+      typeEntryId: "type.permission-policy",
+      payloadLanguage: "seh.policy-json.v1",
+      payload: {
+        schemaVersion: 1,
+        language: "seh.policy-json.v1",
+        policyType: "PermissionPolicy",
+        policy: { fixed: true },
+      },
+      capabilityIds: ["permission.authorize"],
+    });
+    const parentPrompt = await components.createComponent({
+      componentId: "component.system-prompt",
+      semanticVersion: "1.0.0",
+      typeEntryId: "type.system-prompt",
+      payloadLanguage: "seh.prompt-markdown.v1",
+      payload: {
+        schemaVersion: 1,
+        language: "seh.prompt-markdown.v1",
+        sections: [
+          {
+            sectionId: "identity",
+            purpose: "identity",
+            content: "Answer deterministically.",
+          },
+        ],
+        contextBindings: ["task_input"],
+      },
+      capabilityIds: ["prompt.instruct.primary"],
+    });
+    const candidatePrompt = await components.createComponent({
+      componentId: "component.system-prompt",
+      semanticVersion: "1.0.1",
+      typeEntryId: "type.system-prompt",
+      payloadLanguage: "seh.prompt-markdown.v1",
+      payload: {
+        schemaVersion: 1,
+        language: "seh.prompt-markdown.v1",
+        sections: [
+          {
+            sectionId: "identity",
+            purpose: "identity",
+            content: "Answer deterministically and verify the result.",
+          },
+        ],
+        contextBindings: ["task_input"],
+      },
+      capabilityIds: ["prompt.instruct.primary"],
+    });
+    const parentHarness = await components.createHarness({
+      semanticVersion: "1.0.0",
+      requiredRuntimeContractHash: digest("c"),
+      bindings: [
+        {
+          slotId: "permission",
+          componentManifestId: permission.componentManifestId,
+        },
+        {
+          slotId: "system_prompt",
+          componentManifestId: parentPrompt.componentManifestId,
+        },
+      ],
+    });
+    const candidateHarness = await components.createHarness({
+      semanticVersion: "1.0.1",
+      requiredRuntimeContractHash: digest("c"),
+      bindings: [
+        {
+          slotId: "permission",
+          componentManifestId: permission.componentManifestId,
+        },
+        {
+          slotId: "system_prompt",
+          componentManifestId: candidatePrompt.componentManifestId,
+        },
+      ],
+    });
     const worktrees = new GitWorktreeManager(
       path.resolve("."),
       path.join(root, "worktrees"),
     );
     const candidate = await worktrees.create("gate2r-os-candidate");
+    const candidateBundle = await createCandidateHarnessBundle({
+      protocolId,
+      parentHarnessVersionId: parentHarness.harnessVersionId,
+      candidate: candidateHarness,
+      sourceBaseCommit: candidate.baseCommit,
+      registry: components,
+      schemas,
+    });
+    const candidateCommit = await worktrees.commitCandidateBundle(
+      candidate,
+      candidateBundle.bundleId,
+      canonicalBytes(candidateBundle as unknown as JsonValue),
+    );
     const frozen = await worktrees.freeze(candidate);
     const snapshot = await worktrees.materializeSnapshot(
       frozen,
       path.join(root, "candidate-snapshot"),
     );
     const snapshotDescriptor = worktrees.snapshotDescriptor(frozen);
-    const schemas = await SchemaRegistry.load(path.resolve("schemas"));
     schemas.validate(
       "https://self-evolving-harness.local/schemas/filesystem-snapshot.schema.json",
       snapshotDescriptor as unknown as JsonValue,
@@ -203,8 +309,8 @@ test(
         protocolId,
         candidateFilesystemSnapshotHash:
           snapshotDescriptor.filesystemSnapshotHash,
-        candidateBundleId: null,
-        candidateHarnessVersionId: null,
+        candidateBundleId: candidateBundle.bundleId,
+        candidateHarnessVersionId: candidateHarness.harnessVersionId,
       },
     );
     await writeCanonical(
@@ -223,6 +329,9 @@ test(
         expectedEvaluatorGid: roleUids.evaluator,
         candidateFilesystemSnapshotHash:
           snapshotDescriptor.filesystemSnapshotHash,
+        candidateBundleId: candidateBundle.bundleId,
+        parentHarnessVersionId: parentHarness.harnessVersionId,
+        candidateHarnessVersionId: candidateHarness.harnessVersionId,
         operations: {
           ...signers.operations.exportPublic(),
           privateKeyPath: "/run/keys/private.pem",
@@ -306,6 +415,8 @@ test(
         auditPeer: { uid: number };
         evaluatorPeer: { uid: number };
         candidateFilesystemSnapshotHash: string;
+        candidateBundleId: string;
+        candidateHarnessVersionId: string;
         passToFailCount: number;
         failToPassCount: number;
       };
@@ -339,6 +450,15 @@ test(
       evidence.integration.candidateFilesystemSnapshotHash,
       snapshotDescriptor.filesystemSnapshotHash,
     );
+    assert.equal(
+      evidence.integration.candidateBundleId,
+      candidateBundle.bundleId,
+    );
+    assert.equal(
+      evidence.integration.candidateHarnessVersionId,
+      candidateHarness.harnessVersionId,
+    );
+    assert.equal(frozen.headCommit, candidateCommit.candidateCommit);
     assert.equal(evidence.integration.passToFailCount, 0);
     assert.equal(evidence.integration.failToPassCount, 1);
     assert.equal(evidence.auditPrivateOwner, roleUids.audit);
@@ -369,7 +489,7 @@ test(
       assert.equal(probe.ptraceDenied, probe.signalsDenied);
       assert.notEqual(probe.networkDenied, "");
     }
-    assert.equal(evidence.adversarial.length, 11);
+    assert.equal(evidence.adversarial.length, 12);
     assert.ok(
       evidence.adversarial.every(
         (item) => item.rejectedWithoutFinalResult,

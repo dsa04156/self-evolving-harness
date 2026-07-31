@@ -30,6 +30,9 @@ interface OperationsConfiguration {
   readonly expectedEvaluatorUid: number;
   readonly expectedEvaluatorGid: number;
   readonly candidateFilesystemSnapshotHash: string;
+  readonly candidateBundleId: string;
+  readonly parentHarnessVersionId: string;
+  readonly candidateHarnessVersionId: string;
   readonly operations: PublicPrincipal & { readonly privateKeyPath: string };
   readonly audit: PublicPrincipal;
   readonly evaluator: PublicPrincipal;
@@ -37,9 +40,6 @@ interface OperationsConfiguration {
 }
 
 const digest = (character: string): string => `sha256:${character.repeat(64)}`;
-const harness = (character: string): string =>
-  `hv-sha256:${character.repeat(64)}`;
-
 const usage: EvaluationBudgetUsage = {
   modelRequestAttempts: 2,
   completedModelCalls: 2,
@@ -121,8 +121,8 @@ async function main(): Promise<void> {
     await evaluator.start();
     const result = await evaluator.evaluate({
       methodId: "B6",
-      parentHarnessVersionId: harness("1"),
-      candidateHarnessVersionId: harness("2"),
+      parentHarnessVersionId: config.parentHarnessVersionId,
+      candidateHarnessVersionId: config.candidateHarnessVersionId,
       candidateFilesystemSnapshotHash:
         config.candidateFilesystemSnapshotHash,
       runtimeStateSnapshotIds: [`rss-sha256:${"3".repeat(64)}`],
@@ -178,6 +178,8 @@ async function main(): Promise<void> {
         evaluatorIdentityDigest: result.evaluator.identityDigest,
         candidateFilesystemSnapshotHash:
           result.candidateFilesystemSnapshotHash,
+        candidateBundleId: config.candidateBundleId,
+        candidateHarnessVersionId: result.candidateHarnessVersionId,
         passToFailCount: result.aggregate.passToFailCount,
         failToPassCount: result.aggregate.failToPassCount,
       }),

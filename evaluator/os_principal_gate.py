@@ -747,6 +747,7 @@ def main() -> int:
             "bad_signature",
             "schema_invalid",
             "snapshot_mismatch",
+            "candidate_mismatch",
             "replay",
             "extra_frame",
             "peer_crash",

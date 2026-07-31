@@ -24,6 +24,8 @@ interface Configuration {
   readonly schemaDirectory: string;
   readonly evaluatorSocketPath: string;
   readonly candidateFilesystemSnapshotHash: string;
+  readonly parentHarnessVersionId: string;
+  readonly candidateHarnessVersionId: string;
   readonly operations: PublicPrincipal & { readonly privateKeyPath: string };
 }
 
@@ -83,6 +85,8 @@ async function expectNoFinalResult(socket: net.Socket): Promise<void> {
 function requestPayload(
   requestId: string,
   candidateFilesystemSnapshotHash: string,
+  parentHarnessVersionId: string,
+  candidateHarnessVersionId: string,
 ): Record<string, JsonValue> {
   return {
     schemaVersion: 1,
@@ -92,8 +96,8 @@ function requestPayload(
     datasetRole: "deterministic",
     phase: "deterministic",
     methodId: "B6",
-    parentHarnessVersionId: `hv-sha256:${"1".repeat(64)}`,
-    candidateHarnessVersionId: `hv-sha256:${"2".repeat(64)}`,
+    parentHarnessVersionId,
+    candidateHarnessVersionId,
     candidateFilesystemSnapshotHash,
     runtimeStateSnapshotIds: [`rss-sha256:${"3".repeat(64)}`],
     rolloutSeeds: [17],
@@ -183,6 +187,8 @@ async function main(): Promise<void> {
     payload: requestPayload(
       requestId,
       config.candidateFilesystemSnapshotHash,
+      config.parentHarnessVersionId,
+      config.candidateHarnessVersionId,
     ),
     signer,
     schemas,
@@ -235,15 +241,19 @@ async function main(): Promise<void> {
       mutable["attestation"] = attestation;
     } else if (
       mode === "schema_invalid" ||
-      mode === "snapshot_mismatch"
+      mode === "snapshot_mismatch" ||
+      mode === "candidate_mismatch"
     ) {
       const payload = structuredClone(
         mutable["payload"],
       ) as Record<string, JsonValue>;
       if (mode === "schema_invalid") {
         payload["methodId"] = "B7";
-      } else {
+      } else if (mode === "snapshot_mismatch") {
         payload["candidateFilesystemSnapshotHash"] = digest("f");
+      } else {
+        payload["candidateHarnessVersionId"] =
+          `hv-sha256:${"f".repeat(64)}`;
       }
       mutable["payload"] = payload;
       mutable["payloadHash"] = sha256(payload);
