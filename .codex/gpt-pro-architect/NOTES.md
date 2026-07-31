@@ -399,3 +399,29 @@ any paid-provider request.
   attribution experiment, candidate selection, promotion/canary/deployment, publication, or
   empirical confidentiality/security/performance/generalization/evolution/self-improvement claim is
   authorized.
+
+## Durable Round 3RRRRRRRRRRRR denial-recovery decision
+
+- External decision: `APPROVE`; no blocking finding remains for the narrow durable-denial and
+  denial-to-cleanup synthetic-custody correction.
+- Every first-seen, correctly signed fresh request that reuses a consumed capability appends one
+  vault-signed state-preserving `deny_release` transition. Exact retry returns that denial without
+  appending; a different fresh request receives its own denial.
+- Both durable denial states recover deterministically:
+  `deny_release → cleanup_started → cleaned` and
+  `deny_materialization → cleanup_started → cleaned`. Recovery does not retry decryption, create
+  evaluator materialization or receipts, or change reservation/materialization counts.
+- The full seven-case actual-SIGKILL matrix, 183 transitions, 196 pre-finalization receipts,
+  fourteen nested-tamper rejections, and 34 declared-zero leakage scans were independently checked.
+- This is fixed-inert-payload local development evidence, not real-body confidentiality, hostile-host
+  containment, physical sanitization, distributed exactly-once, provider interoperability,
+  benchmark validity, performance, generalization, evolution, security certification, or
+  self-improvement evidence.
+- Authorized next scope is only local trust-plane closure and readiness consolidation: a
+  protocol-author-signed reference-only conformance manifest, an independent aggregate verifier,
+  an outstanding-obligations matrix, strictly necessary root-document updates, and a narrow
+  integrated closure packet.
+- No Git push, API credential/provider, real task/verifier/label/answer/path or benchmark material,
+  research split/scheduler/B0–B6/pilot/attribution experiment, candidate selection/qualification/
+  promotion/canary/deployment, production-pointer modification, empirical claim, release, or
+  publication is authorized.

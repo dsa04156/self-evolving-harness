@@ -729,3 +729,50 @@ response path, interpreted decision, required revisions, and the commit containi
   material, research scheduling/B0–B6, pilot/attribution evaluation, candidate selection,
   promotion/canary/deployment, and empirical confidentiality, containment, security, performance,
   generalization, evolution, or self-improvement claims
+
+## Round 3RRRRRRRRRRRR — 2026-07-31
+
+- sent authoritative project packet:
+  `architect/PACKET_03RRRRRRRRRRRR_SYNTHETIC_CUSTODY_DENIAL_RECOVERY.md`
+- packet hash: `48011c2e1cc086d307833f494d0ae6dd379d56fa688a59f2e7cd0b167e578f9e`
+- packet size: 14,991 characters / 15,011 bytes
+- implementation commit/tree:
+  `4e0125bc5ccbe6e3e340d05166d0718c0bc0ce99` /
+  `83b512a6cb2a9499a047f8a6592fb042fb36d7cb`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no push occurred
+- validation: exact Node 24.18.1 deterministic and coverage suites 135/135; total line 96.03%,
+  branch 90.42%, function 93.48%; build, type/static checks, Python compilation, independent
+  custody verifier, and fourteen rehashed nested-tamper cases passed
+- custody evidence file/internal hashes:
+  `665a5e76a2aa1f839f48d0bcbc7ada404a4ca9d5ecc8e2429e8a63372c0bb892` /
+  `sha256:40f656c2df99f68b18b49dfc5bd9f39a5aee154a24038dfe94b7ab4cf0e4f4cd`
+- transport: direct CDP reused the exact existing Chrome target and conversation. The long insert
+  timed out before send; recovery verified the complete 15,651-character rendered composer and
+  unchanged user count before one submission. No new tab/window, continuation, or packet resend
+  was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 8,257 characters / 8,281 bytes with
+  SHA-256 `807ffab4737dbf2f0a26383dd68704e275b25405abf496c131006e28ed87bd47`
+- architect decision: `APPROVE`
+- blocking findings: none for the narrow durable-denial and denial-to-cleanup correction
+- accepted: one state-preserving signed denial for each first-seen fresh consumed-capability
+  request, exact-retry idempotency, both denial-to-cleanup recovery paths, the complete seven-case
+  SIGKILL matrix, unchanged reservation/materialization accounting, final-audit binding, and
+  independent nested verification
+- claim boundary: deterministic fixed-inert-payload development evidence only; no real-body
+  confidentiality, physical sanitization, hostile-host resistance, distributed exactly-once,
+  provider, benchmark, performance, generalization, evolution, security-certification, or
+  self-improvement result
+- authorized next: only local trust-plane closure and readiness consolidation: a
+  protocol-author-signed reference-only conformance manifest, an independent aggregate verifier,
+  an outstanding-obligations matrix, strictly necessary root-document updates, and a narrow
+  integrated runtime-and-trust closure packet
+- still prohibited: Git push, provider or API credential, real task/verifier/label/answer/path or
+  benchmark material, any research split/scheduler/B0–B6/pilot/attribution experiment, candidate
+  selection/qualification/promotion/canary/deployment, production-pointer changes, release,
+  publication, and empirical confidentiality, containment, security, performance, generalization,
+  evolution, or self-improvement claims
