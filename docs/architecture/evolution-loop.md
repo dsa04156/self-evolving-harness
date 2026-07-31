@@ -68,10 +68,11 @@ Before accepting a request, the evaluator independently verifies the complete fi
 bundle content ID, source base commit, candidate HarnessVersion ID, component and payload hashes,
 dependency/behavior closure, and request-to-bundle candidate binding.
 
-The end-to-end bundle test uses the external evaluator's `isolation_emulated` launch because it retains
-the host UID. A separate passing suite proves subordinate-UID evaluator boundaries for a generic frozen
-snapshot. The two have not yet been combined into one subordinate-UID candidate-bundle transaction, so
-that stronger claim remains deferred.
+The fast end-to-end bundle test uses `isolation_emulated`. The required OS-boundary track also executes
+the same registry-generated bundle under evaluator UID 1103, with operations UID 1101 communicating
+over an authenticated Unix socket inside no-network namespaces. A signed candidate-ID mismatch is one
+of twelve adversarial inputs rejected without a final result. This supports only the documented local
+Linux/rootless TCB, not containment against host root or kernel compromise.
 
 ## Data roles
 

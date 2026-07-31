@@ -1,5 +1,19 @@
 # Evolution Loop Change Log
 
+## 2026-07-31 — Candidate bundle across subordinate OS principals
+
+Implementation commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`
+
+- the OS-boundary fixture now creates parent/candidate manifests through the real component registry;
+- the exact candidate bundle is committed, frozen, and mounted into evaluator UID 1103;
+- operations UID 1101 submits the registry-generated parent/candidate IDs through the authenticated
+  evaluator socket;
+- evaluator configuration pins snapshot hash, bundle ID, and candidate HarnessVersion ID;
+- a twelfth adversarial mode substitutes the candidate ID in an otherwise signed request and is rejected
+  without a final result;
+- the evidence artifact records source base, candidate commit/tree/snapshot, bundle ID, candidate ID,
+  public principal keys, and all adversarial outcomes without retaining private keys.
+
 ## 2026-07-31 — Canonical candidate bundle and external evaluator bridge
 
 Implementation commit: `e64967c6d24ad6f070c3783e7115f667b1c92be1`
@@ -23,13 +37,11 @@ Implementation commit: `e64967c6d24ad6f070c3783e7115f667b1c92be1`
 - candidate commit parent and changed-path set are checked exactly;
 - mounted descriptor, configured bundle ID, configured HarnessVersion ID, and request ID must agree.
 
-### Evidence and limit
+### Evidence at that commit
 
 - 64/64 deterministic tests pass with required OS-boundary mode;
-- the exact bundle path passes through an external Python process in `isolation_emulated`;
-- subordinate-UID evaluator enforcement passes independently on a generic frozen snapshot;
-- the two properties are not yet combined in one transaction, so no stronger process-isolation claim is
-  made;
+- the exact bundle path passed through an external Python process in `isolation_emulated`;
+- the combined subordinate-UID transaction was completed by `8c3bfde`;
 - C-H1–C-H4 remain unexecuted and unsupported.
 
 ## 2026-07-31 — First-class deterministic coordinator

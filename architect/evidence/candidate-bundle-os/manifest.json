@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "deterministic_architectural_conformance",
+  "researchPerformanceEvidence": false,
+  "generatedAt": "2026-07-31",
+  "sourceCommit": "222b9209203a6f5b38dac41aebe89b2cfdc652e0",
+  "sourceTree": "7ee7e54415a75418700de7d7b34d65616e6927bc",
+  "command": "SEH_REQUIRE_OS_BOUNDARY=1 SEH_OS_EVIDENCE_OUTPUT=architect/evidence/candidate-bundle-os/evidence.json npx -y node@24.18.1 --import tsx --test test/os-principal-boundary.test.ts",
+  "result": {
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "adversarialCases": 12,
+    "isolationClass": "os_enforced_subordinate_uids"
+  },
+  "files": [
+    {
+      "path": "architect/evidence/candidate-bundle-os/evidence.json",
+      "sha256": "sha256:0de0cdcd85e1bd9cb2f552c50f01d80b13801f276167c8dc5d1a63afdc17e195"
+    },
+    {
+      "path": "architect/evidence/candidate-bundle-os/candidate-filesystem-snapshot.json",
+      "sha256": "sha256:a37488f63b40bf497172beb1a4bd49b62034ac8f8a64825855052ad90d0d6a34"
+    }
+  ],
+  "limits": [
+    "No live provider or research benchmark was executed.",
+    "Host root, kernel compromise, and distributed storage are outside the claim.",
+    "The evidence supports the local Linux/rootless trust boundary only."
+  ]
+}

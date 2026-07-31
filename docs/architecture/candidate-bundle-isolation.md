@@ -66,10 +66,20 @@ Before accepting an evaluation request, it:
 The isolation receipt binds the evolution run, parent, candidate, proposal, static validation, bundle,
 Git commit, filesystem snapshot, bundle artifact, and descriptor artifact.
 
-## Current boundary
+## OS-principal evidence
 
-The combined candidate-bundle integration launches the separately keyed Python evaluator under
-`isolation_emulated`, so it retains the host UID. A different suite demonstrates subordinate UIDs,
-authenticated sockets, no-network namespaces, and role-key denial using a generic frozen snapshot.
-Combining the candidate bundle and subordinate evaluator UID in the same transaction is the next
-hardening step.
+The fast integration launches the separately keyed Python evaluator under `isolation_emulated`. The
+required OS track repeats the full path with:
+
+- registry-generated parent and candidate HarnessVersions;
+- the canonical candidate bundle committed and mounted read-only;
+- operations UID 1101 and evaluator UID 1103;
+- authenticated Unix peer credentials and signatures;
+- no-network namespaces and role-private keys;
+- twelve adversarial cases, including signed candidate-ID and snapshot substitutions.
+
+The evidence and complete filesystem descriptor are stored in
+`architect/evidence/candidate-bundle-os/`. The artifact includes the five public principals and keys
+needed to verify its challenge signatures; no private key is retained. This closes the earlier
+combined-path gap for the local Linux/rootless threat model. Host root/kernel compromise, distributed
+storage, and public-provider behavior remain outside the claim.

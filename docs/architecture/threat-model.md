@@ -84,7 +84,7 @@ assumed to reveal immutable weights. These are residual limits, not solved threa
 | Static admission is misreported as a successful mutation | proposal disposition is `pending → admitted → accepted or rejected`; only a final evaluator-bound qualification decision resolves it | admission-only, evaluator-failure, approval, and rejection tests | an external report may still misuse the term “accepted” outside the registry |
 | Signed evaluator output bypasses matched-budget or receipt checks | coordinator independently recomputes paired-task counts, targeted repair, regressions, token cost, safety/permission counts, candidate snapshot binding, and verified receipt linkage before promotion | malformed counts, cost overage, snapshot mismatch, missing/foreign receipt, and wrong-signer tests | policy implementation bug inside the trusted coordinator/promoter |
 | Evaluator failure leaves a candidate eligible or triggers adaptive replacement | one evaluator attempt transitions the run to `failed`, rejects the proposal, preserves the parent, and creates no replacement candidate | evaluator-crash/failure test plus duplicate rejected-mutation denial | a human may start a separately identified protocol after inspecting operational failure |
-| Candidate isolation receipt is detached from evaluated bytes | canonical closure bundle, deterministic one-path Git commit, base/head/tree/blob/mode/byte descriptor, read-only materialization, receipt artifacts, evaluator-side bundle and request binding | false bundle ID, dirty tree, byte/mode mutation, candidate-ID mismatch, snapshot mismatch, signer, and receipt-presence tests | end-to-end bundle path retains the host UID; subordinate-UID boundary is tested separately |
+| Candidate isolation receipt is detached from evaluated bytes | canonical closure bundle, deterministic one-path Git commit, base/head/tree/blob/mode/byte descriptor, read-only materialization, receipt artifacts, evaluator-side bundle and request binding | false bundle ID, dirty tree, byte/mode mutation, candidate-ID mismatch, snapshot mismatch, signer, receipt-presence, and subordinate-UID transaction tests | malicious host root/kernel remains outside the TCB |
 | Qualification is laundered into deployment or per-component activation | separate approval and production-pointer decisions; whole-harness CAS only | approved-without-deploy and mixed-component pointer tests | registry implementation defect |
 | Concurrent promotion loses parent/rollback lineage | expected generation, prior pointer hash, parent ID, registry serialization | stale and concurrent CAS tests | distributed registry outside MVP |
 | Retirement deletes an in-use harness or crash leaves authority unresolved | signed holds for production, rollback, live session/descendant, pending evaluation/deployment; stage journals for evaluator and termination; idempotent restart reconciliation | each hold blocks retirement; crash injected before/after every durable boundary; exactly one completion/result and no orphan hold | host/storage loss outside replicated MVP |
@@ -132,8 +132,8 @@ claims remain unauthorized.
 
 The current coordinator materializes the exact component closure as a canonical bundle, commits only
 that fixed file in a detached worktree, freezes and materializes the complete read-only snapshot, and
-passes it to a separately keyed external Python evaluator. That end-to-end test is
-`isolation_emulated` because the subprocess retains the host UID. The subordinate-UID boundary suite
-passes independently with a generic frozen snapshot. Until both properties run in the same transaction,
-claims are limited to integrated byte/bundle binding plus separately demonstrated local OS-principal
-enforcement.
+passes it to a separately keyed external Python evaluator. The fast test uses `isolation_emulated`; the
+required OS track repeats the registry-generated bundle transaction across operations UID 1101 and
+evaluator UID 1103 with no-network namespaces and authenticated sockets. Evidence is stored under
+`architect/evidence/candidate-bundle-os/`. The result is still bounded by the local Linux/rootless TCB;
+it does not defend against malicious host root, kernel, or storage loss.

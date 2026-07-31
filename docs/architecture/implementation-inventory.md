@@ -1,8 +1,8 @@
 # Implementation Inventory
 
-Implementation commit: `e64967c6d24ad6f070c3783e7115f667b1c92be1`
+Implementation commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`
 
-Implementation tree: `6aaec2130a481291b95ecc8fd6b397794c299891`
+Implementation tree: `7ee7e54415a75418700de7d7b34d65616e6927bc`
 
 Resource profile: `NP-1`
 
@@ -17,7 +17,7 @@ callable services is not marked complete when the required end-to-end control pa
 | Harness Component Model | frozen type registry, content-addressed components and harness manifests, dependency/closure validation, bounded diff | implemented |
 | Operations Control Plane | signed session definition, lifecycle, start/observe/interrupt/recover/validate/finalize responses, descendant termination | implemented |
 | Evidence Plane | epistemic event classes, signed receipts, append-only logs, artifact store, audit chain, Unix audit transport | implemented |
-| Evolution Control Plane | weakness mining, attribution, bounded mutation, lineage, static admission, signed evolution-run journal, canonical candidate bundle, deterministic Git commit/snapshot, external evaluation, qualification, deployment/rollback primitives | implemented for deterministic orchestration; combined subordinate-UID execution remains partial |
+| Evolution Control Plane | weakness mining, attribution, bounded mutation, lineage, static admission, signed evolution-run journal, canonical candidate bundle, deterministic Git commit/snapshot, external evaluation, qualification, deployment/rollback primitives | implemented for deterministic orchestration and the bounded local OS-principal model |
 | Immutable Trust Plane | principal identities, signed wire protocol, evaluator/promoter/audit separation, budget freeze, OS-boundary adversarial tests | implemented for the bounded local threat model |
 
 ## Required deliverables
@@ -78,8 +78,7 @@ schema.
 
 ## Next integration gaps
 
-1. Run the same candidate-bundle transaction under the subordinate evaluator UID. The integrated bundle
-   path currently uses the separately keyed external process in `isolation_emulated`; the existing
-   subordinate-UID suite validates the generic snapshot/evaluator boundary independently.
-2. Implement executable HarnessFaultBench fixtures without opening any research gate/final role.
-3. Add root shipping documentation and reproducibility commands.
+1. Implement executable HarnessFaultBench fixtures without opening any research gate/final role.
+2. Add root shipping documentation and reproducibility commands.
+3. Preserve the local-only security wording: malicious host root/kernel, distributed deployment, and
+   public-provider behavior remain outside this evidence.

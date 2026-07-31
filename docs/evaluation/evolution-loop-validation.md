@@ -6,8 +6,8 @@ Resource profile: `NP-1`
 
 ## Frozen implementation under test
 
-- commit: `e64967c6d24ad6f070c3783e7115f667b1c92be1`
-- tree: `6aaec2130a481291b95ecc8fd6b397794c299891`
+- commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`
+- tree: `7ee7e54415a75418700de7d7b34d65616e6927bc`
 - implementation: `src/evolution/evolution-loop.ts`
 - isolation: `src/evolution/candidate-bundle.ts`
 - external bridge: `src/evolution/worktree-evaluation-executor.ts`
@@ -34,6 +34,7 @@ role enabled.
 | OS-principal boundary mode | pass |
 | External evaluator crash recovery | pass |
 | candidate closure → Git commit → read-only snapshot → external evaluator | pass (`isolation_emulated`) |
+| same candidate bundle under operations/evaluator subordinate UIDs | pass (`os_enforced_subordinate_uids`) |
 | detached candidate Git worktree independence | pass |
 | line coverage | 91.71449731531199% (`19814/21604`) |
 | branch coverage | 86.18421052631578% (`1703/1976`) |
@@ -83,14 +84,20 @@ todo 0
     Git object IDs, modes, sizes, and content hashes.
 12. The external evaluator independently rejects a request whose candidate HarnessVersion ID differs
     from the mounted bundle.
+13. The registry-generated bundle passes under operations UID 1101 and evaluator UID 1103, while a
+    separately signed candidate-ID substitution is rejected without a final evaluation result.
 
 ## Scope limits
 
 - Approval/rejection/failure unit paths still use a separately keyed deterministic evaluator double.
   A separate integration path exercises the exact candidate bundle with the external Python evaluator.
-- The integrated candidate-bundle subprocess uses `isolation_emulated` and retains the host UID. The
-  subordinate-UID external-evaluator suite passes independently with a generic snapshot; the exact
-  candidate-bundle path has not yet run under that subordinate UID.
+- The fast integrated candidate-bundle test uses `isolation_emulated`; the required OS track repeats the
+  candidate bundle under subordinate UIDs and stores its evidence in
+  `architect/evidence/candidate-bundle-os/`.
+- The OS evidence depends on Linux namespaces, subordinate UID mappings, bubblewrap, and the host kernel.
+  Host root/kernel compromise remains outside the claim.
+- The persisted OS artifact includes every public principal and key so its challenge signatures can be
+  checked without retaining any private key.
 - No live OpenAI request, Terminal-Bench task, HarnessFaultBench research split, pilot, gate, final, or
   temporal task was executed.
 - This evidence supports lifecycle separation and bounded local authority. It does not support any
