@@ -8,18 +8,18 @@ import {
   ArtifactStore,
   HarnessComponentRegistry,
   HarnessError,
-  HarnessFaultBenchMineBuilder,
+  HarnessFaultBenchStructuralOracleBuilder,
   HFB_FIXTURE_SCHEMA_ID,
-  HFB_MINE_COMMITMENT_SCHEMA_ID,
+  HFB_STRUCTURAL_ORACLE_COMMITMENT_SCHEMA_ID,
   SchemaRegistry,
   assertPublicMineFixtureAccess,
   fixtureLabelOracleForScorerSelfTest,
   hfbMineFixtureIds,
-  hfbMineSuiteCommitment,
+  hfbStructuralOracleSuiteCommitment,
   parseStrictJson,
-  runHfbFixture,
+  runHfbStructuralOracleFixture,
   scoreHfbSingleFaultPredictions,
-  type HfbBuiltMineFixture,
+  type HfbBuiltStructuralOracleFixture,
 } from "../src/index.js";
 
 async function temporaryDirectory(t: test.TestContext): Promise<string> {
@@ -36,7 +36,7 @@ async function buildMineSuite(
   readonly schemas: SchemaRegistry;
   readonly artifacts: ArtifactStore;
   readonly registry: HarnessComponentRegistry;
-  readonly fixtures: readonly HfbBuiltMineFixture[];
+  readonly fixtures: readonly HfbBuiltStructuralOracleFixture[];
 }> {
   const schemas = await SchemaRegistry.load(path.resolve("schemas"));
   const artifacts = new ArtifactStore(path.join(root, "artifacts"));
@@ -46,7 +46,7 @@ async function buildMineSuite(
     artifacts,
   });
   await registry.initialize(path.resolve("configs/component-type-registry.json"));
-  const builder = new HarnessFaultBenchMineBuilder({
+  const builder = new HarnessFaultBenchStructuralOracleBuilder({
     schemas,
     artifacts,
     registry,
@@ -71,7 +71,7 @@ test.after(async () => {
   await rm(sharedRoot, { recursive: true, force: true });
 });
 
-test("HarnessFaultBench builds 28 schema-valid causal D_mine fixtures", async (t) => {
+test("HFB structural oracle builds 28 schema-valid D_mine plumbing fixtures", async (t) => {
   const first = sharedSuite;
   assert.equal(first.fixtures.length, 28);
   assert.deepEqual(
@@ -125,10 +125,11 @@ test("HarnessFaultBench builds 28 schema-valid causal D_mine fixtures", async (t
   assert.equal(exactTypeCounts.get("SubagentPrompt"), 2);
   assert.equal(exactTypeCounts.get("ToolDescription"), 4);
 
-  const firstCommitment = hfbMineSuiteCommitment(first.fixtures);
+  const firstCommitment =
+    hfbStructuralOracleSuiteCommitment(first.fixtures);
   assert.equal(firstCommitment.fixtureCount, 28);
   first.schemas.validate(
-    HFB_MINE_COMMITMENT_SCHEMA_ID,
+    HFB_STRUCTURAL_ORACLE_COMMITMENT_SCHEMA_ID,
     firstCommitment as never,
   );
   const persistedEvidence = parseStrictJson(
@@ -145,22 +146,22 @@ test("HarnessFaultBench builds 28 schema-valid causal D_mine fixtures", async (t
   const secondRoot = await temporaryDirectory(t);
   const second = await buildMineSuite(secondRoot);
   assert.deepEqual(
-    hfbMineSuiteCommitment(second.fixtures),
+    hfbStructuralOracleSuiteCommitment(second.fixtures),
     firstCommitment,
   );
 });
 
-test("HarnessFaultBench runner rejects fixture tampering and reproduces trace hashes", async (t) => {
+test("HFB structural-oracle runner rejects tampering and reproduces trace hashes", async (t) => {
   const suite = sharedSuite;
   const fixture = suite.fixtures[0]!.document;
-  const first = await runHfbFixture({
+  const first = await runHfbStructuralOracleFixture({
     fixture,
     harnessVersionId: fixture.faultyHarnessVersionId,
     schemas: suite.schemas,
     artifacts: suite.artifacts,
     registry: suite.registry,
   });
-  const second = await runHfbFixture({
+  const second = await runHfbStructuralOracleFixture({
     fixture,
     harnessVersionId: fixture.faultyHarnessVersionId,
     schemas: suite.schemas,
@@ -178,7 +179,7 @@ test("HarnessFaultBench runner rejects fixture tampering and reproduces trace ha
     }
   ).fakeProviderTable[0]!.state = "state.tampered";
   await assert.rejects(
-    runHfbFixture({
+    runHfbStructuralOracleFixture({
       fixture: tampered,
       harnessVersionId: fixture.faultyHarnessVersionId,
       schemas: suite.schemas,

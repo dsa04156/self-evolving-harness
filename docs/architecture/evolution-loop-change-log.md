@@ -1,22 +1,25 @@
 # Evolution Loop Change Log
 
-## 2026-07-31 — Executable HarnessFaultBench D_mine corpus
+## 2026-07-31 — Superseded HarnessFaultBench structural-oracle plumbing
 
 Implementation commits:
 
 - `7b0a7c88456ac96ce816514a70d5a63f69c04071`
 - evidence-source hardening: `5bd8061c6d16af2271320f9a60127b03be71dc7e`
 
-- all 28 visible mine IDs now generate schema-valid, content-addressed known-good and faulty harnesses;
+- all 28 visible mine IDs generated schema-valid, content-addressed known-good and faulty harnesses;
 - each pair differs in exactly one declared mutable component and one declarative patch;
 - immutable permission, safety, budget, fake-model identity, runtime contract, tool implementation, and
   capability sets remain fixed;
-- the runner verifies good-pass/fault-fail, target-only recovery, non-target non-recovery, and three
-  identical replay hashes;
+- the label-oracle runner selected good-pass/fault-fail and intervention outcomes from manifest
+  identities and reproduced three identical trace hashes;
 - the public builder rejects gate, final, and multi-cause body construction;
 - the persisted suite commitment is `sha256:a48496598ee5ebef2ca4678e25c59d5a7666fc25e2ee16317ad933f715364b41`.
 
-The label-fed 28/28 scorer result is a scorer self-test, not an attribution or evolution result.
+Architect Round 3R ruled that this work exceeded the prior authorization and that payload semantics did
+not cause its results. The entire artifact graph is signed and mechanically quarantined under
+`governance/deviations/hfb-structural-oracle-2026-07-31.json`. The label-fed 28/28 result is a scorer
+self-test only; the commitment is superseded development evidence and cannot enter a research protocol.
 
 ## 2026-07-31 — Candidate bundle across subordinate OS principals
 
@@ -90,7 +93,7 @@ Implementation commit: `819be3eaa05b159effe2abf0f069cba673055731`
 ### Explicitly deferred at that commit
 
 - candidate bundle materialization and external-evaluator integration, completed by `e64967c`;
-- executable HarnessFaultBench research fixtures, still deferred;
+- semantically executable HarnessFaultBench research fixtures, still deferred;
 - live-provider smoke and every empirical research phase under `NP-1`;
 - root shipping and final research reports until the combined isolation path is verified.
 

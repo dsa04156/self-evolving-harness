@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-mine-commitment.schema.json",
-  "title": "HarnessFaultBench D_mine Suite Commitment",
+  "title": "Superseded HarnessFaultBench D_mine Structural-Oracle Suite Commitment",
+  "description": "Development-only commitment for the manifest-ID oracle prototype; it is prohibited from official research protocols.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "benchmarkId": "harness-fault-bench-v0",
-  "status": "mine-executable-gate-and-final-bodies-not-instantiated",
-  "protocolVersion": "draft-1",
+  "status": "mine-structural-oracle-quarantined-gate-and-final-bodies-not-instantiated",
+  "protocolVersion": "development-only-unfrozen",
   "fixtureSpecVersion": "hfb-fixture-spec-1.0.1",
   "frozenAt": "2026-07-30",
-  "purpose": "Deterministic ground-truth attribution of injected harness component defects.",
+  "purpose": "Development-only structural fixture and label-oracle scorer plumbing pending semantic runtime correction.",
   "singleFaultFamilies": [
     "SystemPrompt",
     "ContextPolicy",
@@ -43,14 +43,21 @@
     "finalOnlyMultiCauseRecallAt2MinimumMicros": 700000
   },
   "implementation": {
-    "mineExecutable": true,
+    "mineStructuralOraclePlumbing": true,
+    "mineSemanticallyExecutable": false,
+    "attributionReady": false,
+    "developmentOnly": true,
+    "confirmatory": false,
+    "authorizedForResearchEvidence": false,
     "mineFixtureCount": 28,
     "sourceCommit": "5bd8061c6d16af2271320f9a60127b03be71dc7e",
     "suiteHash": "sha256:a48496598ee5ebef2ca4678e25c59d5a7666fc25e2ee16317ad933f715364b41",
     "gateBodiesInstantiated": false,
     "finalBodiesInstantiated": false,
     "multiCauseBodiesInstantiated": false,
-    "labelOracleUse": "D_mine scorer self-test only; not attribution performance"
+    "labelOracleUse": "D_mine scorer self-test only; not attribution performance",
+    "governanceDeviationRecord": "governance/deviations/hfb-structural-oracle-2026-07-31.json",
+    "replacementPolicy": "retain_as_superseded_development_evidence"
   },
   "multiCauseUse": "final-confirmatory-reporting-only; prohibited from candidate creation, selection, promotion, threshold tuning, and rollback policy"
 }

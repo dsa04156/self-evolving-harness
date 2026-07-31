@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-development-evidence.schema.json",
-  "title": "HarnessFaultBench Deterministic Development Evidence",
+  "title": "Superseded HarnessFaultBench Structural-Oracle Development Evidence",
+  "description": "Legacy structural/scorer-plumbing evidence. It is development-only, non-confirmatory, unauthorized for research evidence, and governed by the signed deviation record.",
   "type": "object",
   "additionalProperties": false,
   "required": [

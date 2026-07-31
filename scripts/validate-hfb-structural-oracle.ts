@@ -7,14 +7,14 @@ import { promisify } from "node:util";
 import {
   ArtifactStore,
   HarnessComponentRegistry,
-  HarnessFaultBenchMineBuilder,
+  HarnessFaultBenchStructuralOracleBuilder,
   HFB_FIXTURE_SPEC_VERSION,
-  HFB_MINE_COMMITMENT_SCHEMA_ID,
+  HFB_STRUCTURAL_ORACLE_COMMITMENT_SCHEMA_ID,
   HFB_SCORE_REPORT_SCHEMA_ID,
   SchemaRegistry,
   canonicalize,
   fixtureLabelOracleForScorerSelfTest,
-  hfbMineSuiteCommitment,
+  hfbStructuralOracleSuiteCommitment,
   scoreHfbSingleFaultPredictions,
   type JsonValue,
 } from "../src/index.js";
@@ -31,7 +31,7 @@ async function verifiedSourceCommit(): Promise<string> {
   });
   if (status.stdout.length !== 0) {
     throw new Error(
-      "HarnessFaultBench evidence requires a clean Git worktree",
+      "HarnessFaultBench structural-oracle evidence requires a clean Git worktree",
     );
   }
   const result = await execFileAsync("git", ["rev-parse", "--verify", "HEAD"], {
@@ -55,15 +55,16 @@ try {
     artifacts,
   });
   await registry.initialize(path.resolve("configs/component-type-registry.json"));
-  const builder = new HarnessFaultBenchMineBuilder({
+  const builder = new HarnessFaultBenchStructuralOracleBuilder({
     schemas,
     artifacts,
     registry,
   });
   const fixtures = await builder.buildAll();
-  const suiteCommitment = hfbMineSuiteCommitment(fixtures);
+  const suiteCommitment =
+    hfbStructuralOracleSuiteCommitment(fixtures);
   schemas.validate(
-    HFB_MINE_COMMITMENT_SCHEMA_ID,
+    HFB_STRUCTURAL_ORACLE_COMMITMENT_SCHEMA_ID,
     suiteCommitment as unknown as JsonValue,
   );
   const documents = fixtures.map((fixture) => fixture.document);

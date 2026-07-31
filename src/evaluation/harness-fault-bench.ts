@@ -17,9 +17,9 @@ import type { PrincipalRole } from "../trust/identity.js";
 
 export const HFB_FIXTURE_SCHEMA_ID =
   `${SCHEMA_BASE_URL}benchmarks/harness-fault-fixture.schema.json`;
-export const HFB_CAUSAL_REPORT_SCHEMA_ID =
+export const HFB_STRUCTURAL_ORACLE_REPORT_SCHEMA_ID =
   `${SCHEMA_BASE_URL}benchmarks/harness-fault-causal-report.schema.json`;
-export const HFB_MINE_COMMITMENT_SCHEMA_ID =
+export const HFB_STRUCTURAL_ORACLE_COMMITMENT_SCHEMA_ID =
   `${SCHEMA_BASE_URL}benchmarks/harness-fault-mine-commitment.schema.json`;
 export const HFB_SCORE_REPORT_SCHEMA_ID =
   `${SCHEMA_BASE_URL}benchmarks/harness-fault-score-report.schema.json`;
@@ -139,7 +139,7 @@ export interface HfbTraceEvent {
   readonly payloadHash: string;
 }
 
-export interface HfbExecutionResult {
+export interface HfbStructuralOracleExecutionResult {
   readonly fixtureId: string;
   readonly harnessVersionId: string;
   readonly passed: boolean;
@@ -148,7 +148,7 @@ export interface HfbExecutionResult {
   readonly eventChainHash: string;
 }
 
-export interface HfbCausalValidationReport {
+export interface HfbStructuralOracleValidationReport {
   readonly schemaVersion: 1;
   readonly fixtureId: string;
   readonly fixtureContentHash: string;
@@ -166,11 +166,11 @@ export interface HfbCausalValidationReport {
   readonly reportHash: string;
 }
 
-export interface HfbBuiltMineFixture {
+export interface HfbBuiltStructuralOracleFixture {
   readonly document: HfbFixtureDocument;
   readonly knownGoodTargetManifestId: string;
   readonly faultyTargetManifestId: string;
-  readonly causalReport: HfbCausalValidationReport;
+  readonly causalReport: HfbStructuralOracleValidationReport;
 }
 
 interface HfbCaseDefinition {
@@ -1160,12 +1160,12 @@ function contentHashForFixture(
 }
 
 function contentHashForReport(
-  report: Omit<HfbCausalValidationReport, "reportHash">,
+  report: Omit<HfbStructuralOracleValidationReport, "reportHash">,
 ): string {
   return sha256(report as unknown as JsonValue);
 }
 
-export class HarnessFaultBenchMineBuilder {
+export class HarnessFaultBenchStructuralOracleBuilder {
   readonly #schemas: SchemaRegistry;
   readonly #artifacts: ArtifactStore;
   readonly #registry: HarnessComponentRegistry;
@@ -1180,20 +1180,26 @@ export class HarnessFaultBenchMineBuilder {
     this.#registry = input.registry;
   }
 
-  public async buildAll(): Promise<readonly HfbBuiltMineFixture[]> {
-    const fixtures: HfbBuiltMineFixture[] = [];
+  public async buildAll(): Promise<
+    readonly HfbBuiltStructuralOracleFixture[]
+  > {
+    const fixtures: HfbBuiltStructuralOracleFixture[] = [];
     for (const definition of MINE_CASES) {
       fixtures.push(await this.#build(definition));
     }
     return fixtures;
   }
 
-  public async build(fixtureIdValue: string): Promise<HfbBuiltMineFixture> {
+  public async build(
+    fixtureIdValue: string,
+  ): Promise<HfbBuiltStructuralOracleFixture> {
     assertPublicMineFixtureAccess(fixtureIdValue, "benchmark_author");
     return this.#build(MINE_CASE_BY_ID.get(fixtureIdValue)!);
   }
 
-  async #build(definition: HfbCaseDefinition): Promise<HfbBuiltMineFixture> {
+  async #build(
+    definition: HfbCaseDefinition,
+  ): Promise<HfbBuiltStructuralOracleFixture> {
     const implementationBytes = Buffer.from(
       `finite-tool-implementation:${definition.fixtureId}`,
       "utf8",
@@ -1492,7 +1498,7 @@ export class HarnessFaultBenchMineBuilder {
       HFB_FIXTURE_SCHEMA_ID,
       document as unknown as JsonValue,
     );
-    const causalReport = await validateHfbSingleFaultFixture({
+    const causalReport = await validateHfbStructuralOracleFixture({
       fixture: document,
       schemas: this.#schemas,
       artifacts: this.#artifacts,
@@ -1518,13 +1524,13 @@ function componentBindingById(
   return binding;
 }
 
-export async function runHfbFixture(input: {
+export async function runHfbStructuralOracleFixture(input: {
   fixture: HfbFixtureDocument;
   harnessVersionId: string;
   schemas: SchemaRegistry;
   artifacts: ArtifactStore;
   registry: HarnessComponentRegistry;
-}): Promise<HfbExecutionResult> {
+}): Promise<HfbStructuralOracleExecutionResult> {
   input.schemas.validate(
     HFB_FIXTURE_SCHEMA_ID,
     input.fixture as unknown as JsonValue,
@@ -1533,7 +1539,7 @@ export async function runHfbFixture(input: {
   assertCondition(
     input.fixture.contentHash === contentHashForFixture(core),
     "HASH_MISMATCH",
-    "HarnessFaultBench fixture content hash mismatch",
+    "HarnessFaultBench structural-oracle fixture content hash mismatch",
   );
   await input.artifacts.verify(input.fixture.taskInput);
   await input.artifacts.verify(input.fixture.initialState);
@@ -1570,12 +1576,12 @@ export async function runHfbFixture(input: {
   };
 }
 
-export async function validateHfbSingleFaultFixture(input: {
+export async function validateHfbStructuralOracleFixture(input: {
   fixture: HfbFixtureDocument;
   schemas: SchemaRegistry;
   artifacts: ArtifactStore;
   registry: HarnessComponentRegistry;
-}): Promise<HfbCausalValidationReport> {
+}): Promise<HfbStructuralOracleValidationReport> {
   const fixture = input.fixture;
   const good = input.registry.getHarness(fixture.knownGoodHarnessVersionId);
   const faulty = input.registry.getHarness(fixture.faultyHarnessVersionId);
@@ -1653,11 +1659,11 @@ export async function validateHfbSingleFaultFixture(input: {
     "Declared fixture patch does not reproduce the faulty payload",
   );
 
-  const goodRun = await runHfbFixture({
+  const goodRun = await runHfbStructuralOracleFixture({
     ...input,
     harnessVersionId: good.harnessVersionId,
   });
-  const faultyRun = await runHfbFixture({
+  const faultyRun = await runHfbStructuralOracleFixture({
     ...input,
     harnessVersionId: faulty.harnessVersionId,
   });
@@ -1683,7 +1689,7 @@ export async function validateHfbSingleFaultFixture(input: {
     requiredRuntimeContractHash: faulty.identity.requiredRuntimeContractHash,
     bindings: restoredBindings,
   });
-  const restoredRun = await runHfbFixture({
+  const restoredRun = await runHfbStructuralOracleFixture({
     ...input,
     harnessVersionId: restoredHarness.harnessVersionId,
   });
@@ -1724,7 +1730,7 @@ export async function validateHfbSingleFaultFixture(input: {
           : binding.component.componentManifestId,
     })),
   });
-  const nonGroundRun = await runHfbFixture({
+  const nonGroundRun = await runHfbStructuralOracleFixture({
     ...input,
     harnessVersionId: nonGroundHarness.harnessVersionId,
   });
@@ -1738,7 +1744,7 @@ export async function validateHfbSingleFaultFixture(input: {
   for (let replay = 0; replay < 3; replay += 1) {
     replayHashes.push(
       (
-        await runHfbFixture({
+        await runHfbStructuralOracleFixture({
           ...input,
           harnessVersionId: faulty.harnessVersionId,
         })
@@ -1750,7 +1756,10 @@ export async function validateHfbSingleFaultFixture(input: {
     "HASH_MISMATCH",
     "Fixture replay hashes differ",
   );
-  const reportCore: Omit<HfbCausalValidationReport, "reportHash"> = {
+  const reportCore: Omit<
+    HfbStructuralOracleValidationReport,
+    "reportHash"
+  > = {
     schemaVersion: 1,
     fixtureId: fixture.fixtureId,
     fixtureContentHash: fixture.contentHash,
@@ -1766,12 +1775,12 @@ export async function validateHfbSingleFaultFixture(input: {
     immutableTrustPinsIdentical: true,
     capabilitySetUnchanged: true,
   };
-  const report: HfbCausalValidationReport = {
+  const report: HfbStructuralOracleValidationReport = {
     ...reportCore,
     reportHash: contentHashForReport(reportCore),
   };
   input.schemas.validate(
-    HFB_CAUSAL_REPORT_SCHEMA_ID,
+    HFB_STRUCTURAL_ORACLE_REPORT_SCHEMA_ID,
     report as unknown as JsonValue,
   );
   return report;
@@ -1920,8 +1929,8 @@ export function scoreHfbSingleFaultPredictions(input: {
   return report;
 }
 
-export function hfbMineSuiteCommitment(
-  fixtures: readonly HfbBuiltMineFixture[],
+export function hfbStructuralOracleSuiteCommitment(
+  fixtures: readonly HfbBuiltStructuralOracleFixture[],
 ): {
   readonly schemaVersion: 1;
   readonly specVersion: typeof HFB_FIXTURE_SPEC_VERSION;

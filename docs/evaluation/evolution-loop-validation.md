@@ -13,7 +13,7 @@ Resource profile: `NP-1`
 - external bridge: `src/evolution/worktree-evaluation-executor.ts`
 - schemas: `schemas/evolution-run-record.schema.json`,
   `schemas/candidate-harness-bundle.schema.json`
-- tests: `test/evolution-loop.test.ts`, `test/harness-fault-bench.test.ts`
+- tests: `test/evolution-loop.test.ts`, `test/hfb-structural-oracle.test.ts`
 
 This implementation creates a distinct signed `EvolutionRunRecord` lifecycle and composes weakness
 mining, attribution, bounded mutation, candidate creation, static admission, evaluator preparation,
@@ -36,7 +36,7 @@ role enabled.
 | candidate closure → Git commit → read-only snapshot → external evaluator | pass (`isolation_emulated`) |
 | same candidate bundle under operations/evaluator subordinate UIDs | pass (`os_enforced_subordinate_uids`) |
 | detached candidate Git worktree independence | pass |
-| HarnessFaultBench visible `D_mine` causal fixtures | pass, 28/28 |
+| HarnessFaultBench visible `D_mine` structural-oracle plumbing | pass, 28/28 structural predicates; superseded |
 | line coverage | 92.37755708343943% (`21766/23562`) |
 | branch coverage | 87.10289236605027% (`1837/2109`) |
 | function coverage | 90.21651964715318% (`1125/1247`) |
@@ -87,9 +87,9 @@ todo 0
     from the mounted bundle.
 13. The registry-generated bundle passes under operations UID 1101 and evaluator UID 1103, while a
     separately signed candidate-ID substitution is rejected without a final evaluation result.
-14. All 28 visible HarnessFaultBench mine fixtures reproduce their declared single-component patch,
-    preserve immutable trust pins/capabilities, satisfy the causal interventions, and replay
-    deterministically.
+14. All 28 visible HarnessFaultBench structural-oracle fixtures reproduce their declared
+    single-component patch, preserve immutable trust pins/capabilities, select the preregistered
+    manifest-ID oracle outcomes, and replay deterministically.
 
 ## Scope limits
 
@@ -103,7 +103,8 @@ todo 0
 - The persisted OS artifact includes every public principal and key so its challenge signatures can be
   checked without retaining any private key.
 - No live OpenAI request, Terminal-Bench task, HarnessFaultBench gate/final task, candidate attribution
-  evaluation, pilot, or temporal task was executed. The visible `D_mine` corpus was executed only for
-  fixture/scorer plumbing validation.
+  evaluation, pilot, or temporal task was executed. The visible `D_mine` structural corpus was
+  executed outside the prior gate authorization and is now signed, preserved, and mechanically
+  quarantined as non-confirmatory development evidence.
 - This evidence supports lifecycle separation and bounded local authority. It does not support any
   self-improvement, benchmark, generalization, comparative-performance, or broad security claim.

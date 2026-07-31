@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-causal-report.schema.json",
-  "title": "HarnessFaultBench Single-Fault Causal Validation Report",
+  "title": "HarnessFaultBench Structural-Oracle Validation Report",
+  "description": "Validates content addressing, declared diffs, and label-oracle plumbing; it does not establish semantic causality or attribution accuracy.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-fixture.schema.json",
-  "title": "HarnessFaultBench Fixture Package",
+  "title": "HarnessFaultBench Structural/Label-Oracle Plumbing Fixture Package",
+  "description": "This legacy package exposes oracle fields to its runner and is not a semantically executable attribution benchmark package.",
   "type": "object",
   "additionalProperties": false,
   "required": [

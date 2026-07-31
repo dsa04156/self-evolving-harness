@@ -98,9 +98,11 @@ Evidence snapshot: implementation commit
 | C-A3 | deterministically and locally OS-boundary supported | Registry, closure, admission, canonical bundle, exact Git snapshot, external evaluator, and immutable-boundary tests pass within the documented local TCB. The same registry-generated candidate bundle passes under operations UID 1101 and evaluator UID 1103; a signed candidate-ID substitution is rejected. |
 | C-H1–C-H4 | unexecuted and unsupported | No candidate attribution-performance run, live provider, gate, final, temporal evaluation, or B0–B6 comparison has run. |
 
-HarnessFaultBench `D_mine` infrastructure now has 28 deterministic fixtures and a persisted suite
-commitment. Every good/fault pair and causal intervention passes. The recorded 28/28 score is generated
-by a label-fed scorer oracle and proves only scorer correctness; it is not evidence for C-H1–C-H4.
+HarnessFaultBench has 28 superseded structural-oracle plumbing fixtures and a persisted development
+commitment. Their runner selected outcomes from ground-truth component and manifest identities, so the
+28/28 result proves only structure/scorer plumbing. A signed governance deviation classifies the full
+artifact graph as development-only, non-confirmatory, and unauthorized for research evidence. It is
+not evidence for C-H1–C-H4.
 
 The current result is an architectural-conformance artifact. It is not evidence that the harness
 improves itself, generalizes, beats a baseline, or performs safely outside the stated local threat model.

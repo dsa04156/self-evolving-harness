@@ -1,7 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-score-report.schema.json",
-  "title": "HarnessFaultBench Single-Fault Score Report",
+  "title": "HarnessFaultBench Label-Oracle Scorer Self-Test Report",
+  "description": "The persisted 28/28 instance is ground-truth-fed scorer plumbing and is not an attribution-performance result.",
   "type": "object",
   "additionalProperties": false,
   "required": [

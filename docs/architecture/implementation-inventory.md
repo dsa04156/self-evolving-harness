@@ -39,7 +39,7 @@ callable services is not marked complete when the required end-to-end control pa
 | External evaluator process | coordinator-integrated | authenticated framed protocol, mounted candidate bundle verification, and crash recovery |
 | Promote/reject/rollback trail | implemented and coordinator-integrated | qualification and deployment decisions remain separate |
 | Matched B0–B6 budget machinery | implemented deterministically | no empirical research task has run |
-| Executable HarnessFaultBench fixtures | `D_mine` implemented | 28 content-addressed good/fault harness pairs, finite fake tables, causal interventions, strict scorer; gate/final bodies absent |
+| HarnessFaultBench structural-oracle plumbing | implemented, superseded and quarantined | 28 content-addressed good/fault harness pairs validate structure and scorer plumbing only; semantic runtime replacement pending; gate/final bodies absent |
 | Root shipping documentation | partial | root `README.md`, `ARCHITECTURE.md`, `SECURITY.md`, and final research reports remain |
 
 ## Completed integration slice
@@ -71,11 +71,14 @@ The slice added:
    bytes;
 9. a read-only snapshot mounted into the external Python evaluator, where the bundle ID, harness ID,
    manifest IDs, payload hashes, dependency closure, and request candidate ID are independently checked.
-10. deterministic construction of all 28 visible HarnessFaultBench `D_mine` cases;
-11. single-component diff, declared-patch, immutable trust-pin, capability, good/fault, restoration, and
-    three-replay validation for every mine case;
+10. deterministic structural-oracle construction of all 28 visible HarnessFaultBench `D_mine` cases;
+11. single-component diff, declared-patch, immutable trust-pin, capability, manifest-ID oracle
+    intervention, and three-replay validation for every mine case;
 12. a strict single-fault scorer and a label-fed self-test that is explicitly excluded from performance
     evidence.
+
+Items 10–12 are superseded development evidence under the signed governance quarantine. They are not
+semantic attribution fixtures and cannot be consumed by research or promotion paths.
 
 Approval, rejection, and evaluator-failure paths pass. The integration exposed and fixed an existing
 promotion reason-code bug where gate IDs containing hyphens could not be represented by the frozen
