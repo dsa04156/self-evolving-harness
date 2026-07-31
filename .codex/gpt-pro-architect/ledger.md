@@ -641,3 +641,48 @@ response path, interpreted decision, required revisions, and the commit containi
   verifier/label/path, any research split or scheduler/B0–B6, pilot/attribution evaluation,
   candidate selection, promotion/canary/deployment, and empirical, containment, security,
   generalization, or self-improvement claims
+
+## Round 3RRRRRRRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrrrrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRRRRRRR_SYNTHETIC_CUSTODY_REHEARSAL.md`
+- packet hash: `8caaa035c8957c8d6666c56ade673f3fbd902a075ecc6b3fb8187dc2a3d99438`
+- packet size: 18,459 characters / 18,477 bytes
+- implementation commit/tree:
+  `b30c8ae60e41e4c2d3853f8d13fdc1b93f993adf` /
+  `32846a1cf70d0ea5af682babffebbf87ace29e54`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no additional push
+- validation: exact Node 24.18.1 deterministic suite 134/134; line 96.16%, branch 90.48%, function
+  93.47%; build, type/static checks, Python compilation, custody evidence verifier, and five
+  rehashed nested-tamper cases pass; private-key/token/environment-file scan found no actual secret
+- custody evidence file/internal hashes:
+  `0915b1a164eb14406b4d6d7a5287d17637e234e1225e9161a7dd6647aadacd0f` /
+  `sha256:e60805faf56357ac85409f6f92613e823d9f3c81ceeabedc219ffd3c909e955d`
+- transport: direct CDP reused the exact existing tab. Long insertion exceeded the 10-second command
+  timeout; no send had occurred. A second inspection initially timed out during `Runtime.enable`,
+  then verified the complete 19,182-character rendered composer and unchanged user count before one
+  recovered send. The response completed normally; no continuation or packet resend was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- packet submission count: exactly one; recovery continuation count: zero
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrr.md`
+- raw-response verification: browser and local content both 11,804 characters / 11,826 bytes with
+  SHA-256 `aa16d875b8bbf79f0324d3630c370c04f4c19e2d6178f94f088e38e83e7b4b6b`
+- architect decision: `REVISE`
+- accepted: AES-GCM/AAD object model, the six tested cleanup scenarios, eight-principal OS custody
+  boundary, bounded leakage scans, commitment-only downstream projections, signed evidence graph,
+  standalone nested verification, and claim discipline
+- blocking findings: no terminal recovery for a stranded durable reservation; no active-path
+  ciphertext/tag/nonce/AAD or cross-object substitution evidence; no fresh signed request reusing a
+  consumed capability; and no cleanup-interruption crash matrix
+- authorized next: only the narrow local deterministic state/recovery/schema/test/verifier/audit
+  corrections named in the response, including explicit delivery semantics, reservation
+  abandonment, live substitution attacks, consumed-capability fresh-request rejection, and five
+  cleanup/recovery crash boundaries
+- still prohibited: push/release/publication, API credential/provider, real task/verifier/label/path
+  or research data, scheduler/B0–B6, pilot/attribution evaluation, candidate selection,
+  promotion/canary/deployment, and empirical confidentiality, containment, security, performance,
+  generalization, evolution, or self-improvement claims

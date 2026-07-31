@@ -348,3 +348,31 @@ any paid-provider request.
 - No push, API credential/provider, real benchmark task body/verifier/label/path, research split or
   scheduler/B0–B6, pilot, attribution evaluation, candidate selection, promotion, deployment,
   release, publication, or empirical/security/self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRRRR synthetic-custody decision
+
+- External decision: `REVISE`.
+- Accepted: the AES-256-GCM/AAD descriptor and capability design, six tested normal/failure cleanup
+  paths, vault-only key/envelope/journal mounts, evaluator-only read-only plaintext projection,
+  seven wrong-principal denial probes, finite byte-leakage scans, commitment-only scorer/promoter
+  projections, signed final audit, nested verification, and bounded claims.
+- Blocking defect: a durable `release_reserved` state with no `materialization_started` record has
+  no frozen terminal recovery rule. The correction will use explicit at-most-once delivery:
+  reservation-only recovery removes all private material, appends one stable delivery-aborted
+  cleanup transition, and permanently denies materialization by that capability.
+- Blocking evidence gaps: the live vault path must reject modified ciphertext, tag, nonce, material
+  AAD bindings, descriptor/envelope swaps, cross-object capability and correctly signed request
+  substitutions. Retained-JSON tamper rejection alone is insufficient.
+- Fresh correctly signed requests with new request ID, sequence, and nonce must fail when reusing a
+  consumed capability after normal completion, response loss, vault restart, and cleanup.
+- Required crash boundaries: after reservation durability/before materialization start; after
+  materialization start/before plaintext write; after plaintext deletion/before key-envelope
+  deletion; after all file deletion/before cleanup append; and after durable cleanup append/before
+  acknowledgment. Recovery must yield one terminal history, no duplicate materialization, and no
+  private-file residue.
+- Authorized next scope is only that local deterministic custody correction plus schemas, live
+  adversarial tests, independent verifier, final-audit binding, and related documentation.
+- No push, credential/provider/API, real benchmark material, research scheduling/B0–B6,
+  attribution evaluation, candidate selection, promotion/deployment, publication, or empirical
+  confidentiality/security/performance/generalization/evolution/self-improvement claim is
+  authorized.

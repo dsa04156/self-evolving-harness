@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,21 +16,19 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRRRR direct CDP verified target
+- last reuse preflight: Round 03RRRRRRRRRR direct CDP verified target
   `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
-  button, and the prior Round 03RRRRRRRR response. The first insert operation timed out; recovery
-  verified the complete 15,056-character rendered composer and submitted the packet once without
-  opening a new tab or window. That generation ended before producing an assistant message, so one
-  214-character continuation request was sent without resending the packet. The final response was
-  then harvested from the same conversation.
+  button, and the prior Round 03RRRRRRRRR response. The first insert operation timed out; recovery
+  verified the complete 19,182-character rendered composer and submitted the packet once without
+  opening a new tab or window. The new response completed normally; no continuation was sent.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-07-31
-- last packet: `architect/PACKET_03RRRRRRRRR_OS_PRINCIPAL_VAULT_BOUNDARY.md`
-- last packet sha256: `15ef4a05c750a699a7578c227bd8a46cddaeb8e4dada0ac6c8247bea8544686e`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrr.md`
-- last response sha256: `75341301c40c4f426ee83644c1b9df097ed3937921b40b18c0282fcd0988a957`
-- next packet: deterministic inert-payload encrypted synthetic-custody rehearsal
+- last packet: `architect/PACKET_03RRRRRRRRRR_SYNTHETIC_CUSTODY_REHEARSAL.md`
+- last packet sha256: `8caaa035c8957c8d6666c56ade673f3fbd902a075ecc6b3fb8187dc2a3d99438`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrr.md`
+- last response sha256: `aa16d875b8bbf79f0324d3630c370c04f4c19e2d6178f94f088e38e83e7b4b6b`
+- next packet: synthetic-custody active-path substitution and crash-recovery correction
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -74,11 +72,20 @@
   keys and mounts, blinded reviewer projection, authenticated peer-credential Unix transport,
   durable contention/recovery, SIGKILL recovery, and nested-signature tamper detection close the
   body-free OS-integration gate.
-- current authorization: a local deterministic synthetic-custody rehearsal only. Encrypt a fixed
-  inert payload under vault-exclusive key authority, bind it to the admitted opaque-handle and
-  one-time evaluator capability, materialize plaintext read-only and ephemerally for the evaluator,
-  prove cleanup across completion/crash/timeout/rejection/response-loss, prove denial and
-  non-rematerialization, and retain only commitment-level evidence. No push, credential/provider,
-  real task/verifier/label/path, research split or scheduler/B0–B6, pilot, attribution evaluation,
-  selection, promotion/canary/deployment, empirical/security/self-improvement claim, release, or
+- Round 03RRRRRRRRRR decision: `REVISE`. The cryptographic object model, tested six-scenario
+  cleanup, eight-principal custody boundary, finite leakage evidence, signed evidence graph, and
+  claim discipline are accepted. Closure is blocked on live AEAD/cross-object substitution
+  rejection, reservation-only crash recovery, fresh-request reuse of a consumed capability, and
+  cleanup-interruption recovery.
+- current authorization: only a local deterministic correction of the synthetic-custody state
+  machine, recovery rules, cleanup reasons, schemas, live cryptographic adversarial tests,
+  fresh-request capability-reuse tests, crash-injection matrix, independent verifier, final audit,
+  and related documentation. Freeze an explicit delivery guarantee; clean and terminally abandon a
+  durable reservation that has no materialization start; test ciphertext/tag/nonce/AAD and
+  descriptor/capability/request substitutions on the live vault path; deny newly signed requests
+  that reuse a consumed capability; and recover crashes after reservation, before plaintext,
+  between file removals, before cleanup append, and after cleanup durability. No push,
+  credential/provider, real task/verifier/label/path, research data or scheduler/B0–B6, pilot,
+  attribution evaluation, selection, promotion/canary/deployment, empirical confidentiality,
+  containment, security, performance, generalization, evolution/self-improvement claim, release, or
   publication is authorized.
