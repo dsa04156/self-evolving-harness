@@ -140,3 +140,26 @@ any paid-provider request.
 - Attribution-model evaluation, B0–B6, research pilot, mutation, candidate selection, promotion,
   deployment, gate/final/temporal/withheld-public bodies, empirical claims, push, release, and
   publication remain prohibited.
+
+## Durable Round 3RR semantic-correction decision
+
+- External decision: `APPROVE`; blocking findings: none for semantic development-fixture closure.
+- The old manifest-ID suite remains permanently quarantined structural/label-oracle plumbing. The
+  original signed deviation record must not be rewritten; a separately signed remediation-closure
+  record must link that deviation, this response, and the replacement commitments/evidence.
+- The new suite is accepted only as semantically executable **development** wiring fixtures. Its
+  standalone-runtime execution/oracle separation, eight exact mutable component semantics,
+  canonical-request provider, immutable tools, observable verifier, label-blind adapter, adversarial
+  leakage tests, replay results, and new commitments satisfy the Round 3R correction.
+- Authorized next: deterministic label-blind attribution development on the 28 visible semantic
+  traces, prediction commitment before separate oracle scoring, and bounded-mutation/external-
+  evaluator dry-run plumbing using synthetic or visible development inputs. All diagnostics and
+  candidates must be development-only, non-confirmatory, unauthorized for research evidence, and
+  non-promotable.
+- The attributor, proposer, runtime, and candidate evaluator may consume only committed label-blind
+  evidence and ordinary observable outcomes. They may not receive oracle packages, raw semantic
+  packages, target diffs, manifest pairings, fixture mechanisms, expected outcomes, or gate/final
+  capabilities.
+- Real-provider work, Gate 3 completion, B0–B6, research scheduling/pilot/thresholds, confirmatory
+  attribution, gate/final/temporal/withheld-public access, research selection, promotion, canary,
+  deployment, empirical claims, push, release, and publication remain prohibited.

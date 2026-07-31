@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate3rr-hfb-semantic-correction-1",
+  "createdAt": "2026-07-31T14:03:55+09:00",
+  "status": "reviewed_approve",
+  "respondsToDecisionSha256": "29aff8598f70bd5453c1cb7c46b529229c6c07df1ec4427228cae00f101c161d",
+  "implementationEvidenceCommit": "93da95cd24c6e47082e87e0b74763ac3cf75c212",
+  "implementationEvidenceTree": "8e410fc5f38bf3589760f1181d0208d59523f9b1",
+  "semanticEvidenceSourceCommit": "829dd1943954ba64e6e0c08bae35710b3db348e4",
+  "packetCommit": "b286c4fcd8e33cde9e5249931b1e2d61cb6103b3",
+  "packetTree": "be9d62ba233d3528e83ddfd0f5c6caa5f3a90dfc",
+  "packet": {
+    "path": "architect/PACKET_03RR_HFB_SEMANTIC_CORRECTION.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-3rr.md",
+    "sha256": "da8e8f26107c05548e8c6748beedbab8d496a02f0f5ec581d21db2a7bde9af3f",
+    "characterCount": 14138,
+    "byteCount": 14204,
+    "copiesByteIdentical": true
+  },
+  "governanceDeviation": {
+    "path": "governance/deviations/hfb-structural-oracle-2026-07-31.json",
+    "recordHash": "sha256:c750a9bb2e00c2e5d15d73fab039d950c3df0e910274c006647b2ae9cc798e00",
+    "affectedArtifactCount": 115,
+    "fixtureCount": 28,
+    "allowedUseClassCount": 4,
+    "prohibitedUseClassCount": 7,
+    "verification": "pass"
+  },
+  "semanticEvidence": {
+    "path": "architect/evidence/harness-fault-bench-semantic/evidence.json",
+    "fileSha256": "3083ce265e91292582dfbff6320ab8a1f536e9afc50280e18230dcfe434cb876",
+    "suiteCommitment": "sha256:61c5f01ecb135436df55a76d169a26dac48379d18f31eb8e7d78e04a4e9c40be",
+    "labelBlindCorpusCommitment": "sha256:49f7dcbfaabdc122294b41f30d56f15d5eca6088d7941f07483968bdd58e1a01",
+    "fixtureCount": 28,
+    "uniqueExecutionPackageCount": 18,
+    "oracleRecordCount": 28,
+    "validationReportCount": 28,
+    "forbiddenValueLeakCount": 0,
+    "verification": "pass"
+  },
+  "validation": {
+    "typecheck": "pass",
+    "build": "pass",
+    "tests": {
+      "total": 90,
+      "passed": 90,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coveragePercent": {
+      "line": 94.03,
+      "branch": 88.69,
+      "function": 92.0
+    },
+    "semanticExecutionLineCoverage": 100.0,
+    "semanticAuthoringLineCoverage": 99.25,
+    "labelBlindAdapterLineCoverage": 98.48
+  },
+  "externalActions": {
+    "architectTransmission": true,
+    "providerCall": false,
+    "paidAction": false,
+    "attributionModelExecution": false,
+    "harnessMutation": false,
+    "candidateGeneration": false,
+    "researchSchedulerExecution": false,
+    "gateOrFinalAccess": false,
+    "promotion": false,
+    "deployment": false,
+    "externalRepositoryWrite": false
+  },
+  "review": {
+    "reviewedAt": "2026-07-31T14:03:55+09:00",
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserEndpoint": "127.0.0.1:9222",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "newWindowAllowed": false,
+    "newWindowOpened": false,
+    "transport": "Oracle CLI 0.16.1 positive exact-tab attach/reuse dry-run, then one manual direct-CDP submission to the pinned target",
+    "submissionCount": 1,
+    "decision": "APPROVE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-3rr.md",
+    "responseSha256": "19d1998f6207ba0f67095be9ed21ff649b35c6523aedb165715694c1115d6e74",
+    "responseCharacterCount": 11739,
+    "responseByteCount": 11763,
+    "harvest": "Saved latest terminal assistant innerText plus one LF; browser-computed and local SHA-256 matched exactly."
+  },
+  "authorization": {
+    "semanticDevelopmentFixtureCorrectionClosed": true,
+    "labelBlindAttributionDevelopment": true,
+    "developmentScoringAfterPredictionCommitment": true,
+    "boundedMutationDryRun": true,
+    "externalEvaluatorDryRun": true,
+    "developmentCandidatesPromotable": false,
+    "researchExecution": false,
+    "realProviderUse": false,
+    "gateFinalTemporalAccess": false
+  }
+}

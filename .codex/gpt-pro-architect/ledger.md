@@ -316,3 +316,43 @@ response path, interpreted decision, required revisions, and the commit containi
   mutation, selection, promotion/canary/deployment, gate/final/temporal/withheld-public construction
   or access, research/performance/generalization/security/self-improvement claims, push, release, or
   publication
+
+## Round 3RR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rr.md`
+- authoritative project copy: `architect/PACKET_03RR_HFB_SEMANTIC_CORRECTION.md`
+- packet hash: `da8e8f26107c05548e8c6748beedbab8d496a02f0f5ec581d21db2a7bde9af3f`
+- packet size: 14,204 bytes
+- implementation/evidence snapshot:
+  `93da95cd24c6e47082e87e0b74763ac3cf75c212` /
+  `8e410fc5f38bf3589760f1181d0208d59523f9b1`
+- transport: Oracle CLI 0.16.1 positive attach/reuse dry-run followed by manual direct-CDP exact-tab
+  submission
+- topic id: `self-evolving-harness-architecture`
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- recovery: the first direct-CDP operation inserted the complete 14,730-character prompt but timed
+  out before submission; the recovery command verified the existing composer and submitted it once
+- submission count: exactly one; observed user-message count increased from two to three
+- archive policy: never
+- model evidence: Oracle requested `gpt-5-pro` and dry-run resolved the existing target; direct CDP
+  reused the same previously Pro-selected tab; server identity remains vendor-opaque
+- raw response: `.codex/gpt-pro-architect/responses/response-3rr.md`
+- raw-response verification: browser and local bytes both 11,739 characters / 11,763 bytes with
+  SHA-256 `19d1998f6207ba0f67095be9ed21ff649b35c6523aedb165715694c1115d6e74`
+- architect decision: `APPROVE`
+- blocking findings: none for closure of the semantic development-fixture correction
+- accepted: signed old-suite quarantine, label-free runtime/oracle separation, actual eight-type
+  component semantics, canonical-request provider, observable verifier, label-blind adapter, leakage
+  tests, and the fresh semantic/corpus commitments
+- authorized next: append a separate signed remediation-closure record; implement and execute a local
+  label-blind attribution prototype on the 28 visible development traces; seal predictions before a
+  separate development scorer sees labels; implement bounded-mutation and external-evaluator dry-run
+  plumbing with development-only non-promotable candidates; add the specified denial, leakage,
+  commitment-order, mutation-boundary, split-capability, and quarantine tests
+- still prohibited: Gate 3 completion claim, real-provider use, B0–B6, matched-budget research
+  scheduling, research pilot or thresholds, confirmatory attribution, gate/final/temporal/
+  withheld-public bodies, research candidate selection, promotion/canary/deployment, performance,
+  generalization, security or self-improvement claims, push, release, and publication
