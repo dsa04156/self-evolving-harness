@@ -1630,6 +1630,13 @@ export class EvaluatorVault {
       );
   }
 
+  public async readAuthoritativeJournalHead(): Promise<
+    string | null
+  > {
+    await this.#stateLog.synchronize();
+    return (await this.#stateLog.head())?.recordHash ?? null;
+  }
+
   public async recover(): Promise<void> {
     await this.#recoverJournal();
   }

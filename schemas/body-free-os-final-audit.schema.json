@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/body-free-os-final-audit.schema.json",
+  "title": "Audit-store signed body-free evaluator-vault summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "protocolId",
+    "contractHash",
+    "stateHead",
+    "accessRecordHashes",
+    "roleReceiptHashes",
+    "promoterProjectionHash",
+    "bodyPresent",
+    "verifierLogicPresent",
+    "labelsPresent",
+    "pathsPresent",
+    "providerUsed",
+    "researchEvidenceAuthorized",
+    "promotionAuthorized",
+    "finalizedAt",
+    "finalizedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "body_free_os_final_audit"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "stateHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "accessRecordHashes": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "roleReceiptHashes": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "promoterProjectionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "bodyPresent": {
+      "const": false
+    },
+    "verifierLogicPresent": {
+      "const": false
+    },
+    "labelsPresent": {
+      "const": false
+    },
+    "pathsPresent": {
+      "const": false
+    },
+    "providerUsed": {
+      "const": false
+    },
+    "researchEvidenceAuthorized": {
+      "const": false
+    },
+    "promotionAuthorized": {
+      "const": false
+    },
+    "finalizedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "finalizedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "hashArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/sha256"
+      }
+    }
+  }
+}

@@ -41,6 +41,8 @@ export const BLINDED_AUTHORSHIP_REVIEW_SCHEMA_ID =
   `${SCHEMA_BASE_URL}blinded-authorship-review.schema.json`;
 export const BLINDED_AUTHORSHIP_DECISION_SCHEMA_ID =
   `${SCHEMA_BASE_URL}blinded-authorship-decision.schema.json`;
+export const BLINDED_REVIEWER_CONTRACT_PROJECTION_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}blinded-reviewer-contract-projection.schema.json`;
 
 export type AuthorshipState =
   | "assigned"
@@ -165,6 +167,28 @@ export interface BlindedAuthorshipDecision {
   readonly attestation: Attestation;
 }
 
+export interface BlindedReviewerContractProjection {
+  readonly schemaVersion: 1;
+  readonly recordType:
+    "blinded_reviewer_contract_projection";
+  readonly protocolId: string;
+  readonly contractId: string;
+  readonly contractHash: string;
+  readonly vaultPrincipal: PublicPrincipal;
+  readonly reviewerPrincipal: PublicPrincipal;
+  readonly authorIdentityIncluded: false;
+  readonly rawTaskHandleIncluded: false;
+  readonly taskBodyIncluded: false;
+  readonly verifierLogicIncluded: false;
+  readonly labelsIncluded: false;
+  readonly pathsIncluded: false;
+  readonly issuedAt: string;
+  readonly issuedBy: PrincipalIdentity;
+  readonly projectionHash: string;
+  readonly publicPrincipal: PublicPrincipal;
+  readonly attestation: Attestation;
+}
+
 type DeclarationCore = Omit<
   SyntheticContaminationDeclaration,
   "declarationHash"
@@ -191,6 +215,14 @@ type DecisionCore = Omit<
 >;
 type DecisionSignedBody = Omit<
   BlindedAuthorshipDecision,
+  "attestation"
+>;
+type ReviewerProjectionCore = Omit<
+  BlindedReviewerContractProjection,
+  "projectionHash" | "publicPrincipal" | "attestation"
+>;
+type ReviewerProjectionSignedBody = Omit<
+  BlindedReviewerContractProjection,
   "attestation"
 >;
 
@@ -248,6 +280,26 @@ function decisionSignedBody(
   record: BlindedAuthorshipDecision,
 ): DecisionSignedBody {
   const { attestation: _attestation, ...body } = record;
+  return body;
+}
+
+function reviewerProjectionCore(
+  record: BlindedReviewerContractProjection,
+): ReviewerProjectionCore {
+  const {
+    projectionHash: _projectionHash,
+    publicPrincipal: _publicPrincipal,
+    attestation: _attestation,
+    ...core
+  } = record;
+  return core;
+}
+
+function reviewerProjectionSignedBody(
+  record: BlindedReviewerContractProjection,
+): ReviewerProjectionSignedBody {
+  const { attestation: _attestation, ...body } =
+    record;
   return body;
 }
 
@@ -653,6 +705,245 @@ export function verifyBlindedAuthorshipReview(input: {
     ) as unknown as JsonValue,
     input.record.attestation,
   );
+}
+
+export function createBlindedReviewerContractProjection(
+  input: {
+    readonly contract: EvaluatorVaultContract;
+    readonly issuedAt: string;
+    readonly signer: PrincipalSigner;
+    readonly schemas: SchemaRegistry;
+  },
+): BlindedReviewerContractProjection {
+  verifyEvaluatorVaultContract({
+    record: input.contract,
+    schemas: input.schemas,
+  });
+  assertCondition(
+    canonicalize(
+      input.signer.exportPublic() as unknown as JsonValue,
+    ) ===
+      canonicalize(
+        input.contract.principalMatrix.protocolAuthor as unknown as JsonValue,
+      ),
+    "AUTHORIZATION_DENIED",
+    "Only the frozen protocol author may issue a reviewer contract projection",
+  );
+  const core: ReviewerProjectionCore = {
+    schemaVersion: 1,
+    recordType:
+      "blinded_reviewer_contract_projection",
+    protocolId: input.contract.protocolId,
+    contractId: input.contract.contractId,
+    contractHash: input.contract.contractHash,
+    vaultPrincipal:
+      input.contract.principalMatrix.vault,
+    reviewerPrincipal:
+      input.contract.principalMatrix.benchmarkReviewer,
+    authorIdentityIncluded: false,
+    rawTaskHandleIncluded: false,
+    taskBodyIncluded: false,
+    verifierLogicIncluded: false,
+    labelsIncluded: false,
+    pathsIncluded: false,
+    issuedAt: input.issuedAt,
+    issuedBy: input.signer.identity,
+  };
+  const publicPrincipal = input.signer.exportPublic();
+  const body: ReviewerProjectionSignedBody = {
+    ...core,
+    projectionHash: sha256(
+      core as unknown as JsonValue,
+    ),
+    publicPrincipal,
+  };
+  const record: BlindedReviewerContractProjection = {
+    ...body,
+    attestation: input.signer.attest(
+      body as unknown as JsonValue,
+    ),
+  };
+  verifyBlindedReviewerContractProjection({
+    record,
+    expectedProtocolAuthor:
+      input.contract.principalMatrix.protocolAuthor,
+    schemas: input.schemas,
+  });
+  return record;
+}
+
+export function verifyBlindedReviewerContractProjection(
+  input: {
+    readonly record:
+      BlindedReviewerContractProjection;
+    readonly expectedProtocolAuthor: PublicPrincipal;
+    readonly schemas: SchemaRegistry;
+  },
+): void {
+  input.schemas.validate(
+    BLINDED_REVIEWER_CONTRACT_PROJECTION_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  assertCondition(
+    input.record.vaultPrincipal.identity.role ===
+      "vault" &&
+      input.record.reviewerPrincipal.identity.role ===
+        "benchmark_reviewer" &&
+      input.record.issuedBy.role ===
+        "protocol_author" &&
+      canonicalize(
+        input.record.publicPrincipal as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.expectedProtocolAuthor as unknown as JsonValue,
+        ) &&
+      canonicalize(
+        input.record.issuedBy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.expectedProtocolAuthor.identity as unknown as JsonValue,
+        ) &&
+      input.record.projectionHash ===
+        sha256(
+          reviewerProjectionCore(
+            input.record,
+          ) as unknown as JsonValue,
+        ),
+    "HASH_MISMATCH",
+    "Blinded reviewer contract projection changed",
+  );
+  const principals = new PrincipalRegistry();
+  principals.register(input.record.publicPrincipal);
+  principals.verify(
+    input.record.issuedBy,
+    reviewerProjectionSignedBody(
+      input.record,
+    ) as unknown as JsonValue,
+    input.record.attestation,
+  );
+}
+
+function verifyProjectedBlindedReview(input: {
+  readonly record: BlindedAuthorshipReview;
+  readonly projection:
+    BlindedReviewerContractProjection;
+  readonly schemas: SchemaRegistry;
+}): void {
+  input.schemas.validate(
+    BLINDED_AUTHORSHIP_REVIEW_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  assertCondition(
+    input.record.protocolId ===
+      input.projection.protocolId &&
+      input.record.contractId ===
+        input.projection.contractId &&
+      input.record.contractHash ===
+        input.projection.contractHash &&
+      canonicalize(
+        input.record.issuedBy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.projection.vaultPrincipal
+            .identity as unknown as JsonValue,
+        ) &&
+      canonicalize(
+        input.record.publicPrincipal as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.projection.vaultPrincipal as unknown as JsonValue,
+        ) &&
+      input.record.recordHash ===
+        sha256(
+          reviewCore(
+            input.record,
+          ) as unknown as JsonValue,
+        ),
+    "HASH_MISMATCH",
+    "Projected blinded review identity or hash changed",
+  );
+  const principals = new PrincipalRegistry();
+  principals.register(input.record.publicPrincipal);
+  principals.verify(
+    input.record.issuedBy,
+    reviewSignedBody(
+      input.record,
+    ) as unknown as JsonValue,
+    input.record.attestation,
+  );
+}
+
+export function createBlindedAuthorshipDecisionFromProjection(
+  input: {
+    readonly decisionId: string;
+    readonly review: BlindedAuthorshipReview;
+    readonly decision: "include" | "reject";
+    readonly rejectionReasonCommitment?: string | null;
+    readonly decidedAt: string;
+    readonly signer: PrincipalSigner;
+    readonly projection:
+      BlindedReviewerContractProjection;
+    readonly expectedProtocolAuthor: PublicPrincipal;
+    readonly schemas: SchemaRegistry;
+  },
+): BlindedAuthorshipDecision {
+  verifyBlindedReviewerContractProjection({
+    record: input.projection,
+    expectedProtocolAuthor:
+      input.expectedProtocolAuthor,
+    schemas: input.schemas,
+  });
+  verifyProjectedBlindedReview({
+    record: input.review,
+    projection: input.projection,
+    schemas: input.schemas,
+  });
+  assertCondition(
+    canonicalize(
+      input.signer.exportPublic() as unknown as JsonValue,
+    ) ===
+      canonicalize(
+        input.projection.reviewerPrincipal as unknown as JsonValue,
+      ),
+    "AUTHENTICATION_FAILED",
+    "Only the projected blinded reviewer may decide authorship inclusion",
+  );
+  const rejectionReasonCommitment =
+    input.rejectionReasonCommitment ?? null;
+  assertCondition(
+    (input.decision === "reject" &&
+      rejectionReasonCommitment !== null) ||
+      (input.decision === "include" &&
+        rejectionReasonCommitment === null),
+    "SCHEMA_INVALID",
+    "Blinded decision and rejection commitment disagree",
+  );
+  const core: DecisionCore = {
+    schemaVersion: 1,
+    recordType: "blinded_authorship_decision",
+    decisionId: input.decisionId,
+    protocolId: input.projection.protocolId,
+    contractId: input.projection.contractId,
+    contractHash: input.projection.contractHash,
+    reviewPacketId: input.review.reviewPacketId,
+    reviewPacketHash: input.review.recordHash,
+    decision: input.decision,
+    rejectionReasonCommitment,
+    decidedAt: input.decidedAt,
+    decidedBy: input.signer.identity,
+  };
+  const publicPrincipal = input.signer.exportPublic();
+  const body: DecisionSignedBody = {
+    ...core,
+    recordHash: sha256(core as unknown as JsonValue),
+    publicPrincipal,
+  };
+  return {
+    ...body,
+    attestation: input.signer.attest(
+      body as unknown as JsonValue,
+    ),
+  };
 }
 
 export function createBlindedAuthorshipDecision(input: {

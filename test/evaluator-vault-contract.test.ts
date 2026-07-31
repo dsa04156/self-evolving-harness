@@ -33,7 +33,9 @@ import {
   VaultWriterLease,
   assertSyntheticMetadataResearchEligible,
   createBlindedAuthorshipDecision,
+  createBlindedAuthorshipDecisionFromProjection,
   createBlindedAuthorshipReview,
+  createBlindedReviewerContractProjection,
   createEvaluatorVaultContract,
   createIndependentAuthorshipTransition,
   createSyntheticAuthorshipMetadata,
@@ -42,6 +44,7 @@ import {
   parseStrictJson,
   sha256Text,
   verifyBlindedAuthorshipReview,
+  verifyBlindedReviewerContractProjection,
   verifyEvaluatorVaultContract,
   verifyVaultAccessRecord,
   type BlindedAuthorshipDecision,
@@ -658,6 +661,63 @@ test("independent authorship preserves assignment, commitments, blinded review, 
   assert.equal(included.review.verifierLogicIncluded, false);
   assert.equal(included.review.labelsIncluded, false);
   assert.equal(included.review.pathsIncluded, false);
+  const reviewerProjection =
+    createBlindedReviewerContractProjection({
+      contract: value.contract,
+      issuedAt: "2026-07-31T17:03:30.000Z",
+      signer: value.signers.protocolAuthor,
+      schemas: value.schemas,
+    });
+  verifyBlindedReviewerContractProjection({
+    record: reviewerProjection,
+    expectedProtocolAuthor:
+      value.signers.protocolAuthor.exportPublic(),
+    schemas: value.schemas,
+  });
+  const projectionJson = JSON.stringify(
+    reviewerProjection,
+  );
+  assert.equal(projectionJson.includes(TASK_ONE), false);
+  assert.equal(
+    projectionJson.includes(
+      value.signers.benchmarkAuthor.identity.principalId,
+    ),
+    false,
+  );
+  const projectedDecision =
+    createBlindedAuthorshipDecisionFromProjection({
+      decisionId: included.decision.decisionId,
+      review: included.review,
+      decision: "include",
+      decidedAt: included.decision.decidedAt,
+      signer:
+        value.signers.benchmarkReviewer,
+      projection: reviewerProjection,
+      expectedProtocolAuthor:
+        value.signers.protocolAuthor.exportPublic(),
+      schemas: value.schemas,
+    });
+  assert.deepEqual(
+    projectedDecision,
+    included.decision,
+  );
+  assert.throws(
+    () =>
+      createBlindedAuthorshipDecisionFromProjection({
+        decisionId:
+          "authorship.synthetic.projected-wrong-reviewer",
+        review: included.review,
+        decision: "include",
+        decidedAt:
+          "2026-07-31T17:04:32.000Z",
+        signer: value.signers.benchmarkAuthor,
+        projection: reviewerProjection,
+        expectedProtocolAuthor:
+          value.signers.protocolAuthor.exportPublic(),
+        schemas: value.schemas,
+      }),
+    /projected blinded reviewer/iu,
+  );
   const decisionJson = JSON.stringify(included.decision);
   assert.equal(decisionJson.includes(TASK_ONE), false);
   assert.equal(

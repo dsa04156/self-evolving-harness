@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/body-free-os-role-receipt.schema.json",
+  "title": "Signed receipt for a body-free OS-principal action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "receiptId",
+    "protocolId",
+    "contractHash",
+    "role",
+    "action",
+    "process",
+    "inputCommitments",
+    "outputCommitments",
+    "bodyPresent",
+    "verifierLogicPresent",
+    "labelsPresent",
+    "pathsPresent",
+    "bodyAccess",
+    "occurredAt",
+    "producer",
+    "receiptHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "body_free_os_role_receipt"
+    },
+    "receiptId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "role": {
+      "$ref": "#/$defs/boundaryRole"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "freeze_contract",
+        "assign",
+        "commit",
+        "blind",
+        "decide",
+        "include",
+        "sign_request",
+        "issue_capability",
+        "process_request",
+        "promoter_projection",
+        "finalize_audit"
+      ]
+    },
+    "process": {
+      "$ref": "#/$defs/osProcess"
+    },
+    "inputCommitments": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "outputCommitments": {
+      "$ref": "#/$defs/hashArray"
+    },
+    "bodyPresent": {
+      "const": false
+    },
+    "verifierLogicPresent": {
+      "const": false
+    },
+    "labelsPresent": {
+      "const": false
+    },
+    "pathsPresent": {
+      "const": false
+    },
+    "bodyAccess": {
+      "const": "none_in_body_free_contract_prototype"
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "receiptHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "boundaryRole": {
+      "type": "string",
+      "enum": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ]
+    },
+    "osProcess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "isolationClass"
+      ],
+      "properties": {
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "isolationClass": {
+          "const": "os_enforced_subordinate_uid"
+        }
+      }
+    },
+    "hashArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/sha256"
+      }
+    }
+  }
+}

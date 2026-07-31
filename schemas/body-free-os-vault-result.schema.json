@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/body-free-os-vault-result.schema.json",
+  "title": "Body-free result from one isolated evaluator-vault worker",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "ok",
+    "failure",
+    "outcome",
+    "requestCommitment",
+    "taskHandleCommitment",
+    "taskState",
+    "transitionCount",
+    "fenceCount",
+    "stateHead",
+    "accessRecordHash",
+    "process"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "body_free_os_vault_result"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "safeDetail"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]{1,95}$"
+            },
+            "safeDetail": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "accessRecord",
+            "releasedCommitments"
+          ],
+          "properties": {
+            "accessRecord": {
+              "$ref": "./vault-access-record.schema.json"
+            },
+            "releasedCommitments": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "./common.schema.json#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "requestCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "taskHandleCommitment": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "taskState": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "created",
+            "sealed",
+            "unlocked",
+            "evaluated",
+            "scored"
+          ]
+        }
+      ]
+    },
+    "transitionCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fenceCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stateHead": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "accessRecordHash": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uid",
+        "gid",
+        "isolationClass"
+      ],
+      "properties": {
+        "uid": {
+          "const": 1304
+        },
+        "gid": {
+          "const": 1304
+        },
+        "isolationClass": {
+          "const": "os_enforced_subordinate_uid"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nullableHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

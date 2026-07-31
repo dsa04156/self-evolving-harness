@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/blinded-reviewer-contract-projection.schema.json",
+  "title": "Author-identity-free contract projection for a blinded benchmark reviewer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "vaultPrincipal",
+    "reviewerPrincipal",
+    "authorIdentityIncluded",
+    "rawTaskHandleIncluded",
+    "taskBodyIncluded",
+    "verifierLogicIncluded",
+    "labelsIncluded",
+    "pathsIncluded",
+    "issuedAt",
+    "issuedBy",
+    "projectionHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "blinded_reviewer_contract_projection"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "vaultPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "reviewerPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "authorIdentityIncluded": {
+      "const": false
+    },
+    "rawTaskHandleIncluded": {
+      "const": false
+    },
+    "taskBodyIncluded": {
+      "const": false
+    },
+    "verifierLogicIncluded": {
+      "const": false
+    },
+    "labelsIncluded": {
+      "const": false
+    },
+    "pathsIncluded": {
+      "const": false
+    },
+    "issuedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "issuedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "projectionHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

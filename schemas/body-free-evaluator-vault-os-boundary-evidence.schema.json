@@ -1,0 +1,814 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/body-free-evaluator-vault-os-boundary-evidence.schema.json",
+  "title": "Body-free eight-principal evaluator-vault OS-boundary evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "isolationClass",
+    "roleUids",
+    "publicPrincipals",
+    "hostRoleUids",
+    "keyOwners",
+    "reviewerBoundary",
+    "authorship",
+    "transport",
+    "vault",
+    "roleProbes",
+    "promoterProjection",
+    "finalAudit",
+    "bodyAbsence",
+    "providerUsed",
+    "researchEvidenceAuthorized",
+    "promotionAuthorized",
+    "evidenceHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "body_free_evaluator_vault_os_boundary_evidence"
+    },
+    "isolationClass": {
+      "const": "os_enforced_subordinate_uids"
+    },
+    "roleUids": {
+      "$ref": "#/$defs/fixedRoleUidMap"
+    },
+    "publicPrincipals": {
+      "$ref": "#/$defs/publicPrincipalMap"
+    },
+    "hostRoleUids": {
+      "$ref": "#/$defs/integerRoleMap"
+    },
+    "keyOwners": {
+      "$ref": "#/$defs/fixedRoleUidMap"
+    },
+    "reviewerBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputFiles",
+        "authorIdentityPresent",
+        "rawTaskHandlePresent",
+        "privateKeyPresent",
+        "projectionHash"
+      ],
+      "properties": {
+        "inputFiles": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "config.json"
+            },
+            {
+              "const": "own-public.json"
+            },
+            {
+              "const": "review.json"
+            },
+            {
+              "const": "reviewer-projection.json"
+            }
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "authorIdentityPresent": {
+          "const": false
+        },
+        "rawTaskHandlePresent": {
+          "const": false
+        },
+        "privateKeyPresent": {
+          "const": false
+        },
+        "projectionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "authorship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assignmentHash",
+        "authorCommitmentHash",
+        "reviewHash",
+        "reviewDecisionHash",
+        "includedTransitionHash"
+      ],
+      "properties": {
+        "assignmentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "authorCommitmentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "reviewHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "reviewDecisionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "includedTransitionHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "serverUid",
+        "socketOwnedByVault",
+        "transactions",
+        "socketReplacementDenials"
+      ],
+      "properties": {
+        "serverUid": {
+          "const": 1304
+        },
+        "socketOwnedByVault": {
+          "const": true
+        },
+        "transactions": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/transportTransaction"
+          }
+        },
+        "socketReplacementDenials": {
+          "$ref": "#/$defs/socketDenialMap"
+        }
+      }
+    },
+    "vault": {
+      "$ref": "#/$defs/vaultSummary"
+    },
+    "roleProbes": {
+      "$ref": "#/$defs/roleProbeMap"
+    },
+    "promoterProjection": {
+      "$ref": "./body-free-promoter-projection.schema.json"
+    },
+    "finalAudit": {
+      "$ref": "./body-free-os-final-audit.schema.json"
+    },
+    "bodyAbsence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bodyPresent",
+        "verifierLogicPresent",
+        "labelsPresent",
+        "pathsPresent",
+        "bodyAccess"
+      ],
+      "properties": {
+        "bodyPresent": {
+          "const": false
+        },
+        "verifierLogicPresent": {
+          "const": false
+        },
+        "labelsPresent": {
+          "const": false
+        },
+        "pathsPresent": {
+          "const": false
+        },
+        "bodyAccess": {
+          "const": "none_in_body_free_contract_prototype"
+        }
+      }
+    },
+    "providerUsed": {
+      "const": false
+    },
+    "researchEvidenceAuthorized": {
+      "const": false
+    },
+    "promotionAuthorized": {
+      "const": false
+    },
+    "evidenceHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "roleNames": {
+      "type": "string",
+      "enum": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ]
+    },
+    "fixedRoleUidMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ],
+      "properties": {
+        "protocol_author": {
+          "const": 1301
+        },
+        "benchmark_author": {
+          "const": 1302
+        },
+        "benchmark_reviewer": {
+          "const": 1303
+        },
+        "vault": {
+          "const": 1304
+        },
+        "evaluator": {
+          "const": 1305
+        },
+        "scorer": {
+          "const": 1306
+        },
+        "promoter": {
+          "const": 1307
+        },
+        "audit_store": {
+          "const": 1308
+        }
+      }
+    },
+    "integerRoleMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ],
+      "properties": {
+        "protocol_author": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "benchmark_author": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "benchmark_reviewer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "vault": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evaluator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scorer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "promoter": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "audit_store": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "publicPrincipalMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ],
+      "properties": {
+        "protocol_author": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "benchmark_author": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "benchmark_reviewer": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "vault": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "evaluator": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "scorer": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "promoter": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "audit_store": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        }
+      }
+    },
+    "peerCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pid",
+        "uid",
+        "gid"
+      ],
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "workerResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ordinal",
+            "returnCode",
+            "uid",
+            "gid"
+          ],
+          "properties": {
+            "ordinal": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "returnCode": {
+              "const": 0
+            },
+            "uid": {
+              "const": 1304
+            },
+            "gid": {
+              "const": 1304
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ordinal",
+            "returnCode",
+            "stderrCommitment"
+          ],
+          "properties": {
+            "ordinal": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "returnCode": {
+              "type": "integer",
+              "not": {
+                "const": 0
+              }
+            },
+            "stderrCommitment": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          }
+        }
+      ]
+    },
+    "transportTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "role",
+        "requestHash",
+        "transportAccepted",
+        "peer",
+        "verifiedServerPeer",
+        "worker",
+        "result",
+        "receiptHash"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{2,95}$"
+        },
+        "role": {
+          "$ref": "#/$defs/roleNames"
+        },
+        "requestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "transportAccepted": {
+          "const": true
+        },
+        "peer": {
+          "$ref": "#/$defs/peerCredential"
+        },
+        "verifiedServerPeer": {
+          "$ref": "#/$defs/peerCredential"
+        },
+        "worker": {
+          "$ref": "#/$defs/workerResult"
+        },
+        "result": {
+          "oneOf": [
+            {
+              "$ref": "./body-free-os-vault-result.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receiptHash": {
+          "oneOf": [
+            {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "socketDenial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unlinkDenied",
+        "bindDenied"
+      ],
+      "properties": {
+        "unlinkDenied": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "not": {
+            "const": "unexpected_success"
+          }
+        },
+        "bindDenied": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "not": {
+            "const": "unexpected_success"
+          }
+        }
+      }
+    },
+    "socketDenialMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ],
+      "properties": {
+        "protocol_author": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "benchmark_author": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "benchmark_reviewer": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "scorer": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "promoter": {
+          "$ref": "#/$defs/socketDenial"
+        },
+        "audit_store": {
+          "$ref": "#/$defs/socketDenial"
+        }
+      }
+    },
+    "roleProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "role",
+        "uid",
+        "gid",
+        "ownKeyReadable",
+        "challenge",
+        "challengeSignature",
+        "effectiveCapabilities",
+        "noNewPrivileges",
+        "forbiddenReadsDenied",
+        "forbiddenWritesDenied",
+        "signalsDenied",
+        "ptraceDenied",
+        "networkDenied"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "role": {
+          "$ref": "#/$defs/roleNames"
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ownKeyReadable": {
+          "const": true
+        },
+        "challenge": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "challengeSignature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "effectiveCapabilities": {
+          "const": "0000000000000000"
+        },
+        "noNewPrivileges": {
+          "const": "1"
+        },
+        "forbiddenReadsDenied": {
+          "type": "integer",
+          "minimum": 7
+        },
+        "forbiddenWritesDenied": {
+          "type": "integer",
+          "minimum": 7
+        },
+        "signalsDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ptraceDenied": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "networkDenied": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    },
+    "roleProbeMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_author",
+        "benchmark_author",
+        "benchmark_reviewer",
+        "vault",
+        "evaluator",
+        "scorer",
+        "promoter",
+        "audit_store"
+      ],
+      "properties": {
+        "protocol_author": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "benchmark_author": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "benchmark_reviewer": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "vault": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "evaluator": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "scorer": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "promoter": {
+          "$ref": "#/$defs/roleProbe"
+        },
+        "audit_store": {
+          "$ref": "#/$defs/roleProbe"
+        }
+      }
+    },
+    "vaultSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authoritativeJournal",
+        "journalOwners",
+        "journalFileCount",
+        "stateHead",
+        "accessRecordHashes",
+        "unlockRaceSuccesses",
+        "unlockRaceWorkerOrdinals",
+        "freshDuplicateUnlockDenied",
+        "exactRetryStable",
+        "restartReconstructed",
+        "crashRecovery"
+      ],
+      "properties": {
+        "authoritativeJournal": {
+          "const": "vault_state_cas_journal"
+        },
+        "journalOwners": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": 1304
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "journalFileCount": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "stateHead": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "accessRecordHashes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/sha256"
+          }
+        },
+        "unlockRaceSuccesses": {
+          "const": 1
+        },
+        "unlockRaceWorkerOrdinals": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "freshDuplicateUnlockDenied": {
+          "const": true
+        },
+        "exactRetryStable": {
+          "const": true
+        },
+        "restartReconstructed": {
+          "const": true
+        },
+        "crashRecovery": {
+          "$ref": "#/$defs/crashRecovery"
+        }
+      }
+    },
+    "crashRecovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actualSigkillPhases",
+        "crashWorkersUnacknowledged",
+        "durableCommit",
+        "publishedHardlink"
+      ],
+      "properties": {
+        "actualSigkillPhases": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "after_durable_commit_before_release"
+            },
+            {
+              "const": "during_state_append"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "crashWorkersUnacknowledged": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": true
+            },
+            {
+              "const": true
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "durableCommit": {
+          "$ref": "#/$defs/recoveredCrash"
+        },
+        "publishedHardlink": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/recoveredCrash"
+            },
+            {
+              "type": "object",
+              "required": [
+                "stagingObservedBeforeRecovery",
+                "stagingRemovedAfterRecovery"
+              ],
+              "properties": {
+                "stagingObservedBeforeRecovery": {
+                  "const": true
+                },
+                "stagingRemovedAfterRecovery": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "recoveredCrash": {
+      "type": "object",
+      "required": [
+        "recoveredExactlyOnce",
+        "transitionCount",
+        "accessRecordHash"
+      ],
+      "properties": {
+        "recoveredExactlyOnce": {
+          "const": true
+        },
+        "transitionCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "accessRecordHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

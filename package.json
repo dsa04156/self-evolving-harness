@@ -24,6 +24,8 @@
     "verify:development-attribution-dry-run": "npx -y node@24.18.1 --import tsx scripts/verify-development-attribution-dry-run.ts",
     "generate:development-process-boundary": "SEH_REQUIRE_DEVELOPMENT_OS_BOUNDARY=1 SEH_DEVELOPMENT_BOUNDARY_EVIDENCE_OUTPUT=architect/evidence/development-process-boundary/os-boundary.json npx -y node@24.18.1 --import tsx --test test/development-os-boundary.test.ts",
     "verify:development-process-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-development-process-boundary.ts",
+    "generate:evaluator-vault-os-boundary": "SEH_REQUIRE_EVALUATOR_VAULT_OS_BOUNDARY=1 SEH_EVALUATOR_VAULT_OS_EVIDENCE_OUTPUT=architect/evidence/evaluator-vault-os-boundary/evidence.json npx -y node@24.18.1 --import tsx --test test/evaluator-vault-os-boundary.test.ts",
+    "verify:evaluator-vault-os-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-evaluator-vault-os-boundary.ts",
     "create:publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-publication-governance.ts",
     "verify:publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-publication-governance.ts",
     "create:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-historical-publication-governance.ts",

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/body-free-promoter-projection.schema.json",
+  "title": "Body-free score commitment projection for the promoter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "protocolId",
+    "contractHash",
+    "scoreCommitment",
+    "sourceAccessRecordHash",
+    "rawTaskHandlePresent",
+    "vaultWriteCapabilityPresent",
+    "taskBodyPresent",
+    "observedAt",
+    "observedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "body_free_promoter_projection"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "scoreCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "sourceAccessRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "rawTaskHandlePresent": {
+      "const": false
+    },
+    "vaultWriteCapabilityPresent": {
+      "const": false
+    },
+    "taskBodyPresent": {
+      "const": false
+    },
+    "observedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "observedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}
