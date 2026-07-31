@@ -1,16 +1,28 @@
 import assert from "node:assert/strict";
 import {
+  fork,
+  type ChildProcess,
+} from "node:child_process";
+import {
   mkdtemp,
   readFile,
+  readdir,
   rm,
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import {
+  setTimeout as delay,
+} from "node:timers/promises";
 
 import {
   EVALUATOR_VAULT_ACTION_AUTHORITY,
   EVALUATOR_VAULT_MOUNT_POLICY,
+  EVALUATOR_VAULT_STATE_AUTHORITY_POLICY,
+  EVALUATOR_VAULT_WRITER_LEASE_POLICY,
+  CasAppendOnlyLog,
+  DeterministicClock,
   EvaluatorVault,
   HarnessError,
   HistoricalPublicExposurePolicy,
@@ -18,6 +30,7 @@ import {
   PUBLIC_EXPOSURE_RESTRICTED_USES,
   PrincipalSigner,
   SchemaRegistry,
+  VaultWriterLease,
   assertSyntheticMetadataResearchEligible,
   createBlindedAuthorshipDecision,
   createBlindedAuthorshipReview,
@@ -43,7 +56,9 @@ import {
   type SyntheticAuthorshipMetadata,
   type SyntheticContaminationNode,
   type VaultAccessRequest,
+  type VaultCrashPhase,
   type VaultPrincipalMatrix,
+  type JsonValue,
 } from "../src/index.js";
 import {
   deterministicPrincipal,
@@ -349,6 +364,226 @@ async function expectCode(
   });
 }
 
+interface LeaseWorkerMessage {
+  readonly status:
+    | "ready"
+    | "acquired"
+    | "released"
+    | "error"
+    | "release_error";
+  readonly epoch?: number;
+  readonly code?: string;
+}
+
+interface VaultTransitionWorkerMessage {
+  readonly status: "ready" | "success" | "error";
+  readonly code?: string;
+  readonly outcome?: {
+    readonly accessRecord: {
+      readonly decision: "allowed" | "denied";
+    };
+    readonly releasedCommitments:
+      readonly string[];
+  };
+}
+
+async function nextWorkerMessage(
+  child: ChildProcess,
+): Promise<LeaseWorkerMessage> {
+  return Promise.race([
+    new Promise<LeaseWorkerMessage>(
+      (resolve, reject) => {
+        child.once("message", (message) => {
+          resolve(message as LeaseWorkerMessage);
+        });
+        child.once("error", reject);
+      },
+    ),
+    delay(5_000).then(() => {
+      throw new Error("Lease worker message timed out");
+    }),
+  ]);
+}
+
+async function startLeaseWorker(input: {
+  readonly root: string;
+  readonly ownerId: string;
+  readonly ttlMillis: number;
+  readonly value: TrustFixture;
+}): Promise<ChildProcess> {
+  const child = fork(
+    path.resolve(
+      "test/fixtures/vault-lease-worker.ts",
+    ),
+    [],
+    {
+      execArgv: ["--import", "tsx"],
+      stdio: [
+        "ignore",
+        "ignore",
+        "ignore",
+        "ipc",
+      ],
+    },
+  );
+  assert.equal(
+    (await nextWorkerMessage(child)).status,
+    "ready",
+  );
+  const publicPrincipal =
+    input.value.signers.vault.exportPublic();
+  child.send({
+    root: input.root,
+    ownerId: input.ownerId,
+    ttlMillis: input.ttlMillis,
+    contract: input.value.contract,
+    signer: {
+      identity:
+        input.value.signers.vault.identity,
+      keyId: input.value.signers.vault.keyId,
+      privateKeyPem:
+        input.value.signers.vault.exportPrivatePem(),
+      publicKeyPem:
+        publicPrincipal.publicKeyPem,
+    },
+  });
+  return child;
+}
+
+async function nextVaultTransitionWorkerMessage(
+  child: ChildProcess,
+): Promise<VaultTransitionWorkerMessage> {
+  return Promise.race([
+    new Promise<VaultTransitionWorkerMessage>(
+      (resolve, reject) => {
+        child.once("message", (message) => {
+          resolve(
+            message as VaultTransitionWorkerMessage,
+          );
+        });
+        child.once("error", reject);
+      },
+    ),
+    delay(10_000).then(() => {
+      throw new Error(
+        "Vault transition worker message timed out",
+      );
+    }),
+  ]);
+}
+
+async function startVaultTransitionWorker(): Promise<ChildProcess> {
+  const child = fork(
+    path.resolve(
+      "test/fixtures/vault-transition-worker.ts",
+    ),
+    [],
+    {
+      execArgv: ["--import", "tsx"],
+      stdio: [
+        "ignore",
+        "ignore",
+        "ignore",
+        "ipc",
+      ],
+    },
+  );
+  assert.equal(
+    (await nextVaultTransitionWorkerMessage(child))
+      .status,
+    "ready",
+  );
+  return child;
+}
+
+function accessRequestFactory(
+  value: TrustFixture,
+): (
+  input: Omit<
+    Parameters<typeof createVaultAccessRequest>[0],
+    "contract" | "schemas"
+  >,
+) => VaultAccessRequest {
+  return (input) =>
+    createVaultAccessRequest({
+      ...input,
+      contract: value.contract,
+      schemas: value.schemas,
+    });
+}
+
+async function prepareSealedTask(input: {
+  readonly root: string;
+  readonly value: TrustFixture;
+  readonly chain: ReturnType<typeof authorshipChain>;
+  readonly ownerId: string;
+  readonly clock?: DeterministicClock;
+}): Promise<{
+  readonly vault: EvaluatorVault;
+  readonly capability: ReturnType<
+    EvaluatorVault["issueUnlockCapability"]
+  >;
+}> {
+  const included = input.chain.transitions.at(-1)!;
+  const vault = new EvaluatorVault({
+    root: input.root,
+    contract: input.value.contract,
+    schemas: input.value.schemas,
+    vaultSigner: input.value.signers.vault,
+    historicalPolicy: input.value.policy,
+    authorshipAdmissions: [
+      {
+        included,
+        previous:
+          input.chain.transitions.at(-2)!,
+      },
+    ],
+    leaseOwnerId: input.ownerId,
+    ...(input.clock === undefined
+      ? {}
+      : { clock: input.clock }),
+  });
+  const request = accessRequestFactory(input.value);
+  await vault.process(
+    request({
+      requestId: `${input.ownerId}.create`,
+      action: "create",
+      taskHandle: TASK_ONE,
+      subjectCommitment: included.recordHash,
+      senderSequence: 0,
+      nonce: `${input.ownerId}.create.nonce.0001`,
+      requestedAt:
+        "2026-07-31T18:30:00.000Z",
+      signer:
+        input.value.signers.benchmarkAuthor,
+    }),
+  );
+  await vault.process(
+    request({
+      requestId: `${input.ownerId}.seal`,
+      action: "seal",
+      taskHandle: TASK_ONE,
+      subjectCommitment: included.recordHash,
+      senderSequence: 0,
+      nonce: `${input.ownerId}.seal.nonce.0001`,
+      requestedAt:
+        "2026-07-31T18:30:01.000Z",
+      signer: input.value.signers.vault,
+    }),
+  );
+  return {
+    vault,
+    capability: vault.issueUnlockCapability({
+      capabilityId: `${input.ownerId}.capability`,
+      taskHandle: TASK_ONE,
+      issuedAt: "2026-07-31T18:30:02.000Z",
+      expiresAt:
+        "2026-07-31T19:30:02.000Z",
+      nonce: `${input.ownerId}.capability.nonce.0001`,
+    }),
+  };
+}
+
 test("contract freezes distinct principals, role mounts, action authority, and body-free release rules", async () => {
   const value = await fixture();
   verifyEvaluatorVaultContract({
@@ -362,6 +597,14 @@ test("contract freezes distinct principals, role mounts, action authority, and b
   assert.deepEqual(
     value.contract.actionAuthority,
     EVALUATOR_VAULT_ACTION_AUTHORITY,
+  );
+  assert.deepEqual(
+    value.contract.stateAuthorityPolicy,
+    EVALUATOR_VAULT_STATE_AUTHORITY_POLICY,
+  );
+  assert.deepEqual(
+    value.contract.writerLeasePolicy,
+    EVALUATOR_VAULT_WRITER_LEASE_POLICY,
   );
   const principalIds = Object.values(
     value.contract.principalMatrix,
@@ -885,9 +1128,11 @@ test("vault releases only commitments and fails closed on wrong role, key, repla
   assert.deepEqual(unlocked.releasedCommitments, [
     capability.capabilityHash,
   ]);
-  await expectCode(
-    () => vault.process(unlock),
-    "REPLAY_DETECTED",
+  const unlockRetry = await vault.process(unlock);
+  assert.deepEqual(
+    unlockRetry,
+    unlocked,
+    "an exact retry returns the already committed release",
   );
 
   const evaluationCommitment = sha256Text(
@@ -1014,16 +1259,22 @@ test("vault releases only commitments and fails closed on wrong role, key, repla
       },
     ],
   });
-  await expectCode(
-    () => restartedVault.process(createOne),
-    "REPLAY_DETECTED",
+  const restartedCreate =
+    await restartedVault.process(createOne);
+  assert.equal(
+    restartedCreate.accessRecord.accessRecordId,
+    "vault-access:00000000",
+  );
+  assert.equal(
+    restartedCreate.accessRecord.decision,
+    "allowed",
   );
 
   const ledger = await restartedVault.readAccessLedger();
   assert.equal(
     ledger.filter((entry) => entry.decision === "denied")
       .length,
-    9,
+    7,
   );
   assert.equal(
     ledger.every(
@@ -1058,4 +1309,802 @@ test("vault releases only commitments and fails closed on wrong role, key, repla
       }),
     /schema|hash|released/iu,
   );
+});
+
+test("durable writer lease fences stale epochs and recovers an abandoned owner", async (t) => {
+  const value = await fixture();
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-lease-"),
+  );
+  t.after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  const first = new VaultWriterLease({
+    root,
+    ownerId: "lease.owner.first",
+    contract: value.contract,
+    schemas: value.schemas,
+    vaultSigner: value.signers.vault,
+    clock: new DeterministicClock(
+      "2026-07-31T20:00:00.000Z",
+    ),
+    ttlMillis: 100,
+  });
+  const firstHandle = await first.acquire();
+  const early = new VaultWriterLease({
+    root,
+    ownerId: "lease.owner.early",
+    contract: value.contract,
+    schemas: value.schemas,
+    vaultSigner: value.signers.vault,
+    clock: new DeterministicClock(
+      "2026-07-31T20:00:00.050Z",
+    ),
+    ttlMillis: 100,
+  });
+  await expectCode(
+    () => early.acquire(),
+    "CONFLICT",
+  );
+
+  const recovered = new VaultWriterLease({
+    root,
+    ownerId: "lease.owner.recovered",
+    contract: value.contract,
+    schemas: value.schemas,
+    vaultSigner: value.signers.vault,
+    clock: new DeterministicClock(
+      "2026-07-31T20:00:00.200Z",
+    ),
+    ttlMillis: 100,
+  });
+  const recoveredHandle = await recovered.acquire();
+  assert.equal(recoveredHandle.epoch, 2);
+  await expectCode(
+    () => first.assertCurrent(firstHandle),
+    "CONFLICT",
+  );
+  await expectCode(
+    () => first.renew(firstHandle),
+    "CONFLICT",
+  );
+  await expectCode(
+    () => first.release(firstHandle),
+    "CONFLICT",
+  );
+  await recovered.release(recoveredHandle);
+  assert.deepEqual(
+    (await recovered.recover()).map(
+      (entry) => entry.lease.action,
+    ),
+    ["acquire", "acquire", "release"],
+  );
+});
+
+test("CAS journal rejects obsolete and conflicting expected heads", async (t) => {
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-cas-"),
+  );
+  t.after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  const left = new CasAppendOnlyLog<JsonValue>(
+    root,
+    "vault-cas-contention",
+  );
+  const right = new CasAppendOnlyLog<JsonValue>(
+    root,
+    "vault-cas-contention",
+  );
+  const first = await left.appendExpected({
+    expectedHeadHash: null,
+    payload: {
+      writer: "initial",
+    },
+  });
+  await expectCode(
+    () =>
+      right.appendExpected({
+        expectedHeadHash: null,
+        payload: {
+          writer: "obsolete",
+        },
+      }),
+    "CONFLICT",
+  );
+  const successors = await Promise.allSettled([
+    left.appendExpected({
+      expectedHeadHash: first.recordHash,
+      payload: {
+        writer: "left",
+      },
+    }),
+    right.appendExpected({
+      expectedHeadHash: first.recordHash,
+      payload: {
+        writer: "right",
+      },
+    }),
+  ]);
+  assert.deepEqual(
+    successors.map((entry) => entry.status).sort(),
+    ["fulfilled", "rejected"],
+  );
+  assert.equal((await left.readAll()).length, 2);
+});
+
+test("two OS processes serialize the vault writer and recover after a killed holder", async (t) => {
+  const value = await fixture();
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-process-"),
+  );
+  const children: ChildProcess[] = [];
+  t.after(async () => {
+    for (const child of children) {
+      if (child.exitCode === null) {
+        child.kill("SIGKILL");
+      }
+    }
+    await rm(root, { recursive: true, force: true });
+  });
+
+  const first = await startLeaseWorker({
+    root,
+    ownerId: "process.owner.first",
+    ttlMillis: 2_000,
+    value,
+  });
+  const second = await startLeaseWorker({
+    root,
+    ownerId: "process.owner.second",
+    ttlMillis: 2_000,
+    value,
+  });
+  children.push(first, second);
+  const outcomes = await Promise.all([
+    nextWorkerMessage(first),
+    nextWorkerMessage(second),
+  ]);
+  assert.deepEqual(
+    outcomes.map((entry) => entry.status).sort(),
+    ["acquired", "error"],
+  );
+  assert.equal(
+    outcomes.find((entry) => entry.status === "error")
+      ?.code,
+    "CONFLICT",
+  );
+  const winner =
+    outcomes[0]!.status === "acquired"
+      ? first
+      : second;
+  const released = nextWorkerMessage(winner);
+  winner.send("release");
+  assert.equal((await released).status, "released");
+
+  const killed = await startLeaseWorker({
+    root,
+    ownerId: "process.owner.killed",
+    ttlMillis: 100,
+    value,
+  });
+  children.push(killed);
+  const killedAcquisition =
+    await nextWorkerMessage(killed);
+  assert.equal(killedAcquisition.status, "acquired");
+  const exited = new Promise<void>((resolve) => {
+    killed.once("exit", () => resolve());
+  });
+  killed.kill("SIGKILL");
+  await exited;
+  await delay(250);
+
+  const replacement = await startLeaseWorker({
+    root,
+    ownerId: "process.owner.replacement",
+    ttlMillis: 1_000,
+    value,
+  });
+  children.push(replacement);
+  const replacementAcquisition =
+    await nextWorkerMessage(replacement);
+  assert.equal(
+    replacementAcquisition.status,
+    "acquired",
+  );
+  assert.equal(replacementAcquisition.epoch, 3);
+  const replacementReleased =
+    nextWorkerMessage(replacement);
+  replacement.send("release");
+  assert.equal(
+    (await replacementReleased).status,
+    "released",
+  );
+});
+
+test("two OS vault processes commit one successor and a fresh process observes it", async (t) => {
+  const value = await fixture();
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-os-race-"),
+  );
+  const children: ChildProcess[] = [];
+  t.after(async () => {
+    for (const child of children) {
+      if (child.exitCode === null) {
+        child.kill("SIGKILL");
+      }
+    }
+    await rm(root, { recursive: true, force: true });
+  });
+  const chain = authorshipChain({
+    value,
+    taskHandle: TASK_ONE,
+    workflowId: "vault-os-race.synthetic",
+    decision: "include",
+  });
+  const prepared = await prepareSealedTask({
+    root,
+    value,
+    chain,
+    ownerId: "os.race.setup",
+  });
+  const included = chain.transitions.at(-1)!;
+  const admissions = [
+    {
+      included,
+      previous: chain.transitions.at(-2)!,
+    },
+  ] as const;
+  const request = accessRequestFactory(value);
+  const conflicting = [
+    request({
+      requestId: "os.race.unlock.left",
+      action: "unlock",
+      taskHandle: TASK_ONE,
+      capability: prepared.capability,
+      senderSequence: 0,
+      nonce: "os.race.unlock.left.nonce.0001",
+      requestedAt:
+        "2026-07-31T18:31:30.000Z",
+      signer: value.signers.evaluator,
+    }),
+    request({
+      requestId: "os.race.unlock.right",
+      action: "unlock",
+      taskHandle: TASK_ONE,
+      capability: prepared.capability,
+      senderSequence: 0,
+      nonce: "os.race.unlock.right.nonce.0001",
+      requestedAt:
+        "2026-07-31T18:31:30.001Z",
+      signer: value.signers.evaluator,
+    }),
+  ] as const;
+  const [left, right] = await Promise.all([
+    startVaultTransitionWorker(),
+    startVaultTransitionWorker(),
+  ]);
+  children.push(left, right);
+  const publicPrincipal =
+    value.signers.vault.exportPublic();
+  const workerInput = (
+    ownerId: string,
+    signedRequest: VaultAccessRequest,
+  ) => ({
+    root,
+    ownerId,
+    contract: value.contract,
+    signer: {
+      identity: value.signers.vault.identity,
+      keyId: value.signers.vault.keyId,
+      privateKeyPem:
+        value.signers.vault.exportPrivatePem(),
+      publicKeyPem:
+        publicPrincipal.publicKeyPem,
+    },
+    authorshipAdmissions: admissions,
+    request: signedRequest,
+  });
+  const leftResult =
+    nextVaultTransitionWorkerMessage(left);
+  const rightResult =
+    nextVaultTransitionWorkerMessage(right);
+  left.send(workerInput("os.race.left", conflicting[0]));
+  right.send(
+    workerInput("os.race.right", conflicting[1]),
+  );
+  const outcomes = await Promise.all([
+    leftResult,
+    rightResult,
+  ]);
+  assert.deepEqual(
+    outcomes.map((entry) => entry.status).sort(),
+    ["error", "success"],
+  );
+  assert.equal(
+    outcomes.filter(
+      (entry) =>
+        entry.status === "success" &&
+        entry.outcome?.accessRecord.decision ===
+          "allowed",
+    ).length,
+    1,
+  );
+
+  const observer = await startVaultTransitionWorker();
+  children.push(observer);
+  const observerResult =
+    nextVaultTransitionWorkerMessage(observer);
+  observer.send(
+    workerInput(
+      "os.race.observer",
+      request({
+        requestId: "os.race.unlock.fresh",
+        action: "unlock",
+        taskHandle: TASK_ONE,
+        capability: prepared.capability,
+        senderSequence: 1,
+        nonce:
+          "os.race.unlock.fresh.nonce.0001",
+        requestedAt:
+          "2026-07-31T18:31:31.000Z",
+        signer: value.signers.evaluator,
+      }),
+    ),
+  );
+  const observed = await observerResult;
+  assert.equal(observed.status, "error");
+  assert.equal(
+    observed.code,
+    "INVALID_STATE_TRANSITION",
+  );
+
+  const localObserver = new EvaluatorVault({
+    root,
+    contract: value.contract,
+    schemas: value.schemas,
+    vaultSigner: value.signers.vault,
+    historicalPolicy: value.policy,
+    authorshipAdmissions: admissions,
+    leaseOwnerId: "os.race.local.observer",
+  });
+  await localObserver.recover();
+  assert.equal(
+    localObserver.taskState(TASK_ONE),
+    "unlocked",
+  );
+  assert.equal(
+    (await localObserver.readStateJournal()).filter(
+      (entry) =>
+        entry.action === "unlock" &&
+        entry.taskStateSuccessor,
+    ).length,
+    1,
+  );
+});
+
+test("two vault instances cannot create conflicting task successors", async (t) => {
+  const value = await fixture();
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-contention-"),
+  );
+  t.after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  const chain = authorshipChain({
+    value,
+    taskHandle: TASK_ONE,
+    workflowId: "vault-contention.synthetic",
+    decision: "include",
+  });
+  const prepared = await prepareSealedTask({
+    root,
+    value,
+    chain,
+    ownerId: "contention.setup",
+  });
+  const included = chain.transitions.at(-1)!;
+  const vaultInput = (ownerId: string) => ({
+    root,
+    contract: value.contract,
+    schemas: value.schemas,
+    vaultSigner: value.signers.vault,
+    historicalPolicy: value.policy,
+    authorshipAdmissions: [
+      {
+        included,
+        previous: chain.transitions.at(-2)!,
+      },
+    ],
+    leaseOwnerId: ownerId,
+  });
+  const left = new EvaluatorVault(
+    vaultInput("contention.left"),
+  );
+  const right = new EvaluatorVault(
+    vaultInput("contention.right"),
+  );
+  const request = accessRequestFactory(value);
+  const unlocks = [
+    request({
+      requestId: "contention.unlock.left",
+      action: "unlock",
+      taskHandle: TASK_ONE,
+      capability: prepared.capability,
+      senderSequence: 0,
+      nonce: "contention.unlock.left.nonce.0001",
+      requestedAt:
+        "2026-07-31T18:31:00.000Z",
+      signer: value.signers.evaluator,
+    }),
+    request({
+      requestId: "contention.unlock.right",
+      action: "unlock",
+      taskHandle: TASK_ONE,
+      capability: prepared.capability,
+      senderSequence: 0,
+      nonce: "contention.unlock.right.nonce.0001",
+      requestedAt:
+        "2026-07-31T18:31:00.001Z",
+      signer: value.signers.evaluator,
+    }),
+  ] as const;
+  const outcomes = await Promise.allSettled([
+    left.process(unlocks[0]),
+    right.process(unlocks[1]),
+  ]);
+  assert.equal(
+    outcomes.filter(
+      (entry) => entry.status === "fulfilled",
+    ).length,
+    1,
+  );
+  const observer = new EvaluatorVault(
+    vaultInput("contention.observer"),
+  );
+  await observer.recover();
+  assert.equal(observer.taskState(TASK_ONE), "unlocked");
+  const transitions =
+    await observer.readStateJournal();
+  const fences = await observer.readWriterFences();
+  assert.equal(
+    transitions.filter(
+      (entry) =>
+        entry.action === "unlock" &&
+        entry.taskStateSuccessor,
+    ).length,
+    1,
+  );
+  assert.equal(
+    transitions.every((transition) =>
+      fences.some(
+        (fence) =>
+          fence.leaseOwnerCommitment ===
+            transition.leaseOwnerCommitment &&
+          fence.leaseEpoch ===
+            transition.leaseEpoch &&
+          fence.leaseRecordHash ===
+            transition.leaseRecordHash &&
+          fence.leaseJournalHead ===
+            transition.leaseJournalHead,
+      ),
+    ),
+    true,
+  );
+  const winnerIndex =
+    outcomes[0]!.status === "fulfilled" ? 0 : 1;
+  const exactRetry = await observer.process(
+    unlocks[winnerIndex],
+  );
+  assert.deepEqual(
+    exactRetry.releasedCommitments,
+    [prepared.capability.capabilityHash],
+  );
+});
+
+test("restart reconstruction rejects fresh second unlock, evaluate, and score transitions", async (t) => {
+  const value = await fixture();
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "seh-vault-restart-"),
+  );
+  t.after(async () => {
+    await rm(root, { recursive: true, force: true });
+  });
+  const chain = authorshipChain({
+    value,
+    taskHandle: TASK_ONE,
+    workflowId: "vault-restart.synthetic",
+    decision: "include",
+  });
+  const prepared = await prepareSealedTask({
+    root,
+    value,
+    chain,
+    ownerId: "restart.setup",
+  });
+  const included = chain.transitions.at(-1)!;
+  const createVault = (ownerId: string) =>
+    new EvaluatorVault({
+      root,
+      contract: value.contract,
+      schemas: value.schemas,
+      vaultSigner: value.signers.vault,
+      historicalPolicy: value.policy,
+      authorshipAdmissions: [
+        {
+          included,
+          previous: chain.transitions.at(-2)!,
+        },
+      ],
+      leaseOwnerId: ownerId,
+    });
+  const request = accessRequestFactory(value);
+  const unlock = request({
+    requestId: "restart.unlock",
+    action: "unlock",
+    taskHandle: TASK_ONE,
+    capability: prepared.capability,
+    senderSequence: 0,
+    nonce: "restart.unlock.nonce.0001",
+    requestedAt: "2026-07-31T18:32:00.000Z",
+    signer: value.signers.evaluator,
+  });
+  await createVault("restart.unlock.owner").process(
+    unlock,
+  );
+  await expectCode(
+    () =>
+      createVault("restart.unlock.second").process(
+        request({
+          requestId: "restart.unlock.second",
+          action: "unlock",
+          taskHandle: TASK_ONE,
+          capability: prepared.capability,
+          senderSequence: 1,
+          nonce:
+            "restart.unlock.second.nonce.0001",
+          requestedAt:
+            "2026-07-31T18:32:01.000Z",
+          signer: value.signers.evaluator,
+        }),
+      ),
+    "INVALID_STATE_TRANSITION",
+  );
+  await expectCode(
+    () =>
+      createVault("restart.score.from-unlocked").process(
+        request({
+          requestId: "restart.score.from-unlocked",
+          action: "score",
+          taskHandle: TASK_ONE,
+          subjectCommitment: sha256Text(
+            "score-before-evaluation",
+          ),
+          senderSequence: 0,
+          nonce:
+            "restart.score.from-unlocked.nonce.0001",
+          requestedAt:
+            "2026-07-31T18:32:01.500Z",
+          signer: value.signers.scorer,
+        }),
+      ),
+    "INVALID_STATE_TRANSITION",
+  );
+
+  const evaluationCommitment = sha256Text(
+    "restart-evaluation-commitment",
+  );
+  const evaluate = request({
+    requestId: "restart.evaluate",
+    action: "evaluate",
+    taskHandle: TASK_ONE,
+    subjectCommitment: evaluationCommitment,
+    senderSequence: 1,
+    nonce: "restart.evaluate.nonce.0001",
+    requestedAt: "2026-07-31T18:32:02.000Z",
+    signer: value.signers.evaluator,
+  });
+  await createVault("restart.evaluate.owner").process(
+    evaluate,
+  );
+  await expectCode(
+    () =>
+      createVault("restart.evaluate.second").process(
+        request({
+          requestId: "restart.evaluate.second",
+          action: "evaluate",
+          taskHandle: TASK_ONE,
+          subjectCommitment:
+            evaluationCommitment,
+          senderSequence: 2,
+          nonce:
+            "restart.evaluate.second.nonce.0001",
+          requestedAt:
+            "2026-07-31T18:32:03.000Z",
+          signer: value.signers.evaluator,
+        }),
+      ),
+    "INVALID_STATE_TRANSITION",
+  );
+
+  const score = request({
+    requestId: "restart.score",
+    action: "score",
+    taskHandle: TASK_ONE,
+    subjectCommitment: evaluationCommitment,
+    senderSequence: 0,
+    nonce: "restart.score.nonce.0001",
+    requestedAt: "2026-07-31T18:32:04.000Z",
+    signer: value.signers.scorer,
+  });
+  const scored = await createVault(
+    "restart.score.owner",
+  ).process(score);
+  await expectCode(
+    () =>
+      createVault("restart.score.second").process(
+        request({
+          requestId: "restart.score.second",
+          action: "score",
+          taskHandle: TASK_ONE,
+          subjectCommitment:
+            evaluationCommitment,
+          senderSequence: 1,
+          nonce:
+            "restart.score.second.nonce.0001",
+          requestedAt:
+            "2026-07-31T18:32:05.000Z",
+          signer: value.signers.scorer,
+        }),
+      ),
+    "INVALID_STATE_TRANSITION",
+  );
+  const restarted = createVault(
+    "restart.final.observer",
+  );
+  await restarted.recover();
+  assert.equal(restarted.taskState(TASK_ONE), "scored");
+  assert.deepEqual(
+    await restarted.process(score),
+    scored,
+  );
+});
+
+test("crash recovery commits at most one release across every durability boundary", async (t) => {
+  const value = await fixture();
+  const phases: readonly VaultCrashPhase[] = [
+    "before_state_append",
+    "during_state_append",
+    "after_state_publish_before_sync",
+    "after_state_sync_before_verify",
+    "after_durable_commit_before_release",
+    "after_release_before_ack",
+  ];
+  const roots: string[] = [];
+  t.after(async () => {
+    for (const root of roots) {
+      await rm(root, {
+        recursive: true,
+        force: true,
+      });
+    }
+  });
+  for (const [index, phase] of phases.entries()) {
+    const root = await mkdtemp(
+      path.join(os.tmpdir(), "seh-vault-crash-"),
+    );
+    roots.push(root);
+    const chain = authorshipChain({
+      value,
+      taskHandle: TASK_ONE,
+      workflowId: `vault-crash.synthetic.${index}`,
+      decision: "include",
+    });
+    const prepared = await prepareSealedTask({
+      root,
+      value,
+      chain,
+      ownerId: `crash.setup.${index}`,
+      clock: new DeterministicClock(
+        "2026-07-31T20:00:00.000Z",
+      ),
+    });
+    const included = chain.transitions.at(-1)!;
+    const admissions = [
+      {
+        included,
+        previous: chain.transitions.at(-2)!,
+      },
+    ] as const;
+    const request = accessRequestFactory(value);
+    const unlock = request({
+      requestId: `crash.unlock.${index}`,
+      action: "unlock",
+      taskHandle: TASK_ONE,
+      capability: prepared.capability,
+      senderSequence: 0,
+      nonce: `crash.unlock.${index}.nonce.0001`,
+      requestedAt:
+        "2026-07-31T18:33:00.000Z",
+      signer: value.signers.evaluator,
+    });
+    const crashing = new EvaluatorVault({
+      root,
+      contract: value.contract,
+      schemas: value.schemas,
+      vaultSigner: value.signers.vault,
+      historicalPolicy: value.policy,
+      authorshipAdmissions: admissions,
+      leaseOwnerId: `crash.owner.${index}`,
+      leaseTtlMillis: 100,
+      clock: new DeterministicClock(
+        "2026-07-31T20:01:00.000Z",
+      ),
+      crashInjector: (observed) => {
+        if (observed === phase) {
+          throw new Error(`crash:${phase}`);
+        }
+      },
+    });
+    await expectCode(
+      () => crashing.process(unlock),
+      "PEER_CRASHED",
+    );
+
+    const recovered = new EvaluatorVault({
+      root,
+      contract: value.contract,
+      schemas: value.schemas,
+      vaultSigner: value.signers.vault,
+      historicalPolicy: value.policy,
+      authorshipAdmissions: admissions,
+      leaseOwnerId: `recovery.owner.${index}`,
+      leaseTtlMillis: 100,
+      clock: new DeterministicClock(
+        "2026-07-31T20:02:00.000Z",
+      ),
+    });
+    const outcome = await recovered.process(unlock);
+    assert.deepEqual(
+      outcome.releasedCommitments,
+      [prepared.capability.capabilityHash],
+      phase,
+    );
+    assert.equal(
+      recovered.taskState(TASK_ONE),
+      "unlocked",
+      phase,
+    );
+    const transitions =
+      await recovered.readStateJournal();
+    assert.equal(
+      transitions.filter(
+        (entry) =>
+          entry.action === "unlock" &&
+          entry.taskStateSuccessor,
+      ).length,
+      1,
+      phase,
+    );
+    assert.equal(
+      JSON.stringify(transitions).includes(TASK_ONE),
+      false,
+      phase,
+    );
+    if (phase === "during_state_append") {
+      const stateDirectory = path.join(
+        root,
+        encodeURIComponent(
+          `vault-state.${value.contract.contractId}`,
+        ),
+      );
+      assert.deepEqual(
+        (await readdir(stateDirectory)).filter(
+          (name) => name.endsWith(".tmp"),
+        ),
+        [],
+        "recovery removes the published record's abandoned hard-link staging name",
+      );
+    }
+  }
 });

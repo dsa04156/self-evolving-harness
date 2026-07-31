@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/vault-writer-fence.schema.json",
+  "title": "Vault writer epoch fence in the authoritative state journal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "fenceId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "priorVaultLedgerHead",
+    "leaseOwnerCommitment",
+    "leaseEpoch",
+    "leaseRecordHash",
+    "leaseJournalHead",
+    "fencedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "vault_writer_fence"
+    },
+    "fenceId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "priorVaultLedgerHead": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "leaseOwnerCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "leaseEpoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "leaseRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "leaseJournalHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "fencedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

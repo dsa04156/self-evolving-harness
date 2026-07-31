@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import {
   canonicalize,
   sha256,
@@ -10,15 +8,21 @@ import {
   HarnessError,
   asHarnessError,
   assertCondition,
+  type HarnessErrorCode,
 } from "../core/errors.js";
+import {
+  SystemClock,
+  type Clock,
+} from "../core/determinism.js";
 import {
   SCHEMA_BASE_URL,
   type SchemaRegistry,
 } from "../contracts/schema-registry.js";
 import {
-  AppendOnlyLog,
-  type AppendOnlyRecord,
-} from "../storage/append-only-log.js";
+  CasAppendOnlyLog,
+  type CasAppendOnlyRecord,
+  type CasAppendPhase,
+} from "../storage/cas-append-only-log.js";
 import {
   HistoricalPublicExposurePolicy,
 } from "../governance/historical-publication-exposure.js";
@@ -40,6 +44,10 @@ import {
   verifyIndependentAuthorshipTransition,
   type IndependentAuthorshipTransition,
 } from "./independent-authorship.js";
+import {
+  VaultWriterLease,
+  type VaultWriterLeaseHandle,
+} from "./vault-writer-lease.js";
 
 export const OPAQUE_TASK_CAPABILITY_SCHEMA_ID =
   `${SCHEMA_BASE_URL}opaque-task-capability.schema.json`;
@@ -47,8 +55,13 @@ export const VAULT_ACCESS_REQUEST_SCHEMA_ID =
   `${SCHEMA_BASE_URL}vault-access-request.schema.json`;
 export const VAULT_ACCESS_RECORD_SCHEMA_ID =
   `${SCHEMA_BASE_URL}vault-access-record.schema.json`;
+export const VAULT_STATE_TRANSITION_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}vault-state-transition.schema.json`;
+export const VAULT_WRITER_FENCE_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}vault-writer-fence.schema.json`;
 
 export type VaultTaskState =
+  | "created"
   | "sealed"
   | "unlocked"
   | "evaluated"
@@ -150,13 +163,75 @@ export interface VaultAccessOutcome {
   readonly releasedCommitments: readonly string[];
 }
 
+export interface VaultStateTransitionRecord {
+  readonly schemaVersion: 1;
+  readonly recordType: "vault_state_transition";
+  readonly transitionId: string;
+  readonly protocolId: string;
+  readonly contractId: string;
+  readonly contractHash: string;
+  readonly requestCommitment: string;
+  readonly requestIdCommitment: string;
+  readonly action: VaultAction;
+  readonly taskHandleCommitment: string | null;
+  readonly authorshipRecordHash: string | null;
+  readonly priorTaskStateRecordHash: string | null;
+  readonly priorVaultLedgerHead: string | null;
+  readonly leaseOwnerCommitment: string;
+  readonly leaseEpoch: number;
+  readonly leaseRecordHash: string;
+  readonly leaseJournalHead: string;
+  readonly actorRole: PrincipalRole;
+  readonly actorIdentityCommitment: string;
+  readonly actorKeyIdCommitment: string;
+  readonly capabilityCommitment: string | null;
+  readonly inputCommitment: string | null;
+  readonly resultCommitment: string | null;
+  readonly releasedCommitments: readonly string[];
+  readonly decision: "allowed" | "denied";
+  readonly reasonCode: string;
+  readonly stateBefore: VaultTaskState | null;
+  readonly stateAfter: VaultTaskState | null;
+  readonly taskStateSuccessor: boolean;
+  readonly accessRecord: VaultAccessRecord;
+  readonly occurredAt: string;
+  readonly committedAt: string;
+  readonly recordedBy: PrincipalIdentity;
+  readonly recordHash: string;
+  readonly publicPrincipal: PublicPrincipal;
+  readonly attestation: Attestation;
+}
+
+export interface VaultWriterFenceRecord {
+  readonly schemaVersion: 1;
+  readonly recordType: "vault_writer_fence";
+  readonly fenceId: string;
+  readonly protocolId: string;
+  readonly contractId: string;
+  readonly contractHash: string;
+  readonly priorVaultLedgerHead: string | null;
+  readonly leaseOwnerCommitment: string;
+  readonly leaseEpoch: number;
+  readonly leaseRecordHash: string;
+  readonly leaseJournalHead: string;
+  readonly fencedAt: string;
+  readonly recordedBy: PrincipalIdentity;
+  readonly recordHash: string;
+  readonly publicPrincipal: PublicPrincipal;
+  readonly attestation: Attestation;
+}
+
+export type VaultCrashPhase =
+  | "before_state_append"
+  | "during_state_append"
+  | "after_state_publish_before_sync"
+  | "after_state_sync_before_verify"
+  | "after_durable_commit_before_release"
+  | "after_release_before_ack";
+
 export interface VaultAuthorshipAdmission {
   readonly included: IndependentAuthorshipTransition;
   readonly previous: IndependentAuthorshipTransition;
-}
-
-interface PendingAuthorship {
-  readonly authorshipRecordHash: string;
 }
 
 interface VaultTaskEntry {
@@ -164,6 +239,7 @@ interface VaultTaskEntry {
   readonly state: VaultTaskState;
   readonly evaluationCommitment: string | null;
   readonly scoreCommitment: string | null;
+  readonly stateRecordHash: string;
 }
 
 type CapabilityCore = Omit<
@@ -190,6 +266,25 @@ type AccessRecordSignedBody = Omit<
   VaultAccessRecord,
   "attestation"
 >;
+type StateTransitionCore = Omit<
+  VaultStateTransitionRecord,
+  "recordHash" | "publicPrincipal" | "attestation"
+>;
+type StateTransitionSignedBody = Omit<
+  VaultStateTransitionRecord,
+  "attestation"
+>;
+type WriterFenceCore = Omit<
+  VaultWriterFenceRecord,
+  "recordHash" | "publicPrincipal" | "attestation"
+>;
+type WriterFenceSignedBody = Omit<
+  VaultWriterFenceRecord,
+  "attestation"
+>;
+type VaultJournalPayload =
+  | VaultStateTransitionRecord
+  | VaultWriterFenceRecord;
 
 function capabilityCore(
   record: OpaqueTaskCapability,
@@ -675,14 +770,355 @@ export function verifyVaultAccessRecord(input: {
   );
 }
 
+function writerFenceCore(
+  record: VaultWriterFenceRecord,
+): WriterFenceCore {
+  const {
+    recordHash: _recordHash,
+    publicPrincipal: _publicPrincipal,
+    attestation: _attestation,
+    ...core
+  } = record;
+  return core;
+}
+
+function writerFenceSignedBody(
+  record: VaultWriterFenceRecord,
+): WriterFenceSignedBody {
+  const { attestation: _attestation, ...body } =
+    record;
+  return body;
+}
+
+export function verifyVaultWriterFenceRecord(input: {
+  readonly record: VaultWriterFenceRecord;
+  readonly priorVaultLedgerHead: string | null;
+  readonly contract: EvaluatorVaultContract;
+  readonly schemas: SchemaRegistry;
+}): void {
+  input.schemas.validate(
+    VAULT_WRITER_FENCE_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  assertCondition(
+    input.record.protocolId ===
+      input.contract.protocolId &&
+      input.record.contractId ===
+        input.contract.contractId &&
+      input.record.contractHash ===
+        input.contract.contractHash &&
+      input.record.priorVaultLedgerHead ===
+        input.priorVaultLedgerHead &&
+      Number.isFinite(
+        Date.parse(input.record.fencedAt),
+      ) &&
+      canonicalize(
+        input.record.recordedBy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.contract.principalMatrix.vault
+            .identity as unknown as JsonValue,
+        ) &&
+      samePublicPrincipal(
+        input.record.publicPrincipal,
+        input.contract.principalMatrix.vault,
+      ) &&
+      input.record.recordHash ===
+        sha256(
+          writerFenceCore(
+            input.record,
+          ) as unknown as JsonValue,
+        ),
+    "HASH_MISMATCH",
+    "Vault writer fence binding, principal, or hash changed",
+  );
+  const principals = new PrincipalRegistry();
+  principals.register(input.record.publicPrincipal);
+  principals.verify(
+    input.record.recordedBy,
+    writerFenceSignedBody(
+      input.record,
+    ) as unknown as JsonValue,
+    input.record.attestation,
+  );
+}
+
+function stateTransitionCore(
+  record: VaultStateTransitionRecord,
+): StateTransitionCore {
+  const {
+    recordHash: _recordHash,
+    publicPrincipal: _publicPrincipal,
+    attestation: _attestation,
+    ...core
+  } = record;
+  return core;
+}
+
+function stateTransitionSignedBody(
+  record: VaultStateTransitionRecord,
+): StateTransitionSignedBody {
+  const { attestation: _attestation, ...body } =
+    record;
+  return body;
+}
+
+function releaseResultCommitment(
+  releasedCommitments: readonly string[],
+): string | null {
+  if (releasedCommitments.length === 0) return null;
+  return sha256({
+    recordType: "vault_release_commitment_set",
+    releasedCommitments: [...releasedCommitments].sort(),
+  });
+}
+
+function legalTaskSuccessor(
+  action: VaultAction,
+  before: VaultTaskState | null,
+  after: VaultTaskState | null,
+): boolean {
+  return (
+    (action === "create" &&
+      before === null &&
+      after === "created") ||
+    (action === "seal" &&
+      before === "created" &&
+      after === "sealed") ||
+    (action === "unlock" &&
+      before === "sealed" &&
+      after === "unlocked") ||
+    (action === "evaluate" &&
+      before === "unlocked" &&
+      after === "evaluated") ||
+    (action === "score" &&
+      before === "evaluated" &&
+      after === "scored")
+  );
+}
+
+export function verifyVaultStateTransitionRecord(input: {
+  readonly record: VaultStateTransitionRecord;
+  readonly priorVaultLedgerHead: string | null;
+  readonly contract: EvaluatorVaultContract;
+  readonly schemas: SchemaRegistry;
+}): void {
+  input.schemas.validate(
+    VAULT_STATE_TRANSITION_SCHEMA_ID,
+    input.record as unknown as JsonValue,
+  );
+  verifyVaultAccessRecord({
+    record: input.record.accessRecord,
+    contract: input.contract,
+    schemas: input.schemas,
+  });
+  const access = input.record.accessRecord;
+  const ordered = [...input.record.releasedCommitments].sort();
+  assertCondition(
+    input.record.protocolId ===
+      input.contract.protocolId &&
+      input.record.contractId ===
+        input.contract.contractId &&
+      input.record.contractHash ===
+        input.contract.contractHash &&
+      input.record.priorVaultLedgerHead ===
+        input.priorVaultLedgerHead &&
+      input.record.requestIdCommitment ===
+        access.requestIdCommitment &&
+      input.record.action === access.action &&
+      input.record.taskHandleCommitment ===
+        access.taskHandleCommitment &&
+      input.record.actorRole === access.actorRole &&
+      input.record.actorIdentityCommitment ===
+        access.actorIdentityCommitment &&
+      input.record.actorKeyIdCommitment ===
+        access.actorKeyIdCommitment &&
+      input.record.decision === access.decision &&
+      input.record.reasonCode === access.reasonCode &&
+      input.record.stateBefore === access.stateBefore &&
+      input.record.stateAfter === access.stateAfter &&
+      input.record.occurredAt === access.occurredAt &&
+      Number.isFinite(
+        Date.parse(input.record.committedAt),
+      ) &&
+      canonicalize(
+        input.record.recordedBy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.contract.principalMatrix.vault
+            .identity as unknown as JsonValue,
+        ) &&
+      samePublicPrincipal(
+        input.record.publicPrincipal,
+        input.contract.principalMatrix.vault,
+      ) &&
+      canonicalize(
+        ordered as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          input.record
+            .releasedCommitments as unknown as JsonValue,
+        ) &&
+      new Set(ordered).size === ordered.length &&
+      input.record.resultCommitment ===
+        releaseResultCommitment(ordered) &&
+      input.record.recordHash ===
+        sha256(
+          stateTransitionCore(
+            input.record,
+          ) as unknown as JsonValue,
+        ),
+    "HASH_MISMATCH",
+    "Vault transition binding, release, principal, or hash changed",
+  );
+  if (input.record.taskStateSuccessor) {
+    assertCondition(
+      input.record.decision === "allowed" &&
+        input.record.taskHandleCommitment !== null &&
+        input.record.authorshipRecordHash !== null &&
+        legalTaskSuccessor(
+          input.record.action,
+          input.record.stateBefore,
+          input.record.stateAfter,
+        ),
+      "INVALID_STATE_TRANSITION",
+      "Vault task successor is not a legal lifecycle transition",
+    );
+  } else {
+    assertCondition(
+      input.record.stateAfter ===
+        input.record.stateBefore,
+      "INVALID_STATE_TRANSITION",
+      "Non-successor vault decision changed task state",
+    );
+  }
+  const mutatingAction =
+    input.record.action === "create" ||
+    input.record.action === "seal" ||
+    input.record.action === "unlock" ||
+    input.record.action === "evaluate" ||
+    input.record.action === "score";
+  assertCondition(
+    input.record.taskStateSuccessor ===
+      (input.record.decision === "allowed" &&
+        mutatingAction),
+    "INVALID_STATE_TRANSITION",
+    "Vault decision omitted or invented a task-state successor",
+  );
+  if (input.record.decision === "denied") {
+    assertCondition(
+      !input.record.taskStateSuccessor &&
+        ordered.length === 0 &&
+        input.record.resultCommitment === null,
+      "AUTHORIZATION_DENIED",
+      "Denied vault transition released data or advanced state",
+    );
+  }
+  const principals = new PrincipalRegistry();
+  principals.register(input.record.publicPrincipal);
+  principals.verify(
+    input.record.recordedBy,
+    stateTransitionSignedBody(
+      input.record,
+    ) as unknown as JsonValue,
+    input.record.attestation,
+  );
+}
+
+const VAULT_FAILURE_CODES =
+  new Set<HarnessErrorCode>([
+    "AUTHENTICATION_FAILED",
+    "AUTHORIZATION_DENIED",
+    "SCHEMA_INVALID",
+    "HASH_MISMATCH",
+    "REPLAY_DETECTED",
+    "PAYLOAD_TOO_LARGE",
+    "DEADLINE_EXCEEDED",
+    "BUDGET_EXHAUSTED",
+    "PROTOCOL_MISMATCH",
+    "ARTIFACT_UNAVAILABLE",
+    "PEER_CRASHED",
+    "INVALID_STATE_TRANSITION",
+    "TOOL_NOT_FOUND",
+    "TOOL_EXECUTION_FAILED",
+    "VERIFICATION_FAILED",
+    "CONFLICT",
+    "INTERNAL_ERROR",
+  ]);
+
+function failureFromRecord(
+  record: VaultStateTransitionRecord,
+): HarnessError | null {
+  if (record.decision === "allowed") return null;
+  assertCondition(
+    VAULT_FAILURE_CODES.has(
+      record.reasonCode as HarnessErrorCode,
+    ),
+    "HASH_MISMATCH",
+    "Vault denial contains an unknown disposition",
+  );
+  return new HarnessError(
+    record.reasonCode as HarnessErrorCode,
+    `Previously committed vault denial ${record.transitionId}`,
+  );
+}
+
+class VaultCrashSignal extends Error {
+  public readonly causeValue: unknown;
+
+  public constructor(
+    readonly phase: VaultCrashPhase,
+    cause: unknown,
+  ) {
+    super(`Simulated vault crash at ${phase}`, {
+      cause,
+    });
+    this.name = "VaultCrashSignal";
+    this.causeValue = cause;
+  }
+}
+
+interface RecoveredVaultJournal {
+  readonly entries: readonly {
+    readonly journal:
+      CasAppendOnlyRecord<JsonValue>;
+    readonly payload: VaultJournalPayload;
+  }[];
+  readonly records: readonly {
+    readonly journal:
+      CasAppendOnlyRecord<JsonValue>;
+    readonly transition:
+      VaultStateTransitionRecord;
+  }[];
+  readonly head: string | null;
+  readonly latestFence: {
+    readonly journal:
+      CasAppendOnlyRecord<JsonValue>;
+    readonly fence: VaultWriterFenceRecord;
+  } | null;
+  readonly tasks: Map<string, VaultTaskEntry>;
+  readonly acceptedSequences: Map<string, number>;
+  readonly acceptedNonces: Set<string>;
+  readonly usedCapabilities: Set<string>;
+  readonly requests: Map<
+    string,
+    VaultStateTransitionRecord
+  >;
+}
+
 export class EvaluatorVault {
   readonly #contract: EvaluatorVaultContract;
   readonly #schemas: SchemaRegistry;
   readonly #vaultSigner: PrincipalSigner;
-  readonly #accessLog: AppendOnlyLog<JsonValue>;
-  readonly #pending = new Map<string, PendingAuthorship>();
-  readonly #tasks = new Map<string, VaultTaskEntry>();
-  readonly #usedCapabilities = new Set<string>();
+  readonly #stateLog: CasAppendOnlyLog<JsonValue>;
+  readonly #writerLease: VaultWriterLease;
+  readonly #clock: Clock;
+  readonly #crashInjector:
+    | ((
+        phase: VaultCrashPhase,
+      ) => void | Promise<void>)
+    | undefined;
+  #taskCache = new Map<string, VaultTaskEntry>();
   readonly #authorshipAdmissions = new Map<
     string,
     string
@@ -698,6 +1134,12 @@ export class EvaluatorVault {
       HistoricalPublicExposurePolicy;
     readonly authorshipAdmissions:
       readonly VaultAuthorshipAdmission[];
+    readonly leaseOwnerId?: string;
+    readonly clock?: Clock;
+    readonly leaseTtlMillis?: number;
+    readonly crashInjector?: (
+      phase: VaultCrashPhase,
+    ) => void | Promise<void>;
   }) {
     verifyEvaluatorVaultContract({
       record: input.contract,
@@ -714,6 +1156,8 @@ export class EvaluatorVault {
     this.#contract = input.contract;
     this.#schemas = input.schemas;
     this.#vaultSigner = input.vaultSigner;
+    this.#clock = input.clock ?? new SystemClock();
+    this.#crashInjector = input.crashInjector;
     for (const admission of input.authorshipAdmissions) {
       verifyIndependentAuthorshipTransition({
         record: admission.included,
@@ -745,10 +1189,27 @@ export class EvaluatorVault {
         admission.included.recordHash,
       );
     }
-    this.#accessLog = new AppendOnlyLog<JsonValue>(
-      path.join(input.root, "vault-access"),
-      `vault-access.${input.contract.contractId}`,
+    this.#stateLog = new CasAppendOnlyLog<JsonValue>(
+      input.root,
+      `vault-state.${input.contract.contractId}`,
     );
+    this.#writerLease = new VaultWriterLease({
+      root: input.root,
+      ownerId:
+        input.leaseOwnerId ??
+        `vault-process.${process.pid}.${sha256Text(
+          `${process.pid}\0${this.#clock
+            .monotonicNanos()
+            .toString()}`,
+        ).slice(7, 23)}`,
+      contract: input.contract,
+      schemas: input.schemas,
+      vaultSigner: input.vaultSigner,
+      clock: this.#clock,
+      ...(input.leaseTtlMillis === undefined
+        ? {}
+        : { ttlMillis: input.leaseTtlMillis }),
+    });
   }
 
   public issueUnlockCapability(input: {
@@ -758,7 +1219,9 @@ export class EvaluatorVault {
     readonly expiresAt: string;
     readonly nonce: string;
   }): OpaqueTaskCapability {
-    const task = this.#tasks.get(input.taskHandle);
+    const task = this.#taskCache.get(
+      sha256Text(input.taskHandle),
+    );
     assertCondition(
       task?.state === "sealed",
       "INVALID_STATE_TRANSITION",
@@ -789,31 +1252,98 @@ export class EvaluatorVault {
   async #processOne(
     request: VaultAccessRequest,
   ): Promise<VaultAccessOutcome> {
-    const priorRecords = await this.#accessLog.readAll();
-    const priorAccessRecords = priorRecords.map((entry) => {
-      const record =
-        entry.payload as unknown as VaultAccessRecord;
-      verifyVaultAccessRecord({
-        record,
-        contract: this.#contract,
-        schemas: this.#schemas,
-      });
-      return record;
-    });
+    let lease: VaultWriterLeaseHandle | null = null;
+    let releasedLease = false;
+    try {
+      lease = await this.#writerLease.acquire();
+      await this.#appendWriterFence(lease);
+      const committed =
+        await this.#processUnderLease(
+          request,
+          lease,
+          (renewed) => {
+            lease = renewed;
+          },
+        );
+      await this.#injectCrash(
+        "after_durable_commit_before_release",
+      );
+      await this.#writerLease.release(
+        committed.lease,
+      );
+      releasedLease = true;
+      await this.#injectCrash(
+        "after_release_before_ack",
+      );
+      if (committed.failure !== null) {
+        throw committed.failure;
+      }
+      return committed.outcome;
+    } catch (error) {
+      if (
+        lease !== null &&
+        !releasedLease &&
+        !(error instanceof VaultCrashSignal)
+      ) {
+        await this.#writerLease
+          .release(lease)
+          .catch(() => undefined);
+      }
+      if (error instanceof VaultCrashSignal) {
+        throw new HarnessError(
+          "PEER_CRASHED",
+          `Vault process crashed at ${error.phase}`,
+          { cause: error.causeValue },
+        );
+      }
+      throw error;
+    }
+  }
+
+  async #processUnderLease(
+    request: VaultAccessRequest,
+    initialLease: VaultWriterLeaseHandle,
+    onLeaseRenewed: (
+      lease: VaultWriterLeaseHandle,
+    ) => void,
+  ): Promise<{
+    readonly outcome: VaultAccessOutcome;
+    readonly failure: HarnessError | null;
+    readonly lease: VaultWriterLeaseHandle;
+  }> {
+    const snapshot = await this.#recoverJournal();
+    const requestCommitment = sha256(
+      request as unknown as JsonValue,
+    );
+    const priorDecision =
+      snapshot.requests.get(requestCommitment);
+    if (priorDecision !== undefined) {
+      return {
+        outcome: {
+          accessRecord:
+            priorDecision.accessRecord,
+          releasedCommitments:
+            priorDecision.releasedCommitments,
+        },
+        failure: failureFromRecord(priorDecision),
+        lease: initialLease,
+      };
+    }
     const observedRequestHash = sha256(
       requestCore(request) as unknown as JsonValue,
     );
-    const stateBefore =
+    const taskHandleCommitment =
       request.taskHandle === null
         ? null
-        : (this.#tasks.get(request.taskHandle)?.state ??
-          null);
+        : sha256Text(request.taskHandle);
+    const task =
+      taskHandleCommitment === null
+        ? undefined
+        : snapshot.tasks.get(taskHandleCommitment);
+    const stateBefore = task?.state ?? null;
     let stateAfter = stateBefore;
     let releaseRecord = emptyRelease();
     let releasedCommitments: readonly string[] = [];
-    let allowedMutation:
-      | (() => void)
-      | null = null;
     let failure: HarnessError | null = null;
 
     try {
@@ -854,62 +1384,41 @@ export class EvaluatorVault {
       );
       this.#assertFreshRequest(
         request,
-        priorAccessRecords,
+        snapshot,
       );
 
       switch (request.action) {
         case "create": {
           assertOpaqueHandle(request.taskHandle);
           assertCondition(
-            !this.#pending.has(request.taskHandle) &&
-              !this.#tasks.has(request.taskHandle) &&
+            task === undefined &&
               this.#authorshipAdmissions.get(
-                sha256Text(request.taskHandle),
+                taskHandleCommitment!,
               ) === request.subjectCommitment,
             "AUTHORIZATION_DENIED",
             "Opaque task is not bound to an included authorship admission",
           );
-          const authorshipRecordHash =
-            request.subjectCommitment!;
-          allowedMutation = () => {
-            this.#pending.set(request.taskHandle!, {
-              authorshipRecordHash,
-            });
-          };
+          stateAfter = "created";
           break;
         }
         case "seal": {
           assertOpaqueHandle(request.taskHandle);
-          const pending = this.#pending.get(
-            request.taskHandle,
-          );
           assertCondition(
-            pending !== undefined &&
-              pending.authorshipRecordHash ===
+            task?.state === "created" &&
+              task.authorshipRecordHash ===
                 request.subjectCommitment &&
-              !this.#tasks.has(request.taskHandle),
+              task.evaluationCommitment === null &&
+              task.scoreCommitment === null,
             "AUTHORIZATION_DENIED",
             "Seal request lacks the admitted authorship commitment",
           );
           stateAfter = "sealed";
-          allowedMutation = () => {
-            this.#pending.delete(request.taskHandle!);
-            this.#tasks.set(request.taskHandle!, {
-              authorshipRecordHash:
-                pending.authorshipRecordHash,
-              state: "sealed",
-              evaluationCommitment: null,
-              scoreCommitment: null,
-            });
-          };
           break;
         }
         case "enumerate": {
           releasedCommitments = [
-            ...this.#tasks.keys(),
-          ]
-            .map((handle) => sha256Text(handle))
-            .sort();
+            ...snapshot.tasks.keys(),
+          ].sort();
           releaseRecord = release(
             "opaque_handle_commitments",
             "vault",
@@ -919,9 +1428,6 @@ export class EvaluatorVault {
         }
         case "unlock": {
           assertOpaqueHandle(request.taskHandle);
-          const task = this.#tasks.get(
-            request.taskHandle,
-          );
           assertCondition(
             task?.state === "sealed",
             "INVALID_STATE_TRANSITION",
@@ -929,7 +1435,7 @@ export class EvaluatorVault {
           );
           const capability = request.capability!;
           assertCondition(
-            !this.#usedCapabilities.has(
+            !snapshot.usedCapabilities.has(
               capability.capabilityHash,
             ),
             "REPLAY_DETECTED",
@@ -953,22 +1459,10 @@ export class EvaluatorVault {
             "evaluator",
             ["capabilityHash"],
           );
-          allowedMutation = () => {
-            this.#usedCapabilities.add(
-              capability.capabilityHash,
-            );
-            this.#tasks.set(request.taskHandle!, {
-              ...task,
-              state: "unlocked",
-            });
-          };
           break;
         }
         case "evaluate": {
           assertOpaqueHandle(request.taskHandle);
-          const task = this.#tasks.get(
-            request.taskHandle,
-          );
           assertCondition(
             task?.state === "unlocked",
             "INVALID_STATE_TRANSITION",
@@ -985,20 +1479,10 @@ export class EvaluatorVault {
             "scorer",
             ["evaluationCommitment"],
           );
-          allowedMutation = () => {
-            this.#tasks.set(request.taskHandle!, {
-              ...task,
-              state: "evaluated",
-              evaluationCommitment,
-            });
-          };
           break;
         }
         case "score": {
           assertOpaqueHandle(request.taskHandle);
-          const task = this.#tasks.get(
-            request.taskHandle,
-          );
           assertCondition(
             task?.state === "evaluated" &&
               task.evaluationCommitment ===
@@ -1024,16 +1508,13 @@ export class EvaluatorVault {
             "promoter",
             ["scoreCommitment"],
           );
-          allowedMutation = () => {
-            this.#tasks.set(request.taskHandle!, {
-              ...task,
-              state: "scored",
-              scoreCommitment,
-            });
-          };
           break;
         }
         case "audit": {
+          const priorHead =
+            snapshot.head;
+          releasedCommitments =
+            priorHead === null ? [] : [priorHead];
           releaseRecord = release(
             "access_chain_head",
             "audit_store",
@@ -1047,11 +1528,10 @@ export class EvaluatorVault {
       stateAfter = stateBefore;
       releaseRecord = emptyRelease();
       releasedCommitments = [];
-      allowedMutation = null;
     }
 
     const accessRecord = this.#createAccessRecord({
-      sequence: priorRecords.length,
+      sequence: snapshot.records.length,
       request,
       observedRequestHash,
       decision: failure === null ? "allowed" : "denied",
@@ -1060,75 +1540,131 @@ export class EvaluatorVault {
       stateAfter,
       release: releaseRecord,
     });
-    const appended = await this.#accessLog.append(
-      accessRecord as unknown as JsonValue,
+    const lease =
+      await this.#writerLease.renew(initialLease);
+    onLeaseRenewed(lease);
+    await this.#writerLease.assertCurrent(lease);
+    const fencedHead =
+      await this.#appendWriterFence(lease);
+    const transition =
+      this.#createStateTransition({
+        sequence: snapshot.records.length,
+        request,
+        requestCommitment,
+        accessRecord,
+        priorVaultLedgerHead: fencedHead,
+        priorTaskStateRecordHash:
+          task?.stateRecordHash ?? null,
+        authorshipRecordHash:
+          task?.authorshipRecordHash ??
+          (taskHandleCommitment === null
+            ? null
+            : (this.#authorshipAdmissions.get(
+                taskHandleCommitment,
+              ) ?? null)),
+        lease,
+        releasedCommitments,
+        taskStateSuccessor:
+          failure === null &&
+          legalTaskSuccessor(
+            request.action,
+            stateBefore,
+            stateAfter,
+          ),
+      });
+    const appended =
+      await this.#stateLog.appendExpected({
+        expectedHeadHash:
+          transition.priorVaultLedgerHead,
+        payload: transition as unknown as JsonValue,
+        inject: async (phase) => {
+          await this.#injectCasCrash(phase);
+        },
+      });
+    await this.#stateLog.synchronize();
+    const committedHead = await this.#stateLog.head();
+    assertCondition(
+      committedHead?.recordHash ===
+        appended.recordHash,
+      "HASH_MISMATCH",
+      "Vault transition is not the committed durable head",
     );
-    allowedMutation?.();
-    if (
-      failure === null &&
-      request.action === "audit"
-    ) {
-      releasedCommitments = [appended.recordHash];
-    }
-    if (failure !== null) throw failure;
-    return { accessRecord, releasedCommitments };
+    await this.#recoverJournal();
+    return {
+      outcome: {
+        accessRecord,
+        releasedCommitments,
+      },
+      failure,
+      lease,
+    };
   }
 
   public async readAccessLedger(): Promise<
     readonly VaultAccessRecord[]
   > {
-    const records = await this.#accessLog.readAll();
-    return records.map((entry) => {
-      const record =
-        entry.payload as unknown as VaultAccessRecord;
-      verifyVaultAccessRecord({
-        record,
-        contract: this.#contract,
-        schemas: this.#schemas,
-      });
-      return record;
-    });
+    return (await this.#recoverJournal()).records.map(
+      (entry) => entry.transition.accessRecord,
+    );
+  }
+
+  public async readStateJournal(): Promise<
+    readonly VaultStateTransitionRecord[]
+  > {
+    return (await this.#recoverJournal()).records.map(
+      (entry) => entry.transition,
+    );
+  }
+
+  public async readWriterFences(): Promise<
+    readonly VaultWriterFenceRecord[]
+  > {
+    return (await this.#recoverJournal()).entries
+      .map((entry) => entry.payload)
+      .filter(
+        (
+          entry,
+        ): entry is VaultWriterFenceRecord =>
+          entry.recordType ===
+          "vault_writer_fence",
+      );
+  }
+
+  public async recover(): Promise<void> {
+    await this.#recoverJournal();
   }
 
   public taskState(
     taskHandle: string,
   ): VaultTaskState | null {
-    return this.#tasks.get(taskHandle)?.state ?? null;
+    return (
+      this.#taskCache.get(sha256Text(taskHandle))
+        ?.state ?? null
+    );
   }
 
   #assertFreshRequest(
     request: VaultAccessRequest,
-    records: readonly VaultAccessRecord[],
+    snapshot: RecoveredVaultJournal,
   ): void {
-    const channel = `${request.actor.principalId}\0${request.actor.instanceId}`;
     const actorIdentityCommitment = sha256(
       request.actor as unknown as JsonValue,
     );
-    const accepted = records.filter(
-      (record) =>
-        record.decision === "allowed" &&
-        record.actorIdentityCommitment ===
-          actorIdentityCommitment,
-    );
     const expected =
-      Math.max(
-        -1,
-        ...accepted.map(
-          (record) => record.senderSequence,
-        ),
-      ) + 1;
+      (snapshot.acceptedSequences.get(
+        actorIdentityCommitment,
+      ) ?? -1) + 1;
     assertCondition(
       request.senderSequence === expected,
       "REPLAY_DETECTED",
       `Expected vault sender sequence ${expected}`,
     );
     const nonceCommitment = sha256Text(
-      `${channel}\0${request.nonce}`,
+      `${request.actor.principalId}\0${request.actor.instanceId}\0${request.nonce}`,
     );
     assertCondition(
-      !accepted.some(
-        (record) =>
-          record.nonceCommitment === nonceCommitment,
+      !snapshot.acceptedNonces.has(
+        nonceCommitment,
       ),
       "REPLAY_DETECTED",
       "Vault request nonce was already accepted",
@@ -1207,10 +1743,611 @@ export class EvaluatorVault {
     });
     return record;
   }
+
+  async #appendWriterFence(
+    lease: VaultWriterLeaseHandle,
+  ): Promise<string> {
+    for (let attempt = 0; attempt < 64; attempt += 1) {
+      await this.#writerLease.assertCurrent(lease);
+      const snapshot = await this.#recoverJournal();
+      await this.#writerLease.assertCurrent(lease);
+      const fence = this.#createWriterFence({
+        sequence: snapshot.entries.length,
+        priorVaultLedgerHead: snapshot.head,
+        lease,
+      });
+      try {
+        const appended =
+          await this.#stateLog.appendExpected({
+            expectedHeadHash: snapshot.head,
+            payload: fence as unknown as JsonValue,
+          });
+        await this.#stateLog.synchronize();
+        const committed = await this.#recoverJournal();
+        assertCondition(
+          committed.head === appended.recordHash &&
+            committed.latestFence?.fence
+              .recordHash === fence.recordHash,
+          "HASH_MISMATCH",
+          "Vault writer fence is not the committed authoritative head",
+        );
+        return appended.recordHash;
+      } catch (error) {
+        const failure = asHarnessError(error);
+        if (failure.code !== "CONFLICT") {
+          throw error;
+        }
+      }
+    }
+    throw new HarnessError(
+      "CONFLICT",
+      "Vault writer could not fence its epoch after repeated CAS contention",
+      { retryable: true },
+    );
+  }
+
+  #createWriterFence(input: {
+    readonly sequence: number;
+    readonly priorVaultLedgerHead: string | null;
+    readonly lease: VaultWriterLeaseHandle;
+  }): VaultWriterFenceRecord {
+    const fencedAt = this.#clock.now().toISOString();
+    assertCondition(
+      Date.parse(fencedAt) <
+        Date.parse(input.lease.validUntil),
+      "CONFLICT",
+      "Vault lease expired before its epoch fence was signed",
+    );
+    const core: WriterFenceCore = {
+      schemaVersion: 1,
+      recordType: "vault_writer_fence",
+      fenceId:
+        `vault-fence:${input.sequence
+          .toString()
+          .padStart(8, "0")}`,
+      protocolId: this.#contract.protocolId,
+      contractId: this.#contract.contractId,
+      contractHash: this.#contract.contractHash,
+      priorVaultLedgerHead:
+        input.priorVaultLedgerHead,
+      leaseOwnerCommitment:
+        input.lease.ownerCommitment,
+      leaseEpoch: input.lease.epoch,
+      leaseRecordHash:
+        input.lease.leaseRecordHash,
+      leaseJournalHead:
+        input.lease.leaseJournalHead,
+      fencedAt,
+      recordedBy: this.#vaultSigner.identity,
+    };
+    const publicPrincipal =
+      this.#vaultSigner.exportPublic();
+    const body: WriterFenceSignedBody = {
+      ...core,
+      recordHash: sha256(
+        core as unknown as JsonValue,
+      ),
+      publicPrincipal,
+    };
+    const fence: VaultWriterFenceRecord = {
+      ...body,
+      attestation: this.#vaultSigner.attest(
+        body as unknown as JsonValue,
+      ),
+    };
+    verifyVaultWriterFenceRecord({
+      record: fence,
+      priorVaultLedgerHead:
+        input.priorVaultLedgerHead,
+      contract: this.#contract,
+      schemas: this.#schemas,
+    });
+    return fence;
+  }
+
+  #createStateTransition(input: {
+    readonly sequence: number;
+    readonly request: VaultAccessRequest;
+    readonly requestCommitment: string;
+    readonly accessRecord: VaultAccessRecord;
+    readonly priorVaultLedgerHead: string | null;
+    readonly priorTaskStateRecordHash: string | null;
+    readonly authorshipRecordHash: string | null;
+    readonly lease: VaultWriterLeaseHandle;
+    readonly releasedCommitments: readonly string[];
+    readonly taskStateSuccessor: boolean;
+  }): VaultStateTransitionRecord {
+    const releasedCommitments = [
+      ...input.releasedCommitments,
+    ].sort();
+    const committedAt =
+      this.#clock.now().toISOString();
+    assertCondition(
+      Date.parse(committedAt) <
+        Date.parse(input.lease.validUntil),
+      "CONFLICT",
+      "Vault lease expired before transition signing",
+    );
+    const core: StateTransitionCore = {
+      schemaVersion: 1,
+      recordType: "vault_state_transition",
+      transitionId:
+        `vault-transition:${input.sequence
+          .toString()
+          .padStart(8, "0")}`,
+      protocolId: this.#contract.protocolId,
+      contractId: this.#contract.contractId,
+      contractHash: this.#contract.contractHash,
+      requestCommitment: input.requestCommitment,
+      requestIdCommitment:
+        input.accessRecord.requestIdCommitment,
+      action: input.request.action,
+      taskHandleCommitment:
+        input.accessRecord.taskHandleCommitment,
+      authorshipRecordHash:
+        input.authorshipRecordHash,
+      priorTaskStateRecordHash:
+        input.priorTaskStateRecordHash,
+      priorVaultLedgerHead:
+        input.priorVaultLedgerHead,
+      leaseOwnerCommitment:
+        input.lease.ownerCommitment,
+      leaseEpoch: input.lease.epoch,
+      leaseRecordHash:
+        input.lease.leaseRecordHash,
+      leaseJournalHead:
+        input.lease.leaseJournalHead,
+      actorRole: input.accessRecord.actorRole,
+      actorIdentityCommitment:
+        input.accessRecord.actorIdentityCommitment,
+      actorKeyIdCommitment:
+        input.accessRecord.actorKeyIdCommitment,
+      capabilityCommitment:
+        input.request.capability?.capabilityHash ??
+        null,
+      inputCommitment:
+        input.request.subjectCommitment,
+      resultCommitment:
+        releaseResultCommitment(
+          releasedCommitments,
+        ),
+      releasedCommitments,
+      decision: input.accessRecord.decision,
+      reasonCode: input.accessRecord.reasonCode,
+      stateBefore: input.accessRecord.stateBefore,
+      stateAfter: input.accessRecord.stateAfter,
+      taskStateSuccessor:
+        input.taskStateSuccessor,
+      accessRecord: input.accessRecord,
+      occurredAt: input.request.requestedAt,
+      committedAt,
+      recordedBy: this.#vaultSigner.identity,
+    };
+    const publicPrincipal =
+      this.#vaultSigner.exportPublic();
+    const body: StateTransitionSignedBody = {
+      ...core,
+      recordHash: sha256(
+        core as unknown as JsonValue,
+      ),
+      publicPrincipal,
+    };
+    const transition: VaultStateTransitionRecord = {
+      ...body,
+      attestation: this.#vaultSigner.attest(
+        body as unknown as JsonValue,
+      ),
+    };
+    verifyVaultStateTransitionRecord({
+      record: transition,
+      priorVaultLedgerHead:
+        input.priorVaultLedgerHead,
+      contract: this.#contract,
+      schemas: this.#schemas,
+    });
+    return transition;
+  }
+
+  async #recoverJournal(): Promise<RecoveredVaultJournal> {
+    await this.#stateLog.synchronize();
+    const journalRecords =
+      await this.#stateLog.readAll();
+    const leaseHistory =
+      await this.#writerLease.recover();
+    const leaseByJournalHead = new Map(
+      leaseHistory.map((entry) => [
+        entry.journal.recordHash,
+        entry.lease,
+      ]),
+    );
+    const entries: {
+      readonly journal:
+        CasAppendOnlyRecord<JsonValue>;
+      readonly payload: VaultJournalPayload;
+    }[] = [];
+    const records: {
+      readonly journal:
+        CasAppendOnlyRecord<JsonValue>;
+      readonly transition:
+        VaultStateTransitionRecord;
+    }[] = [];
+    const tasks = new Map<string, VaultTaskEntry>();
+    const acceptedSequences = new Map<string, number>();
+    const acceptedNonces = new Set<string>();
+    const usedCapabilities = new Set<string>();
+    const requests = new Map<
+      string,
+      VaultStateTransitionRecord
+    >();
+    let latestFence: {
+      readonly journal:
+        CasAppendOnlyRecord<JsonValue>;
+      readonly fence: VaultWriterFenceRecord;
+    } | null = null;
+
+    for (const journal of journalRecords) {
+      assertCondition(
+        typeof journal.payload === "object" &&
+          journal.payload !== null &&
+          !Array.isArray(journal.payload) &&
+          (journal.payload["recordType"] ===
+            "vault_writer_fence" ||
+            journal.payload["recordType"] ===
+              "vault_state_transition"),
+        "SCHEMA_INVALID",
+        "Vault journal contains an unknown record type",
+      );
+      if (
+        journal.payload["recordType"] ===
+        "vault_writer_fence"
+      ) {
+        const fence =
+          journal.payload as unknown as VaultWriterFenceRecord;
+        verifyVaultWriterFenceRecord({
+          record: fence,
+          priorVaultLedgerHead:
+            journal.previousRecordHash,
+          contract: this.#contract,
+          schemas: this.#schemas,
+        });
+        const boundLease = leaseByJournalHead.get(
+          fence.leaseJournalHead,
+        );
+        const fencedAt = Date.parse(fence.fencedAt);
+        assertCondition(
+          fence.fenceId ===
+            `vault-fence:${entries.length
+              .toString()
+              .padStart(8, "0")}` &&
+          boundLease !== undefined &&
+            boundLease.action !== "release" &&
+            boundLease.recordHash ===
+              fence.leaseRecordHash &&
+            boundLease.ownerCommitment ===
+              fence.leaseOwnerCommitment &&
+            boundLease.epoch === fence.leaseEpoch &&
+            fencedAt >=
+              Date.parse(boundLease.recordedAt) &&
+            fencedAt <
+              Date.parse(boundLease.validUntil) &&
+            (latestFence === null ||
+              fence.leaseEpoch >
+                latestFence.fence.leaseEpoch ||
+              (fence.leaseEpoch ===
+                latestFence.fence.leaseEpoch &&
+                fence.leaseOwnerCommitment ===
+                  latestFence.fence
+                    .leaseOwnerCommitment &&
+                fence.leaseRecordHash !==
+                  latestFence.fence
+                    .leaseRecordHash &&
+                boundLease.action === "renew")),
+          "CONFLICT",
+          "Vault writer fence is stale or detached from its lease epoch",
+        );
+        latestFence = { journal, fence };
+        entries.push({ journal, payload: fence });
+        continue;
+      }
+      const transition =
+        journal.payload as unknown as VaultStateTransitionRecord;
+      verifyVaultStateTransitionRecord({
+        record: transition,
+        priorVaultLedgerHead:
+          journal.previousRecordHash,
+        contract: this.#contract,
+        schemas: this.#schemas,
+      });
+      const boundLease = leaseByJournalHead.get(
+        transition.leaseJournalHead,
+      );
+      const committedAt = Date.parse(
+        transition.committedAt,
+      );
+      assertCondition(
+        latestFence !== null &&
+          journal.previousRecordHash ===
+            latestFence.journal.recordHash &&
+          transition.leaseOwnerCommitment ===
+            latestFence.fence
+              .leaseOwnerCommitment &&
+          transition.leaseEpoch ===
+            latestFence.fence.leaseEpoch &&
+          transition.leaseRecordHash ===
+            latestFence.fence.leaseRecordHash &&
+          transition.leaseJournalHead ===
+            latestFence.fence.leaseJournalHead &&
+          boundLease !== undefined &&
+          boundLease.action !== "release" &&
+          boundLease.recordHash ===
+            transition.leaseRecordHash &&
+          boundLease.ownerCommitment ===
+            transition.leaseOwnerCommitment &&
+          boundLease.epoch ===
+            transition.leaseEpoch &&
+          committedAt >=
+            Date.parse(boundLease.recordedAt) &&
+          committedAt <
+            Date.parse(boundLease.validUntil),
+        "CONFLICT",
+        "Vault transition is not fenced by its active durable lease",
+      );
+      assertCondition(
+        transition.transitionId ===
+          `vault-transition:${records.length
+            .toString()
+            .padStart(8, "0")}` &&
+          transition.accessRecord.accessRecordId ===
+            `vault-access:${records.length
+              .toString()
+              .padStart(8, "0")}`,
+        "HASH_MISMATCH",
+        "Vault transition sequence identity changed",
+      );
+      assertCondition(
+        !requests.has(
+          transition.requestCommitment,
+        ),
+        "REPLAY_DETECTED",
+        "Vault journal contains a duplicated exact request",
+      );
+      requests.set(
+        transition.requestCommitment,
+        transition,
+      );
+
+      const taskCommitment =
+        transition.taskHandleCommitment;
+      const priorTask =
+        taskCommitment === null
+          ? undefined
+          : tasks.get(taskCommitment);
+      assertCondition(
+        transition.priorTaskStateRecordHash ===
+          (priorTask?.stateRecordHash ?? null) &&
+          transition.stateBefore ===
+            (priorTask?.state ?? null),
+        "HASH_MISMATCH",
+        "Vault task transition does not extend the authoritative task head",
+      );
+      if (taskCommitment === null) {
+        assertCondition(
+          transition.authorshipRecordHash === null &&
+            transition.priorTaskStateRecordHash ===
+              null &&
+            transition.stateBefore === null &&
+            transition.stateAfter === null,
+          "INVALID_STATE_TRANSITION",
+          "Non-task vault decision carries task state",
+        );
+      } else if (priorTask !== undefined) {
+        assertCondition(
+          transition.authorshipRecordHash ===
+            priorTask.authorshipRecordHash,
+          "HASH_MISMATCH",
+          "Vault task authorship binding changed",
+        );
+      } else {
+        assertCondition(
+          transition.authorshipRecordHash ===
+            (this.#authorshipAdmissions.get(
+              taskCommitment,
+            ) ?? null),
+          "AUTHORIZATION_DENIED",
+          "Vault transition is detached from admitted authorship",
+        );
+      }
+
+      if (transition.taskStateSuccessor) {
+        assertCondition(
+          taskCommitment !== null &&
+            legalTaskSuccessor(
+              transition.action,
+              transition.stateBefore,
+              transition.stateAfter,
+            ),
+          "INVALID_STATE_TRANSITION",
+          "Vault task successor has an invalid predecessor",
+        );
+        const authorshipRecordHash =
+          transition.authorshipRecordHash!;
+        let evaluationCommitment =
+          priorTask?.evaluationCommitment ?? null;
+        let scoreCommitment =
+          priorTask?.scoreCommitment ?? null;
+        switch (transition.action) {
+          case "create":
+            assertCondition(
+              transition.inputCommitment ===
+                authorshipRecordHash,
+              "HASH_MISMATCH",
+              "Create transition does not bind admitted authorship",
+            );
+            break;
+          case "seal":
+            assertCondition(
+              transition.inputCommitment ===
+                authorshipRecordHash,
+              "HASH_MISMATCH",
+              "Seal transition changed authorship commitment",
+            );
+            break;
+          case "unlock":
+            assertCondition(
+              transition.capabilityCommitment !==
+                null &&
+                !usedCapabilities.has(
+                  transition.capabilityCommitment,
+                ) &&
+                canonicalize(
+                  transition
+                    .releasedCommitments as unknown as JsonValue,
+                ) ===
+                  canonicalize(
+                    [
+                      transition.capabilityCommitment,
+                    ] as unknown as JsonValue,
+                  ),
+              "REPLAY_DETECTED",
+              "Unlock transition reused or failed to bind its capability",
+            );
+            usedCapabilities.add(
+              transition.capabilityCommitment,
+            );
+            break;
+          case "evaluate":
+            assertCondition(
+              transition.inputCommitment !== null &&
+                canonicalize(
+                  transition
+                    .releasedCommitments as unknown as JsonValue,
+                ) ===
+                  canonicalize(
+                    [
+                      transition.inputCommitment,
+                    ] as unknown as JsonValue,
+                  ),
+              "HASH_MISMATCH",
+              "Evaluation transition changed its released commitment",
+            );
+            evaluationCommitment =
+              transition.inputCommitment;
+            break;
+          case "score":
+            assertCondition(
+              transition.inputCommitment !== null &&
+                transition.inputCommitment ===
+                  priorTask?.evaluationCommitment &&
+                transition.releasedCommitments
+                  .length === 1,
+              "HASH_MISMATCH",
+              "Score transition is detached from evaluation",
+            );
+            scoreCommitment =
+              transition.releasedCommitments[0]!;
+            break;
+          case "enumerate":
+          case "audit":
+            throw new HarnessError(
+              "INVALID_STATE_TRANSITION",
+              "Read-only action cannot advance task state",
+            );
+        }
+        tasks.set(taskCommitment, {
+          authorshipRecordHash,
+          state: transition.stateAfter!,
+          evaluationCommitment,
+          scoreCommitment,
+          stateRecordHash:
+            transition.recordHash,
+        });
+      }
+
+      if (transition.decision === "allowed") {
+        const priorAccepted =
+          acceptedSequences.get(
+            transition.actorIdentityCommitment,
+          ) ?? -1;
+        assertCondition(
+          transition.accessRecord.senderSequence ===
+            priorAccepted + 1 &&
+            !acceptedNonces.has(
+              transition.accessRecord
+                .nonceCommitment,
+            ),
+          "REPLAY_DETECTED",
+          "Accepted vault sequence or nonce is not monotonic",
+        );
+        acceptedSequences.set(
+          transition.actorIdentityCommitment,
+          transition.accessRecord.senderSequence,
+        );
+        acceptedNonces.add(
+          transition.accessRecord.nonceCommitment,
+        );
+      }
+      entries.push({
+        journal,
+        payload: transition,
+      });
+      records.push({ journal, transition });
+    }
+    this.#taskCache = new Map(tasks);
+    return {
+      entries,
+      records,
+      head:
+        journalRecords.at(-1)?.recordHash ?? null,
+      latestFence,
+      tasks,
+      acceptedSequences,
+      acceptedNonces,
+      usedCapabilities,
+      requests,
+    };
+  }
+
+  async #injectCasCrash(
+    phase: CasAppendPhase,
+  ): Promise<void> {
+    switch (phase) {
+      case "before_append":
+        await this.#injectCrash(
+          "before_state_append",
+        );
+        break;
+      case "during_append":
+        await this.#injectCrash(
+          "during_state_append",
+        );
+        break;
+      case "after_publish_before_sync":
+        await this.#injectCrash(
+          "after_state_publish_before_sync",
+        );
+        break;
+      case "after_sync":
+        await this.#injectCrash(
+          "after_state_sync_before_verify",
+        );
+        break;
+    }
+  }
+
+  async #injectCrash(
+    phase: VaultCrashPhase,
+  ): Promise<void> {
+    if (this.#crashInjector === undefined) return;
+    try {
+      await this.#crashInjector(phase);
+    } catch (error) {
+      throw new VaultCrashSignal(phase, error);
+    }
+  }
 }
 
 export function vaultAccessLogHead(
-  records: readonly AppendOnlyRecord<JsonValue>[],
+  records: readonly CasAppendOnlyRecord<JsonValue>[],
 ): string | null {
   return records.at(-1)?.recordHash ?? null;
 }

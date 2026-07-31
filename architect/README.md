@@ -18,6 +18,7 @@ the next gate:
 | 03RRRR | `PACKET_03RRRR_PROCESS_BOUNDARY_AND_RUNTIME_EVIDENCE.md` | REVISE: technical boundary accepted; publication governance correction required |
 | 03RRRRR | `PACKET_03RRRRR_PUBLICATION_GOVERNANCE_CLOSURE.md` | REVISE: snapshot policy accepted; historical public-object union required |
 | 03RRRRRR | `PACKET_03RRRRRR_HISTORICAL_PUBLICATION_COMPLETENESS.md` | APPROVE: four-root historical publication governance closed |
+| 03RRRRRRR | `PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md` | REVISE: logical trust contract accepted; durable globally serialized task state required |
 
 External transmission, code upload, paid-provider use, and sealed-test access require explicit user
 approval at the time of the action. Preparing a local packet does not grant those permissions.
@@ -33,6 +34,12 @@ contracts using synthetic metadata, plus public-history contamination rejections
 follow-up packet. It does not authorize another push, provider/API use, real gate/final/temporal/
 withheld-public task bodies, research execution, selection, promotion, deployment, release, or
 empirical claims.
+
+Round 03RRRRRRR authorizes only the local deterministic body-free durable-state correction requested
+in its `REVISE`: one authoritative task-state journal, expected-head CAS, cross-process lease/fencing,
+commit-before-release, deterministic crash recovery, restart/fresh-request rejection, and a narrow
+follow-up packet. It does not authorize a push, provider/API, real task body, research/B0–B6,
+selection, promotion, deployment, release, or empirical/security/self-improvement claim.
 
 Valid decisions are:
 

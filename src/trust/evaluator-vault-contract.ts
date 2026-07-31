@@ -218,6 +218,46 @@ export const EVALUATOR_VAULT_ACTION_AUTHORITY:
     },
   ]);
 
+export const EVALUATOR_VAULT_STATE_AUTHORITY_POLICY =
+  Object.freeze({
+    authoritativeJournal:
+      "vault_state_cas_journal" as const,
+    accessDecisionEmbedded: true as const,
+    perTaskPriorHashRequired: true as const,
+    globalExpectedHeadRequired: true as const,
+    writerFenceRequired: true as const,
+    transitionMustImmediatelyExtendFence:
+      true as const,
+    fileSyncBeforeRelease: true as const,
+    directorySyncBeforeRelease: true as const,
+    committedHeadVerificationBeforeRelease:
+      true as const,
+    exactRetryDisposition:
+      "return_committed_disposition" as const,
+    freshObsoleteRequestDenied: true as const,
+  });
+
+export const EVALUATOR_VAULT_WRITER_LEASE_POLICY =
+  Object.freeze({
+    authority: "coordination_only" as const,
+    actions: Object.freeze([
+      "acquire",
+      "renew",
+      "release",
+    ] as const),
+    ownerCommitmentRequired: true as const,
+    monotonicEpochRequired: true as const,
+    minimumTtlMillis: 100 as const,
+    maximumTtlMillis: 300_000 as const,
+    defaultTtlMillis: 30_000 as const,
+    expiryRecovery:
+      "next_epoch_after_expiry" as const,
+    staleWriterRejection:
+      "authoritative_journal_fence_and_expected_head_cas" as const,
+    renewBeforeTransition: true as const,
+    failClosedWithoutExclusiveEpoch: true as const,
+  });
+
 export interface EvaluatorVaultContract {
   readonly schemaVersion: 1;
   readonly contractId: string;
@@ -269,6 +309,10 @@ export interface EvaluatorVaultContract {
     readonly earlyAccessFailsClosed: true;
     readonly protocolMismatchFailsClosed: true;
   };
+  readonly stateAuthorityPolicy:
+    typeof EVALUATOR_VAULT_STATE_AUTHORITY_POLICY;
+  readonly writerLeasePolicy:
+    typeof EVALUATOR_VAULT_WRITER_LEASE_POLICY;
   readonly frozenAt: string;
   readonly frozenBy: PrincipalIdentity;
   readonly contractHash: string;
@@ -456,6 +500,10 @@ export function createEvaluatorVaultContract(input: {
       earlyAccessFailsClosed: true,
       protocolMismatchFailsClosed: true,
     },
+    stateAuthorityPolicy:
+      EVALUATOR_VAULT_STATE_AUTHORITY_POLICY,
+    writerLeasePolicy:
+      EVALUATOR_VAULT_WRITER_LEASE_POLICY,
     frozenAt: input.frozenAt,
     frozenBy: input.signer.identity,
   };
@@ -502,6 +550,20 @@ export function verifyEvaluatorVaultContract(input: {
       ) ===
         canonicalize(
           EVALUATOR_VAULT_ACTION_AUTHORITY as unknown as JsonValue,
+        ) &&
+      canonicalize(
+        input.record
+          .stateAuthorityPolicy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          EVALUATOR_VAULT_STATE_AUTHORITY_POLICY as unknown as JsonValue,
+        ) &&
+      canonicalize(
+        input.record
+          .writerLeasePolicy as unknown as JsonValue,
+      ) ===
+        canonicalize(
+          EVALUATOR_VAULT_WRITER_LEASE_POLICY as unknown as JsonValue,
         ),
     "HASH_MISMATCH",
     "Evaluator-vault immutable policy changed",

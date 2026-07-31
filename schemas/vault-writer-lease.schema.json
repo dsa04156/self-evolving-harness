@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/vault-writer-lease.schema.json",
+  "title": "Vault cross-process writer lease record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordType",
+    "leaseId",
+    "protocolId",
+    "contractId",
+    "contractHash",
+    "action",
+    "ownerCommitment",
+    "epoch",
+    "priorLeaseRecordHash",
+    "priorLeaseJournalHead",
+    "acquiredAt",
+    "validUntil",
+    "releasedAt",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordType": {
+      "const": "vault_writer_lease"
+    },
+    "leaseId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "contractId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "contractHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "acquire",
+        "renew",
+        "release"
+      ]
+    },
+    "ownerCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "priorLeaseRecordHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "priorLeaseJournalHead": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "acquiredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "validUntil": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "releasedAt": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "./common.schema.json#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  }
+}

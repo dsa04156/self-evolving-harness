@@ -84,8 +84,11 @@ Before any future private task can be admitted, the body-free contract requires 
 author, benchmark author, blinded reviewer, vault, evaluator, scorer, promoter, and audit identity.
 Assignment, commitment, blinding, inclusion/rejection, vault seal, one-time unlock, evaluation
 commitment, score commitment, and audit are distinct signed transitions. Denied accesses release no
-fields and preserve state. The current implementation uses synthetic metadata only and does not create
-or evaluate a real task body.
+fields and preserve state. One authoritative CAS journal reconstructs task state and access decisions;
+a separate owner/epoch lease journal coordinates writers, while acquire/renew fences in the
+authoritative journal make stale epochs lose the expected state head. State file sync, directory sync,
+and exact-head verification precede every release. The current implementation uses synthetic metadata
+only and does not create or evaluate a real task body.
 
 The detailed contract is in
 `docs/architecture/evaluator-vault-contract.md`; the remaining architecture and schemas are in

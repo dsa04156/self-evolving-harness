@@ -19,8 +19,11 @@ sealed data, budgets, model identity, audit history, or promotion policy.
   body-free evaluator-vault contract
 - one-time evaluator capability bound to protocol, contract, task commitment, authorship commitment,
   evaluator identity, expiry, and nonce
-- vault-signed allowed/denied access ledger with durable sequence/nonce commitments and zero-release
-  denials
+- vault-signed authoritative CAS task-state/access journal with durable sequence/nonce/capability
+  reconstruction, expected global/per-task heads, and zero-release denials
+- cross-process owner/epoch lease CAS, acquire/renew fences in the authoritative state journal,
+  stale-handle/obsolete-head rejection, and file/directory sync plus committed-head verification before
+  release
 - no secret-bearing private signing key persisted in evidence
 
 The public repository snapshot was scanned for private-key PEM blocks, live-key shapes, GitHub token
@@ -44,7 +47,8 @@ credential placeholders are not credentials.
 | unreviewed/contaminated task admitted | signed assignment/commit/blind/include flow and historical-union check |
 | wrong vault role/key/protocol/capability | exact frozen principal and commitment binding |
 | denial leaks handle/body/result | fixed zero-field denial projection and unchanged state |
-| request replay after process restart | accepted sequence and nonce reconstructed from the access ledger |
+| exact retry or obsolete transition after restart | exact committed disposition reuse plus reconstruction of sequence, nonce, capability, task, evaluation, and score state |
+| concurrent/stale vault writer | durable lease epoch, expected-head CAS, stale-handle rejection, and commit-before-release |
 
 ## Trusted computing base and non-claims
 
@@ -54,9 +58,10 @@ compromise. The current public evidence is `publicDevelopment=true` and
 `authorizedForResearchEvidence=false`; it is not a security certification, independent benchmark,
 promotion authorization, or self-improvement result.
 
-The evaluator-vault result is contract-level only. No real task body is present, its new mount table
-has not been freshly exercised under separate OS identities, and private vault task-state crash
-recovery remains unimplemented.
+The evaluator-vault result is contract-level only. No real task body is present. Body-free task state,
+two-process lease contention, stale-epoch recovery, and crash boundaries are exercised, but the new
+role mount table and a full evaluator/task-body flow have not been freshly exercised under separate OS
+identities.
 
 No real-provider secret is required for deterministic verification. If a real provider smoke is
 later authorized, credentials must enter only through the local environment/provider proxy, be

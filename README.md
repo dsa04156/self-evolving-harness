@@ -24,6 +24,12 @@ The deterministic no-provider runtime and a development-only evolution-boundary 
 The prototype uses eight separate Linux principals for attribution, commitment, scoring, proposing,
 quarantine, runtime execution, evaluation, and audit. It proves development plumbing only.
 
+The local body-free evaluator-vault correction now reconstructs task state from one authoritative CAS
+journal, fences cross-process writers by durable lease epoch, and synchronizes/rehashes the committed
+head before releasing a commitment. Its restart, crash-boundary, stale-writer, and actual two-process
+tests are deterministic development evidence awaiting external Architect review; no real task body or
+benchmark evaluator is involved.
+
 All artifacts published through commit
 `a5d82564cece5ecb776a27c86512c3ec56f32787` are permanently classified as
 `publicDevelopment=true`. For all of them and every copied or transitive derivative,

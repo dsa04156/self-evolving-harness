@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: self-evolving-harness-gate3rrrrrr-history (submitted and reviewed)
+- oracle latest session id: no new Oracle session; Round 03RRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,19 +16,18 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRR Oracle 0.16.1 dry-run positively named the recorded conversation
-  URL, attach-and-reuse behavior, and existing-browser preservation. Direct CDP verified target
-  `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact URL, an empty composer, no stop button, and the prior
-  Round 03RRR response. The first insert operation timed out; recovery verified the exact complete
-  composer and submitted it once without opening a new tab or window.
+- last reuse preflight: Round 03RRRRRRR direct CDP verified target
+  `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no stop button,
+  and the prior Round 03RRRRRR response. The first insert operation timed out; recovery verified the
+  exact complete 15,645-character composer and submitted it once without opening a new tab or window.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-07-31
-- last packet: `architect/PACKET_03RRRRRR_HISTORICAL_PUBLICATION_COMPLETENESS.md`
-- last packet sha256: `f1f0e74a7b0198bace6e206ff49a3e208b4c6fa8d01fa9865b4bfabcfdd4d37f`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrr.md`
-- last response sha256: `7070922e4ea18844d1ffb0dde9e9076085feff97b260eb3086acf6e4f3295074`
-- next packet: local evaluator-vault and independent-authorship trust contract
+- last packet: `architect/PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md`
+- last packet sha256: `c2f263172a11ee2a8f504a8ecd750f1db4bba257e6c62ee218081f58fae182a4`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrr.md`
+- last response sha256: `a54958e0e9888aff29f644c94f3b1e0cebb53442be4ec435cd02f4c0995eefcb`
+- next packet: durable globally serialized vault-state correction
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -53,7 +52,14 @@
 - Round 03RRRRRR decision: `APPROVE`. The four-root historical union, complete blob/path scan,
   replacement ledger, historical anti-laundering cases, superseding closure, and 117-test clean
   validation close the publication-governance detour through public commit `8b5f144`.
-- current authorization: local deterministic body-free evaluator-vault and independent-authorship
-  trust contracts using synthetic metadata only, plus contamination rejections and a narrow packet.
-  No additional Git push, real task body, provider, research, promotion, deployment, or empirical
-  claim action is authorized.
+- Round 03RRRRRRR decision: `REVISE`. Principal/key separation, independent authorship, historical
+  contamination, signed included-record admission, release projections, access-record shape, and
+  claim discipline are accepted. The single remaining defect is the absence of a durable globally
+  serialized task-state authority across crash/restart and multiple vault processes.
+- current authorization: only a local deterministic body-free durable vault-state correction.
+  Select one authoritative state journal/projection, bind expected prior state and ledger head, add
+  an exclusive durable lease or atomic append/CAS, commit and synchronize before release, recover
+  every crash boundary, and prove two-process contention plus fresh-request restart denials.
+  No Git push, real task body, provider/API, research scheduler/B0–B6, attribution evaluation,
+  selection, promotion, deployment, release, or empirical/security/self-improvement claim is
+  authorized.

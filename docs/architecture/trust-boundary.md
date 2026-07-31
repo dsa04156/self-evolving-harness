@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
 Status: Gate 1RRR and Gate 2R externally approved; historical publication governance approved;
-local synthetic-metadata evaluator-vault contract implemented and awaiting narrow review
+local synthetic-metadata evaluator-vault durable-state correction awaiting narrow review
 
 ## Security objective
 
@@ -157,12 +157,22 @@ a vault-signed access ledger. Its independent-authorship lifecycle records assig
 commitment, vault blinding, reviewer inclusion/rejection, timestamps, and historical-exposure
 declarations without creating a task body, verifier implementation, label, or path.
 
-The access ledger records both allowed and denied attempts, claimed/observed request hashes, sequence
-and nonce commitments, state transitions, and zero-leakage flags. Wrong role/key, replay after
-re-instantiation, capability substitution, early access, protocol mismatch, and signed-record
-modification fail closed in deterministic tests. This is a contract-level result. The new role mount
-table has not been exercised as a fresh multi-process OS-isolation claim, and no benchmark evaluator
-was run.
+The authoritative CAS state journal embeds both allowed and denied access decisions and binds each
+task successor to its prior task record, global journal head, authorship record, request/input/result
+commitments, and active durable lease epoch. Accepted sequence, nonce, capability use, and task state
+are reconstructed on every operation. File and directory sync plus exact-head verification precede
+release. Exact retries reuse the committed result; fresh obsolete unlock/evaluate/score requests fail
+closed after restart.
+
+The separate CAS lease journal defines acquire, renew, release, expiry takeover, and stale-handle
+rejection. Each acquire/renew must additionally publish an epoch fence in the one authoritative state
+journal, and a transition must directly extend that exact fence; later epochs therefore obsolete the
+old writer's CAS head. Deterministic tests inject crashes before/during/after append, before release,
+and before acknowledgement. Two actual Node processes contend for the lease, two separate vault
+processes race the same unlock, a third process observes the committed successor, and a process killed
+while holding the lease is replaced only in the next expired epoch. This remains a body-free contract
+result: the new role mount table and a full evaluator/task execution have not been exercised as a fresh
+multi-process OS-isolation claim, and no benchmark evaluator was run.
 
 ## Trust assumptions and residual limits
 

@@ -19,6 +19,8 @@
     "handlePolicy",
     "releasePolicy",
     "accessLedgerPolicy",
+    "stateAuthorityPolicy",
+    "writerLeasePolicy",
     "frozenAt",
     "frozenBy",
     "contractHash",
@@ -314,6 +316,114 @@
           "const": true
         },
         "protocolMismatchFailsClosed": {
+          "const": true
+        }
+      }
+    },
+    "stateAuthorityPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authoritativeJournal",
+        "accessDecisionEmbedded",
+        "perTaskPriorHashRequired",
+        "globalExpectedHeadRequired",
+        "writerFenceRequired",
+        "transitionMustImmediatelyExtendFence",
+        "fileSyncBeforeRelease",
+        "directorySyncBeforeRelease",
+        "committedHeadVerificationBeforeRelease",
+        "exactRetryDisposition",
+        "freshObsoleteRequestDenied"
+      ],
+      "properties": {
+        "authoritativeJournal": {
+          "const": "vault_state_cas_journal"
+        },
+        "accessDecisionEmbedded": {
+          "const": true
+        },
+        "perTaskPriorHashRequired": {
+          "const": true
+        },
+        "globalExpectedHeadRequired": {
+          "const": true
+        },
+        "writerFenceRequired": {
+          "const": true
+        },
+        "transitionMustImmediatelyExtendFence": {
+          "const": true
+        },
+        "fileSyncBeforeRelease": {
+          "const": true
+        },
+        "directorySyncBeforeRelease": {
+          "const": true
+        },
+        "committedHeadVerificationBeforeRelease": {
+          "const": true
+        },
+        "exactRetryDisposition": {
+          "const": "return_committed_disposition"
+        },
+        "freshObsoleteRequestDenied": {
+          "const": true
+        }
+      }
+    },
+    "writerLeasePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "actions",
+        "ownerCommitmentRequired",
+        "monotonicEpochRequired",
+        "minimumTtlMillis",
+        "maximumTtlMillis",
+        "defaultTtlMillis",
+        "expiryRecovery",
+        "staleWriterRejection",
+        "renewBeforeTransition",
+        "failClosedWithoutExclusiveEpoch"
+      ],
+      "properties": {
+        "authority": {
+          "const": "coordination_only"
+        },
+        "actions": {
+          "const": [
+            "acquire",
+            "renew",
+            "release"
+          ]
+        },
+        "ownerCommitmentRequired": {
+          "const": true
+        },
+        "monotonicEpochRequired": {
+          "const": true
+        },
+        "minimumTtlMillis": {
+          "const": 100
+        },
+        "maximumTtlMillis": {
+          "const": 300000
+        },
+        "defaultTtlMillis": {
+          "const": 30000
+        },
+        "expiryRecovery": {
+          "const": "next_epoch_after_expiry"
+        },
+        "staleWriterRejection": {
+          "const": "authoritative_journal_fence_and_expected_head_cas"
+        },
+        "renewBeforeTransition": {
+          "const": true
+        },
+        "failClosedWithoutExclusiveEpoch": {
           "const": true
         }
       }

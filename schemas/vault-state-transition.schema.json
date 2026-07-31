@@ -1,33 +1,42 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://self-evolving-harness.local/schemas/vault-access-record.schema.json",
-  "title": "Vault-signed append-only access decision",
+  "$id": "https://self-evolving-harness.local/schemas/vault-state-transition.schema.json",
+  "title": "Authoritative vault task-state and access-decision transition",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
     "recordType",
-    "accessRecordId",
+    "transitionId",
     "protocolId",
-    "requestedProtocolId",
     "contractId",
     "contractHash",
+    "requestCommitment",
     "requestIdCommitment",
-    "claimedRequestHash",
-    "observedRequestHash",
     "action",
     "taskHandleCommitment",
+    "authorshipRecordHash",
+    "priorTaskStateRecordHash",
+    "priorVaultLedgerHead",
+    "leaseOwnerCommitment",
+    "leaseEpoch",
+    "leaseRecordHash",
+    "leaseJournalHead",
     "actorRole",
     "actorIdentityCommitment",
     "actorKeyIdCommitment",
-    "senderSequence",
-    "nonceCommitment",
+    "capabilityCommitment",
+    "inputCommitment",
+    "resultCommitment",
+    "releasedCommitments",
     "decision",
     "reasonCode",
     "stateBefore",
     "stateAfter",
-    "release",
+    "taskStateSuccessor",
+    "accessRecord",
     "occurredAt",
+    "committedAt",
     "recordedBy",
     "recordHash",
     "publicPrincipal",
@@ -38,15 +47,12 @@
       "const": 1
     },
     "recordType": {
-      "const": "vault_access_record"
+      "const": "vault_state_transition"
     },
-    "accessRecordId": {
+    "transitionId": {
       "$ref": "./common.schema.json#/$defs/entityId"
     },
     "protocolId": {
-      "$ref": "./common.schema.json#/$defs/protocolId"
-    },
-    "requestedProtocolId": {
       "$ref": "./common.schema.json#/$defs/protocolId"
     },
     "contractId": {
@@ -55,13 +61,10 @@
     "contractHash": {
       "$ref": "./common.schema.json#/$defs/sha256"
     },
+    "requestCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
     "requestIdCommitment": {
-      "$ref": "./common.schema.json#/$defs/sha256"
-    },
-    "claimedRequestHash": {
-      "$ref": "./common.schema.json#/$defs/sha256"
-    },
-    "observedRequestHash": {
       "$ref": "./common.schema.json#/$defs/sha256"
     },
     "action": {
@@ -77,14 +80,29 @@
       ]
     },
     "taskHandleCommitment": {
-      "oneOf": [
-        {
-          "$ref": "./common.schema.json#/$defs/sha256"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/nullableHash"
+    },
+    "authorshipRecordHash": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "priorTaskStateRecordHash": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "priorVaultLedgerHead": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "leaseOwnerCommitment": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "leaseEpoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "leaseRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "leaseJournalHead": {
+      "$ref": "./common.schema.json#/$defs/sha256"
     },
     "actorRole": {
       "$ref": "./common.schema.json#/$defs/principalRole"
@@ -95,12 +113,21 @@
     "actorKeyIdCommitment": {
       "$ref": "./common.schema.json#/$defs/sha256"
     },
-    "senderSequence": {
-      "type": "integer",
-      "minimum": 0
+    "capabilityCommitment": {
+      "$ref": "#/$defs/nullableHash"
     },
-    "nonceCommitment": {
-      "$ref": "./common.schema.json#/$defs/sha256"
+    "inputCommitment": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "resultCommitment": {
+      "$ref": "#/$defs/nullableHash"
+    },
+    "releasedCommitments": {
+      "type": "array",
+      "items": {
+        "$ref": "./common.schema.json#/$defs/sha256"
+      },
+      "uniqueItems": true
     },
     "decision": {
       "type": "string",
@@ -119,63 +146,16 @@
     "stateAfter": {
       "$ref": "#/$defs/nullableVaultState"
     },
-    "release": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "releaseClass",
-        "recipientRole",
-        "fieldNames",
-        "taskBodyReleased",
-        "rawTaskHandleReleased",
-        "authorIdentityReleased",
-        "candidateIdentityReleased"
-      ],
-      "properties": {
-        "releaseClass": {
-          "type": "string",
-          "enum": [
-            "none",
-            "opaque_handle_commitments",
-            "unlock_authorization",
-            "evaluation_commitment",
-            "score_commitment",
-            "access_chain_head"
-          ]
-        },
-        "recipientRole": {
-          "oneOf": [
-            {
-              "$ref": "./common.schema.json#/$defs/principalRole"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "fieldNames": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z][a-zA-Z0-9]{1,63}$"
-          }
-        },
-        "taskBodyReleased": {
-          "const": false
-        },
-        "rawTaskHandleReleased": {
-          "const": false
-        },
-        "authorIdentityReleased": {
-          "const": false
-        },
-        "candidateIdentityReleased": {
-          "const": false
-        }
-      }
+    "taskStateSuccessor": {
+      "type": "boolean"
+    },
+    "accessRecord": {
+      "$ref": "./vault-access-record.schema.json"
     },
     "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "committedAt": {
       "$ref": "./common.schema.json#/$defs/timestamp"
     },
     "recordedBy": {
@@ -192,6 +172,16 @@
     }
   },
   "$defs": {
+    "nullableHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "vaultState": {
       "type": "string",
       "enum": [

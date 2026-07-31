@@ -265,3 +265,26 @@ any paid-provider request.
 - No Git push, release, API credential/provider, real gate/final/temporal/withheld-public/
   multi-cause/Terminal-Bench body, research scheduler or B0–B6, pilot/threshold, attribution
   evaluation, selection, promotion, deployment, or empirical claim is authorized.
+
+## Durable Round 3RRRRRRR evaluator-vault decision
+
+- External decision: `REVISE`.
+- Accepted: eight distinct principal/key contracts, independent assignment/commit/blind/reviewer-
+  decision/vault-finalization chain, rejected-edit retention, all-ten-class historical
+  contamination denial, signed included-record admission, protocol/task/authorship/evaluator-bound
+  capabilities, commitment-only release projections, identifier-commitment access records, and
+  bounded claims.
+- The focused trust tests and complete 121/121 deterministic suite were accepted for those
+  properties.
+- Blocking defect: access records reconstruct request replay but not complete per-task lifecycle.
+  A fresh signed request after restart may duplicate unlock/evaluate/score, and two processes can
+  race from the same prior state.
+- The correction must choose one durable source of task state; bind protocol, contract, handle,
+  authorship, prior state record, prior ledger head, actor/key, capability/result commitments and
+  successor state; enforce atomic expected-prior-state; and persist/synchronize before any release.
+- A durable lease or atomic append/CAS must reject stale writers and recover abandoned ownership.
+  Tests must cover two-process conflicts and crashes before/during/after append, synchronization,
+  release, acknowledgment, and lease ownership.
+- Authorized next scope is only that local deterministic body-free durability correction and a
+  narrow packet. No push, real task body, provider/API, research, selection, promotion, deployment,
+  release, or empirical/security/self-improvement claim is authorized.

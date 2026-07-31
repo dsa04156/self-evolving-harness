@@ -78,7 +78,8 @@ copy, wrapper, new path, deleted Git ref, or history rewrite does not clear the 
 
 ```mermaid
 stateDiagram-v2
-    [*] --> sealed: admitted create + vault seal
+    [*] --> created: admitted create
+    created --> sealed: vault seal
     sealed --> unlocked: evaluator uses exact one-time capability
     unlocked --> evaluated: evaluator releases outcome commitment
     evaluated --> scored: scorer binds outcome and releases score commitment
@@ -96,10 +97,22 @@ evaluation commitment released by the evaluator. The resulting score commitment 
 protocol, contract, handle commitment, evaluation commitment, and signed scorer request. No score is
 returned to the evaluator, and no handle is returned to the promoter.
 
-## Access decision and one-way release
+## Authoritative state, access decision, and one-way release
 
-Every allowed and denied request produces a vault-signed `VaultAccessRecord` inside a filesystem
-append-only hash chain. The record contains:
+The authoritative vault journal is a filesystem CAS chain of vault-signed
+`VaultStateTransitionRecord` values. Each value embeds the accepted `VaultAccessRecord`, so access
+evidence and task-state authority cannot diverge. A state transition binds:
+
+- protocol and contract IDs;
+- the request, opaque-handle, authorship, actor-identity, actor-key, input, capability, and result
+  commitments;
+- the previous global vault-journal head and previous per-task state-record hash;
+- the current durable writer-lease owner commitment, epoch, lease record, and lease-journal head;
+- state before/after plus whether the record is a task-state successor; and
+- request occurrence time, operational commit time, vault key, record hash, and signature.
+
+Every first-seen allowed or denied request produces one embedded vault-signed `VaultAccessRecord`. The
+record contains:
 
 - claimed and independently recomputed request hashes;
 - requested and frozen protocol/contract identities;
@@ -110,9 +123,10 @@ append-only hash chain. The record contains:
 
 Untrusted request IDs and key identifiers are never copied into the ledger; only their commitments are
 stored, preventing a denied request from laundering an opaque handle through an audit field. Denied
-requests have `releaseClass=none`, zero field names, and identical before/after state. Accepted sequence
-and nonce commitments are reconstructed from the durable ledger, so replay remains denied after a new
-vault object opens the same log.
+requests have `releaseClass=none`, zero field names, and identical before/after state. Accepted sequence,
+nonce, capability use, evaluation/score commitment, and task state are reconstructed from the durable
+journal. An exact byte-identical retry returns the already committed result or denial without appending
+a second transition; a fresh request attempting the obsolete state is denied and recorded.
 
 Release projections are one-way and commitment-only:
 
@@ -125,20 +139,81 @@ Release projections are one-way and commitment-only:
 | score | promoter | score commitment |
 | audit | audit store | append-only chain head |
 
+## Cross-process serialization and commit-before-release
+
+The vault has two durable logs with different authority:
+
+- the state journal is the only authoritative task-state/access-decision projection; and
+- the lease journal coordinates writers but cannot itself change task state.
+
+The lease journal uses exclusive expected-head CAS records with an owner commitment and monotonically
+increasing epoch. `acquire`, `renew`, and `release` bind the prior lease record and prior lease-journal
+head. An unexpired writer blocks a second writer. After expiry, a new owner may acquire the next epoch;
+the old handle can no longer renew, release, or authorize a transition. Every recovered state
+transition must reference an existing active lease record and must have been committed within that
+lease's validity interval.
+
+Acquisition alone does not authorize a task write. The owner must append a signed
+`VaultWriterFenceRecord` into the authoritative state journal at the expected global head. Renewal is
+fenced again, and a task transition must immediately extend that exact fence with matching owner,
+epoch, lease-record, and lease-journal commitments. Once a later epoch fence is published, an older
+writer's expected state head is obsolete and its append loses CAS even if the old process resumes.
+
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant L as Lease CAS journal
+    participant V as Vault
+    participant S as State CAS journal
+    C->>V: signed access request
+    V->>L: acquire(owner, epoch, expected head)
+    L-->>V: durable lease handle
+    V->>S: fence acquired epoch at expected state head
+    V->>S: recover and verify complete journal
+    V->>V: exact-retry lookup or validate/compute
+    V->>L: renew and assert current epoch
+    V->>S: fence renewed lease at expected state head
+    V->>S: append transition at expected global head
+    S->>S: fsync record, publish exclusively, fsync directory
+    V->>S: reread and verify committed head
+    V->>L: release exact lease handle
+    V-->>C: commitment-only result or stable denial
+```
+
+No release is returned before the state record is published, file-synchronized, directory-synchronized,
+and reread as the exact head. A losing expected-head writer receives `CONFLICT`; the implementation does
+not silently rebase a stale transition.
+
+Recovery behavior is fixed:
+
+| Failure boundary | Durable state after restart | Retry behavior |
+|---|---|---|
+| before append | no new transition | execute once after abandoned lease expiry |
+| during temporary-file append | temporary file ignored; no authoritative transition | execute once |
+| after exclusive publish, before directory sync | published record recovered and directory synced | return exact committed result |
+| after record/directory sync, before head verification | committed record recovered | return exact committed result |
+| after durable commit, before lease release | committed record retained; lease expires or is recovered | return exact committed result |
+| after release, before caller acknowledgement | committed record and released lease retained | return exact committed result |
+
 ## Fail-closed cases exercised
 
-The deterministic focused suite rejects and logs:
+The deterministic focused suite rejects and records:
 
 - an action requested by the wrong role;
 - a valid signature from a non-frozen key of the correct role;
-- repeated sender sequence/nonce, including after vault re-instantiation;
+- fresh repeated sender sequence/nonce and obsolete state, including after vault re-instantiation;
 - a capability substituted onto another opaque task;
 - evaluation before unlock and scoring before evaluation;
 - a request bound to another protocol;
 - capability issue before sealing; and
 - a modified signed access record.
 
-All denials preserve task state and release no fields.
+It also exercises two actual Node processes contending for one lease, a killed holder followed by
+next-epoch recovery, two separate vault processes racing an unlock and a third observing the committed
+successor, stale-handle rejection, two in-process vault instances racing an unlock, obsolete CAS heads,
+restart rejection of fresh second unlock/evaluate/score requests, scoring from merely unlocked state,
+and injected crashes at every commit/release boundary. All denials preserve task state and release no
+fields.
 
 ## Schemas and implementation
 
@@ -149,10 +224,17 @@ All denials preserve task state and release no fields.
 - `schemas/opaque-task-capability.schema.json`
 - `schemas/vault-access-request.schema.json`
 - `schemas/vault-access-record.schema.json`
+- `schemas/vault-state-transition.schema.json`
+- `schemas/vault-writer-fence.schema.json`
+- `schemas/vault-writer-lease.schema.json`
+- `src/storage/cas-append-only-log.ts`
 - `src/trust/evaluator-vault-contract.ts`
 - `src/trust/independent-authorship.ts`
 - `src/trust/evaluator-vault.ts`
+- `src/trust/vault-writer-lease.ts`
 - `test/evaluator-vault-contract.test.ts`
+- `test/fixtures/vault-lease-worker.ts`
+- `test/fixtures/vault-transition-worker.ts`
 
 ## Residual limits
 
@@ -160,10 +242,14 @@ All denials preserve task state and release no fields.
   task body.
 - The role mount table is frozen but not newly exercised under eight separate OS identities in this
   round.
-- The append-only access ledger reconstructs replay state. Private vault task-state crash recovery and
-  real encrypted body custody remain future work.
-- One in-process vault instance serializes requests. Cross-process singleton ownership/lease recovery is
-  not established by this round.
+- The durable journal reconstructs body-free task state and recovery metadata. Real encrypted body
+  custody remains future work.
+- The two-process tests exercise both lease contention and body-free vault transitions; a full
+  evaluator/task execution under separate OS identities and mounts remains unexercised in this
+  correction.
+- Lease expiry depends on the trusted host clock. Availability during a live-but-stalled writer and
+  malicious clock changes remain host/operations risks; CAS still prevents two records from occupying
+  the same expected global head.
 - The local host, kernel, filesystem, bootstrapping administrator, protocol-author key, vault key, and
   schema implementation remain trusted.
 - No provider, model, proposer, benchmark scheduler, evaluator process, scorer process, promotion, or

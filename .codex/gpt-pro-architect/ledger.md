@@ -508,3 +508,39 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: Git push/release, API credential/provider, real task body, research scheduler or
   B0–B6, pilot/threshold, attribution evaluation, gate/final/temporal/withheld-public access,
   selection, promotion/canary/deployment, and empirical claims
+
+## Round 3RRRRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md`
+- packet hash: `c2f263172a11ee2a8f504a8ecd750f1db4bba257e6c62ee218081f58fae182a4`
+- packet size: 15,035 characters / 15,075 bytes
+- implementation commit/tree:
+  `af70fd154dd2355891de0a475ce4d593a473b9b7` /
+  `d9c8dd0d7a8e54273a0404f6eb593987a97346e6`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no additional push
+- validation: exact Node 24.18.1 non-Unix 120/120 plus isolated Unix audit 1/1; both publication
+  verifiers pass; new trust/schema/test/document secret-pattern scan found zero matches
+- transport: one recovered direct-CDP submission to the exact existing tab after the long insert
+  timed out; complete composer state was verified before exactly one send
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- submission count: exactly one; observed user-message count increased from two to three
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrr.md`
+- raw-response verification: browser and local content both 11,561 characters / 11,595 bytes with
+  SHA-256 `a54958e0e9888aff29f644c94f3b1e0cebb53442be4ec435cd02f4c0995eefcb`
+- architect decision: `REVISE`
+- accepted: principal/key separation, independent authorship and blinded reviewer decision,
+  historical contamination boundary, signed included-record admission, capability bindings,
+  commitment-only release projections, access-record leakage control, and claim discipline
+- blocking defect: no durable globally serialized task-state authority; restart with a fresh request
+  or two concurrent vault processes can duplicate/fork unlock, evaluate, or score transitions
+- authorized next: one local deterministic body-free durable-state correction with authoritative
+  state projection/journal, expected-prior-state CAS, durable lease or atomic append, fsync-before-
+  release, crash recovery matrix, and two-process contention/restart tests
+- still prohibited: push/release, provider/API, real task body or split access, research scheduler or
+  B0–B6, attribution evaluation, selection, promotion/canary/deployment, and empirical,
+  containment, security, generalization, or self-improvement claims

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate3rrrrrrr-evaluator-vault-authorship-1",
+  "createdAt": "2026-07-31T17:42:59+09:00",
+  "status": "reviewed_revise",
+  "respondsToDecisionSha256": "7070922e4ea18844d1ffb0dde9e9076085feff97b260eb3086acf6e4f3295074",
+  "implementationCommit": "af70fd154dd2355891de0a475ce4d593a473b9b7",
+  "implementationTree": "d9c8dd0d7a8e54273a0404f6eb593987a97346e6",
+  "remoteRef": "refs/heads/main",
+  "remoteCommit": "8b5f14400a7723c821bc54420e55da58dfa7601b",
+  "packet": {
+    "path": "architect/PACKET_03RRRRRRR_EVALUATOR_VAULT_AND_AUTHORSHIP.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-3rrrrrrr.md",
+    "sha256": "c2f263172a11ee2a8f504a8ecd750f1db4bba257e6c62ee218081f58fae182a4",
+    "characterCount": 15035,
+    "byteCount": 15075,
+    "copiesByteIdentical": true,
+    "postCommitLocalOnly": true,
+    "pushed": false
+  },
+  "implementation": {
+    "contractSha256": "9753c51660b15efb986a5f98d78ea99dcab6d3011eddfd65f4a9252a36387486",
+    "authorshipSha256": "b92e003df25755fbf94a40a84ff50fbb7cc8cb18689264631f79b9efc54162d3",
+    "vaultSha256": "a96d356875402ae201838f055fc4ec1bce8d8384309de2975ffa1f0bc54c7b31",
+    "testSha256": "aae3c36c4fc7e60efe2c3d3336b95418081c3877bb5248207941502c60c08143",
+    "principalCount": 8,
+    "restrictedUseClassCount": 10,
+    "realTaskBodiesPresent": false,
+    "providerUsed": false
+  },
+  "validation": {
+    "typecheckBuild": "pass",
+    "completeDeterministicTestSet": {
+      "total": 121,
+      "passed": 121,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "commands": 2
+    },
+    "focusedEvaluatorVaultTests": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "snapshotPublicationGovernanceVerifier": "pass",
+    "historicalPublicationGovernanceVerifier": "pass",
+    "newFileSecretPatternMatches": 0,
+    "patchCheck": "pass",
+    "cleanImplementationCommit": true,
+    "initialHostNodeAttemptCredited": false,
+    "initialHostNodeAttemptFailure": "host v20.20.1 differed from frozen v24.18.1; exact frozen rerun passed"
+  },
+  "acceptedByReview": {
+    "principalAndKeySeparation": true,
+    "independentAuthorship": true,
+    "historicalContaminationBoundary": true,
+    "constructorTimeVaultAdmission": true,
+    "releaseProjectionShape": true,
+    "accessRecordShape": true,
+    "claimDiscipline": true
+  },
+  "revisionRequired": {
+    "durableTaskStateRecovery": true,
+    "crossProcessSingleWriter": true,
+    "atomicExpectedPriorState": true,
+    "releaseAfterDurableCommit": true,
+    "crashBoundaryRecoveryMatrix": true,
+    "twoProcessContentionTests": true
+  },
+  "externalActions": {
+    "architectTransmission": true,
+    "localImplementationCommitCount": 1,
+    "additionalPushCount": 0,
+    "providerCall": false,
+    "apiKeyRequestedOrStored": false,
+    "realBenchmarkBodyCreatedOrAccessed": false,
+    "researchSchedulerExecution": false,
+    "b0ThroughB6Execution": false,
+    "attributionEvaluation": false,
+    "candidateSelection": false,
+    "promotion": false,
+    "deployment": false,
+    "release": false
+  },
+  "claimBoundary": {
+    "publicDevelopment": true,
+    "authorizedForResearchEvidence": false,
+    "performanceClaim": false,
+    "generalizationClaim": false,
+    "containmentClaim": false,
+    "securityClaim": false,
+    "selfImprovementClaim": false,
+    "providerUsed": false
+  },
+  "review": {
+    "reviewedAt": "2026-07-31T17:42:59+09:00",
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserEndpoint": "127.0.0.1:9222",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "newWindowAllowed": false,
+    "newWindowOpened": false,
+    "transport": "One recovered direct-CDP submission to the pinned target after Input.insertText timeout; full composer state was verified before exactly one send.",
+    "submissionCount": 1,
+    "decision": "REVISE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-3rrrrrrr.md",
+    "responseSha256": "a54958e0e9888aff29f644c94f3b1e0cebb53442be4ec435cd02f4c0995eefcb",
+    "responseCharacterCount": 11561,
+    "responseByteCount": 11595,
+    "harvest": "Saved latest terminal assistant innerText plus one LF; browser-computed and local SHA-256 matched exactly."
+  }
+}
