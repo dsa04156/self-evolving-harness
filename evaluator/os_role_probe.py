@@ -12,6 +12,7 @@ import os
 import socket
 import stat
 import subprocess
+import tempfile
 
 
 PTRACE_ATTACH = 16
@@ -82,20 +83,26 @@ def expect_network_denied() -> str:
 
 
 def sign_challenge(private_key: str, challenge: str) -> str:
-    completed = subprocess.run(
-        [
-            "/usr/bin/openssl",
-            "pkeyutl",
-            "-sign",
-            "-inkey",
-            private_key,
-            "-rawin",
-        ],
-        input=challenge.encode("utf-8"),
-        capture_output=True,
-        check=False,
-        env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
-    )
+    with tempfile.TemporaryDirectory(dir="/state") as temporary:
+        challenge_path = os.path.join(temporary, "challenge")
+        with open(challenge_path, "wb") as challenge_file:
+            challenge_file.write(challenge.encode("utf-8"))
+        os.chmod(challenge_path, 0o600)
+        completed = subprocess.run(
+            [
+                "/usr/bin/openssl",
+                "pkeyutl",
+                "-sign",
+                "-inkey",
+                private_key,
+                "-rawin",
+                "-in",
+                challenge_path,
+            ],
+            capture_output=True,
+            check=False,
+            env={"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8"},
+        )
     if completed.returncode != 0:
         raise ValueError(
             "role challenge signing failed: "

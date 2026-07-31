@@ -178,7 +178,7 @@ async function main(): Promise<void> {
     sentAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + 5_000).toISOString(),
     senderSequence: 0,
-    nonce: Buffer.from(`${requestId}:nonce`).toString("base64url"),
+    nonce: "A".repeat(32),
     payloadSchemaId: EVALUATOR_REQUEST_SCHEMA_ID,
     payload: requestPayload(
       requestId,

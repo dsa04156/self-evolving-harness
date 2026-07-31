@@ -149,6 +149,9 @@ def base_sandbox(
         "/dev",
         "--tmpfs",
         "/tmp",
+        "--chmod",
+        "1777",
+        "/tmp",
     ]
     if vault_probe:
         command.extend(["--ro-bind", str(root / "vault"), "/vault"])
@@ -181,10 +184,23 @@ def base_sandbox(
             "1",
             "--cap-drop",
             "ALL",
-            "--uid",
+            "--cap-add",
+            "CAP_SETUID",
+            "--cap-add",
+            "CAP_SETGID",
+            "--cap-add",
+            "CAP_SETPCAP",
+            "--",
+            "/usr/bin/setpriv",
+            "--reuid",
             str(uid),
-            "--gid",
+            "--regid",
             str(uid),
+            "--clear-groups",
+            "--no-new-privs",
+            "--bounding-set=-all",
+            "--inh-caps=-all",
+            "--ambient-caps=-all",
             "--",
         ]
     )
@@ -198,7 +214,7 @@ def add_read_only_mounts(
     options: list[str] = []
     for source, destination in mounts:
         options.extend(["--ro-bind", str(source), destination])
-    command[-1:-1] = options
+    command[command.index("--") : command.index("--")] = options
 
 
 def wait_for_socket(socket_path: Path, process: subprocess.Popen[bytes]) -> None:
@@ -222,32 +238,33 @@ def wait_for_socket(socket_path: Path, process: subprocess.Popen[bytes]) -> None
 def process_uid(pid: int, expected_uid: int) -> int:
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
-        try:
-            with open(f"/proc/{pid}/status", encoding="utf-8") as status:
-                for line in status:
-                    if line.startswith("Uid:"):
-                        effective = int(line.split()[2])
-                        if effective == expected_uid:
-                            return pid
-        except FileNotFoundError:
-            pass
-        children_path = Path(f"/proc/{pid}/task/{pid}/children")
-        try:
-            children = [
-                int(value) for value in children_path.read_text().split()
-            ]
-        except (FileNotFoundError, PermissionError):
-            children = []
-        for child in children:
+        pending = [pid]
+        visited: set[int] = set()
+        while pending:
+            candidate = pending.pop()
+            if candidate in visited:
+                continue
+            visited.add(candidate)
             try:
-                with open(f"/proc/{child}/status", encoding="utf-8") as status:
+                with open(
+                    f"/proc/{candidate}/status", encoding="utf-8"
+                ) as status:
                     values = next(
                         line for line in status if line.startswith("Uid:")
                     ).split()
                 if int(values[2]) == expected_uid:
-                    return child
+                    return candidate
             except (FileNotFoundError, StopIteration):
-                continue
+                pass
+            children_path = Path(
+                f"/proc/{candidate}/task/{candidate}/children"
+            )
+            try:
+                pending.extend(
+                    int(value) for value in children_path.read_text().split()
+                )
+            except (FileNotFoundError, PermissionError):
+                pass
         time.sleep(0.02)
     raise RuntimeError(
         f"no process under launcher {pid} reached expected UID {expected_uid}"

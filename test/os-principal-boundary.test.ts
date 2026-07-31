@@ -189,8 +189,6 @@ test(
           signers.operations.identity as unknown as JsonValue,
         operationsKeyId: signers.operations.keyId,
         protocolId,
-        candidateFilesystemSnapshotHash:
-          snapshotDescriptor.filesystemSnapshotHash,
       },
     );
     await writeCanonical(
@@ -203,6 +201,8 @@ test(
           signers.operations.identity as unknown as JsonValue,
         operationsKeyId: signers.operations.keyId,
         protocolId,
+        candidateFilesystemSnapshotHash:
+          snapshotDescriptor.filesystemSnapshotHash,
       },
     );
     await writeCanonical(
