@@ -1,6 +1,6 @@
 # Gate 2R Runtime and Trust Validation
 
-Status: local correction evidence complete; external Gate 2R ruling pending
+Status: external Gate 2R decision `APPROVE`
 
 Date: 2026-07-31  
 Runtime source commit under test: `14e373ee4cf245da8c221be9574aa7528d3202e8`  
@@ -128,5 +128,17 @@ OS-containment evidence.
 - The matched-budget B0–B6 scheduler and mine-only numeric pilot freeze remain required before any
   empirical evolution work.
 - Real-provider smoke, benchmark access, live deployment, push, release, and performance/security
-  claims remain prohibited until the Architect authorizes their exact next scope.
+  claims remained prohibited during this evidence run.
 
+## External decision
+
+The exact-tab Architect review returned `APPROVE` with no blocking findings. The preserved response is
+`.codex/gpt-pro-architect/responses/response-2r.md`, SHA-256
+`f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c`.
+
+The next authorized scope is still bounded: complete the session-definition signing/coverage proof;
+implement the deterministic matched-budget scheduler and numeric-freeze machinery; instantiate a
+separately isolated provider proxy; and, only under a frozen synthetic-only smoke manifest, run a
+minimal real-provider smoke. Benchmark evolution, gate/final/temporal/withheld access, empirical
+comparisons, broad security/performance/generalization/self-improvement claims, live deployment, push,
+release, and publication claims remain unauthorized.

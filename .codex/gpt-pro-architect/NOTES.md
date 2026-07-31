@@ -82,7 +82,7 @@ any paid-provider request.
 - Benchmark/gate/final/temporal/withheld-public access, paid-provider work, live deployment,
   push/release, and performance/security/generalization/self-improvement claims remain prohibited.
 
-## Gate 2R local evidence
+## Durable Gate 2R decision
 
 - The ordered Gate 2 corrections are implemented at runtime source commit
   `14e373ee4cf245da8c221be9574aa7528d3202e8`.
@@ -92,5 +92,10 @@ any paid-provider request.
 - The complete deterministic suite passes 38/38 with zero skips and 92.06% line coverage.
 - This supports only the declared local attack cases under the recorded host assumptions; it is not a
   general security or self-improvement claim.
-- Gate 2R external review is pending in the same pinned project conversation. Until its ruling, all
-  Gate 2 prohibitions remain in force.
+- External decision: `APPROVE`; blocking findings: none.
+- The next bounded scope is session-definition signature/coverage, deterministic matched-budget and
+  numeric-freeze machinery, a separately isolated provider proxy, and a synthetic-only real-provider
+  smoke under a frozen manifest.
+- Benchmark evolution, gate/final/temporal/withheld-public access, empirical B0–B6 comparison,
+  research-task pilot tuning, broad performance/security/generalization/self-improvement claims, live
+  deployment, push/release, and publication claims remain prohibited.

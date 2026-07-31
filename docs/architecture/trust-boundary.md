@@ -1,7 +1,7 @@
 # Immutable Trust Plane
 
-Status: Gate 1RRR contract approved; Gate 2R correction implementation and mandatory zero-skip
-subordinate-UID evidence run complete; external Gate 2R ruling pending
+Status: Gate 1RRR and Gate 2R externally approved; mandatory zero-skip subordinate-UID evidence run
+complete
 
 ## Security objective
 

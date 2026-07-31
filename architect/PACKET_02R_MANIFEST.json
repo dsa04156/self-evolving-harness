@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "packetId": "architect-gate2r-runtime-trust-corrections-1",
   "createdAt": "2026-07-31T09:18:27+09:00",
-  "status": "prepared_not_transmitted",
+  "status": "reviewed_approve",
   "respondsToDecisionSha256": "e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1",
   "runtimeSourceCommit": "14e373ee4cf245da8c221be9574aa7528d3202e8",
   "runtimeSourceTree": "f30df800ece4424a1a1bbc0f7f61b2ca108020cd",
+  "evidenceCommit": "00a2b5f7082a75681ba6f1393482859f9736e69a",
   "packet": {
     "path": "architect/PACKET_02R_RUNTIME_AND_TRUST.md",
     "transportCopy": ".codex/gpt-pro-architect/packets/packet-2r.md",
@@ -16,7 +17,7 @@
   },
   "validation": {
     "path": "docs/evaluation/gate2r-validation.md",
-    "sha256": "f0cc363f9d6a9d2d752386fb60c433a8db4c3deb751ba56c9d9e87e4081ffbc5",
+    "sha256": "3157506db33aead5dbc7d3cc2c187cedba703770bc6c5d70752eb8a283f93f8c",
     "tests": {
       "total": 38,
       "passed": 38,
@@ -68,7 +69,7 @@
     "packageLockSha256": "6067e8a69a6adfbf2f0f5eb7f395b5afb6dd114b74c131e55cd3f3c8986d3ed2"
   },
   "externalActions": {
-    "architectTransmission": false,
+    "architectTransmission": true,
     "paidProviderCall": false,
     "benchmarkExecution": false,
     "gateOrFinalAccess": false,
@@ -80,8 +81,14 @@
     "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
     "transportPlan": "Oracle CLI 0.16.1 preflight followed by exact-tab direct-CDP continuation if Oracle attach metadata remains unavailable",
     "newWindowAllowed": false,
-    "decision": null,
-    "responsePath": null,
-    "responseSha256": null
+    "oracleSessionId": "self-evolving-harness-gate2r-packet",
+    "oracleSessionDisposition": "failed_before_transmission_due_attach_metadata",
+    "fallback": "manual direct CDP to the pinned existing target; one submission; no new window or tab",
+    "decision": "APPROVE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-2r.md",
+    "responseSha256": "f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c",
+    "responseCharacterCount": 7844,
+    "responseByteCount": 7854,
+    "harvest": "Saved latest terminal assistant innerText plus one LF; browser-computed and local SHA-256 matched exactly."
   }
 }

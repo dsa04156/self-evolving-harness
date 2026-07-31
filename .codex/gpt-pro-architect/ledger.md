@@ -7,6 +7,7 @@
 | 1RR | `architect/PACKET_01RR_CONTRACT_CORRECTIONS.md` | `eee5ab4dad190fd6eb220c69895932de89935c59abfd6ae11c0ad8cebd48b500` | `responses/response-1rr.md` (`d8bec7862e50db073710691ca6464078a34686ea046729ebd420b864df3b7303`) | REVISE |
 | 1RRR | `architect/PACKET_01RRR_NARROW_CONTRACT_CORRECTIONS.md` | `9157fdb191034643d8e0682171daed1314208bff47e244031fa14e2ade03c41d` | `responses/response-1rrr.md` (`32b7b0841baff34177dcc39ac3092873df32d5c7cb48519ca3548cb64e3c3b82`) | APPROVE |
 | 2 | `architect/PACKET_02_RUNTIME_AND_TRUST.md` | `f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d` | `responses/response-2.md` (`e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1`) | REVISE |
+| 2R | `architect/PACKET_02R_RUNTIME_AND_TRUST.md` | `123f3a048bc92ce606ce6bb5415e8f8b8e4c59ab29dd9986f4fe59d2f485f792` | `responses/response-2r.md` (`f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c`) | APPROVE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -221,3 +222,29 @@ response path, interpreted decision, required revisions, and the commit containi
   secrets, raw traces, sealed data, provider call, benchmark run, deployment, push, or release
 - authorized transport: same exact project conversation, endpoint, and browser target only
 - status: prepared, not yet transmitted
+
+## Round 2R — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-2r.md`
+- transport: Oracle CLI 0.16.1 dry-run followed by manual direct CDP fallback
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-gate2r-packet`, failed before transmission because the
+  pre-existing Chrome had no Oracle attach metadata
+- browser endpoint / target: `127.0.0.1:9222` / `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- fallback submission count: one; the composer was empty before fill and the submitted user count
+  increased exactly once
+- archive policy: never
+- model evidence: Oracle requested and dry-run resolved `gpt-5-pro`; fallback reused the same
+  previously Pro-selected tab; server identity remains vendor-opaque
+- raw response: `.codex/gpt-pro-architect/responses/response-2r.md`
+- raw-response verification: browser and local bytes both 7,844 characters / 7,854 bytes with
+  SHA-256 `f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c`
+- architect decision: `APPROVE`
+- blocking findings: none
+- accepted: all ordered Gate 2 runtime/trust corrections and the bounded local OS-principal evidence
+- authorized next: session-definition signature/coverage proof; deterministic matched-budget and
+  freeze machinery; separate provider proxy; synthetic-only frozen-manifest real-provider smoke
+- still prohibited: benchmark evolution, gate/final/temporal/withheld-public access, empirical B0–B6
+  comparison, research-task pilot tuning, broad performance/security/generalization/self-improvement
+  claims, live deployment, push/release, and publication claims

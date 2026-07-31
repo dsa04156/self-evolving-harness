@@ -19,7 +19,7 @@ dependency, not convenience.
 | enforced cancellation and descendant reaping | implemented | non-cooperative delayed-write/process-group test passes |
 | retirement holds and restart-safe transactions | implemented | six hold kinds, deployment-pointer recovery, evaluator eight-stage recovery, and termination three-stage recovery pass |
 | exact evaluator filesystem input | implemented and executed | dirty/ignored/link/substitution rejection, committed-object materialization, evaluator-side descriptor/blob/mode/exact-object verification, and the OS-mounted transaction pass |
-| Gate 2R evidence and resubmission | evidence complete; ruling pending | clean source commit, 38/38 zero-skip suite, coverage, environment, replacement hashes, and packet are ready for the same-tab Architect ruling |
+| Gate 2R evidence and resubmission | complete; external `APPROVE` | clean source commit, 38/38 zero-skip suite, coverage, environment, replacement hashes, exact-tab response, and byte-matched response archive |
 
 ## 1. Version component identity and capability preimage
 
