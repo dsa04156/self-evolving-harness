@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/budget-freeze-manifest.schema.json",
+  "title": "Signed Evaluation Budget Freeze Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hashDomain",
+    "budgetFreezeId",
+    "protocolId",
+    "scope",
+    "datasetPermissions",
+    "modelIdentityHash",
+    "toolSetHash",
+    "environmentHash",
+    "permissionPolicyHash",
+    "methods",
+    "rolloutSeeds",
+    "solverSlots",
+    "phaseCaps",
+    "perRequestTokenCap",
+    "perRequestCostCapMicros",
+    "sourceConfigHash",
+    "supersedesBudgetFreezeId",
+    "createdAt",
+    "createdBy",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "hashDomain": {
+      "const": "BudgetFreezeManifest.v1"
+    },
+    "budgetFreezeId": {
+      "type": "string",
+      "pattern": "^bf-sha256:[a-f0-9]{64}$"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "synthetic_gate3_readiness",
+        "provider_smoke",
+        "pilot"
+      ]
+    },
+    "datasetPermissions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/datasetRole"
+      }
+    },
+    "modelIdentityHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "toolSetHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "environmentHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "permissionPolicyHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/methodId"
+      }
+    },
+    "rolloutSeeds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "solverSlots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "methodId",
+          "slots"
+        ],
+        "properties": {
+          "methodId": {
+            "$ref": "#/$defs/methodId"
+          },
+          "slots": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          }
+        }
+      }
+    },
+    "phaseCaps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "phaseId",
+          "caps"
+        ],
+        "properties": {
+          "phaseId": {
+            "$ref": "#/$defs/phaseId"
+          },
+          "caps": {
+            "$ref": "#/$defs/caps"
+          }
+        }
+      }
+    },
+    "perRequestTokenCap": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "perRequestCostCapMicros": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sourceConfigHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "supersedesBudgetFreezeId": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^bf-sha256:[a-f0-9]{64}$"
+        }
+      ]
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "createdBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "methodId": {
+      "type": "string",
+      "enum": [
+        "B0",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5-U",
+        "B5-SM",
+        "B6-ABL",
+        "B6-RAW",
+        "B6"
+      ]
+    },
+    "phaseId": {
+      "type": "string",
+      "enum": [
+        "mine_trace_generation",
+        "evidence_summarization",
+        "weakness_mining",
+        "attribution",
+        "proposal",
+        "static_validation",
+        "gate_evaluation",
+        "gate_selection",
+        "offline_canary",
+        "track_a_task_search",
+        "final_solving",
+        "temporal_replication",
+        "provider_smoke"
+      ]
+    },
+    "caps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerModelRequestAttempts",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "toolAttempts",
+        "feedbackEvents",
+        "wallClockMillis",
+        "processCount",
+        "outputBytes"
+      ],
+      "properties": {
+        "providerModelRequestAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalChargedTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerCostMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "toolAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feedbackEvents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wallClockMillis": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "processCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputBytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

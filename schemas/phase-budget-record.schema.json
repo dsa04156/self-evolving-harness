@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/phase-budget-record.schema.json",
+  "title": "Signed Durable Phase Budget Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "phaseBudgetRecordId",
+    "protocolId",
+    "budgetFreezeId",
+    "account",
+    "caps",
+    "accountSequence",
+    "eventType",
+    "requestId",
+    "requestStatus",
+    "reservationTokens",
+    "reservationCostMicros",
+    "usage",
+    "outstandingReservationTokens",
+    "outstandingReservationCostMicros",
+    "exhaustedDimension",
+    "sealed",
+    "occurredAt",
+    "producer",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "phaseBudgetRecordId": {
+      "type": "string",
+      "pattern": "^pbr-sha256:[a-f0-9]{64}$"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "budgetFreezeId": {
+      "type": "string",
+      "pattern": "^bf-sha256:[a-f0-9]{64}$"
+    },
+    "account": {
+      "$ref": "#/$defs/account"
+    },
+    "caps": {
+      "$ref": "./budget-freeze-manifest.schema.json#/$defs/caps"
+    },
+    "accountSequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "opened",
+        "provider_reserved",
+        "provider_settled",
+        "tool_charged",
+        "feedback_charged",
+        "process_charged",
+        "output_charged",
+        "budget_denied",
+        "sealed"
+      ]
+    },
+    "requestId": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        }
+      ]
+    },
+    "requestStatus": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        null,
+        "reserved",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "reservationTokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reservationCostMicros": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "usage": {
+      "$ref": "#/$defs/usage"
+    },
+    "outstandingReservationTokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outstandingReservationCostMicros": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "exhaustedDimension": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        null,
+        "providerModelRequestAttempts",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "toolAttempts",
+        "feedbackEvents",
+        "wallClockMillis",
+        "processCount",
+        "outputBytes",
+        "perRequestTokenCap",
+        "perRequestCostCapMicros"
+      ]
+    },
+    "sealed": {
+      "type": "boolean"
+    },
+    "occurredAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "producer": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accountId",
+        "track",
+        "methodId",
+        "taskId",
+        "candidateId",
+        "phaseId"
+      ],
+      "properties": {
+        "accountId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "track": {
+          "type": "string",
+          "enum": [
+            "track_a",
+            "track_b",
+            "provider_smoke",
+            "synthetic"
+          ]
+        },
+        "methodId": {
+          "$ref": "./budget-freeze-manifest.schema.json#/$defs/methodId"
+        },
+        "taskId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "candidateId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          ]
+        },
+        "phaseId": {
+          "$ref": "./budget-freeze-manifest.schema.json#/$defs/phaseId"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelRequestAttempts",
+        "completedModelCalls",
+        "failedModelCalls",
+        "cancelledModelCalls",
+        "inputTokens",
+        "outputTokens",
+        "reasoningTokens",
+        "cachedInputTokens",
+        "totalChargedTokens",
+        "providerCostMicros",
+        "toolAttempts",
+        "feedbackEvents",
+        "processCount",
+        "outputBytes",
+        "wallClockMillis"
+      ],
+      "properties": {
+        "modelRequestAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completedModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failedModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cancelledModelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reasoningTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cachedInputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalChargedTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "providerCostMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "toolAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "feedbackEvents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "processCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wallClockMillis": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
