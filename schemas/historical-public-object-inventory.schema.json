@@ -1,0 +1,576 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/historical-public-object-inventory.schema.json",
+  "title": "Historical union of every Git object exposed by recorded public refs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "inventoryId",
+    "recordType",
+    "repository",
+    "publicationRoots",
+    "traversal",
+    "commits",
+    "trees",
+    "blobs",
+    "pathObservations",
+    "pathTransitions",
+    "secretScan",
+    "counts",
+    "createdAt",
+    "inventoryHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "inventoryId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "historical_public_object_inventory"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "publicationRoots": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/publicationRoot"
+      }
+    },
+    "traversal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "explicitRootCommits",
+        "includeReachableAncestors",
+        "includeRecursiveTrees",
+        "includeAllPathObservations",
+        "knownRootsRemainCoveredWhenUnreachable",
+        "independentReconstructionRequired"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "git-rev-list-plus-recursive-tree-walk-v1"
+        },
+        "explicitRootCommits": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/gitObjectId"
+          }
+        },
+        "includeReachableAncestors": {
+          "const": true
+        },
+        "includeRecursiveTrees": {
+          "const": true
+        },
+        "includeAllPathObservations": {
+          "const": true
+        },
+        "knownRootsRemainCoveredWhenUnreachable": {
+          "const": true
+        },
+        "independentReconstructionRequired": {
+          "const": true
+        }
+      }
+    },
+    "commits": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/commitObject"
+      }
+    },
+    "trees": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/treeObject"
+      }
+    },
+    "blobs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/blobObject"
+      }
+    },
+    "pathObservations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pathObservation"
+      }
+    },
+    "pathTransitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pathTransition"
+      }
+    },
+    "secretScan": {
+      "$ref": "#/$defs/secretScan"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicationRoots",
+        "reachableCommits",
+        "uniqueTrees",
+        "uniqueBlobs",
+        "pathObservations",
+        "pathTransitions",
+        "a5SnapshotPaths",
+        "a5SnapshotBlobs",
+        "historicalOnlyBlobs",
+        "correctiveOnlyBlobs",
+        "correctiveSnapshotPaths",
+        "correctiveSnapshotBlobs"
+      ],
+      "properties": {
+        "publicationRoots": {
+          "const": 4
+        },
+        "reachableCommits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "uniqueTrees": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "uniqueBlobs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pathObservations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pathTransitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "a5SnapshotPaths": {
+          "const": 510
+        },
+        "a5SnapshotBlobs": {
+          "const": 501
+        },
+        "historicalOnlyBlobs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correctiveOnlyBlobs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "correctiveSnapshotPaths": {
+          "type": "integer",
+          "minimum": 510
+        },
+        "correctiveSnapshotBlobs": {
+          "type": "integer",
+          "minimum": 501
+        }
+      }
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "inventoryHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "gitMode": {
+      "type": "string",
+      "pattern": "^(100644|100755|120000)$"
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "owner",
+        "remoteName",
+        "branch"
+      ],
+      "properties": {
+        "url": {
+          "const": "https://github.com/dsa04156/self-evolving-harness"
+        },
+        "owner": {
+          "const": "dsa04156"
+        },
+        "remoteName": {
+          "const": "origin"
+        },
+        "branch": {
+          "const": "main"
+        }
+      }
+    },
+    "publicationRoot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "refName",
+        "commit",
+        "tree",
+        "publishedAt",
+        "observationSource"
+      ],
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "refName": {
+          "const": "refs/heads/main"
+        },
+        "commit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "tree": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "publishedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "observationSource": {
+          "type": "string",
+          "enum": [
+            "local_remote_tracking_reflog",
+            "push_result_and_remote_ref_verification"
+          ]
+        }
+      }
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "firstRootOrdinal",
+        "firstPublishedAt",
+        "rootCommits"
+      ],
+      "properties": {
+        "firstRootOrdinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "firstPublishedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "rootCommits": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/gitObjectId"
+          }
+        }
+      }
+    },
+    "commitObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitId",
+        "treeId",
+        "parentIds",
+        "sizeBytes",
+        "contentSha256",
+        "exposure"
+      ],
+      "properties": {
+        "commitId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "treeId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "parentIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/gitObjectId"
+          }
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contentSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "exposure": {
+          "$ref": "#/$defs/exposure"
+        }
+      }
+    },
+    "treeObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "treeId",
+        "sizeBytes",
+        "contentSha256",
+        "exposure"
+      ],
+      "properties": {
+        "treeId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contentSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "exposure": {
+          "$ref": "#/$defs/exposure"
+        }
+      }
+    },
+    "blobObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blobId",
+        "sizeBytes",
+        "contentSha256",
+        "paths",
+        "presentInA5Snapshot",
+        "presentInCorrectiveSnapshot",
+        "historicalOnlyRelativeToA5",
+        "correctiveOnly",
+        "exposure"
+      ],
+      "properties": {
+        "blobId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contentSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/path"
+          }
+        },
+        "presentInA5Snapshot": {
+          "type": "boolean"
+        },
+        "presentInCorrectiveSnapshot": {
+          "type": "boolean"
+        },
+        "historicalOnlyRelativeToA5": {
+          "type": "boolean"
+        },
+        "correctiveOnly": {
+          "type": "boolean"
+        },
+        "exposure": {
+          "$ref": "#/$defs/exposure"
+        }
+      }
+    },
+    "pathObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitId",
+        "rootTreeId",
+        "path",
+        "mode",
+        "blobId"
+      ],
+      "properties": {
+        "commitId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "rootTreeId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "mode": {
+          "$ref": "#/$defs/gitMode"
+        },
+        "blobId": {
+          "$ref": "#/$defs/gitObjectId"
+        }
+      }
+    },
+    "nullableGitObjectId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableGitMode": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/gitMode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pathTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitId",
+        "parentCommitId",
+        "path",
+        "state",
+        "beforeBlobId",
+        "afterBlobId",
+        "beforeMode",
+        "afterMode"
+      ],
+      "properties": {
+        "commitId": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "parentCommitId": {
+          "$ref": "#/$defs/nullableGitObjectId"
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "mode_changed"
+          ]
+        },
+        "beforeBlobId": {
+          "$ref": "#/$defs/nullableGitObjectId"
+        },
+        "afterBlobId": {
+          "$ref": "#/$defs/nullableGitObjectId"
+        },
+        "beforeMode": {
+          "$ref": "#/$defs/nullableGitMode"
+        },
+        "afterMode": {
+          "$ref": "#/$defs/nullableGitMode"
+        }
+      }
+    },
+    "secretScan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "patterns",
+        "falsePositiveLiterals",
+        "uniqueBlobsScanned",
+        "historicalOnlyBlobsScanned",
+        "correctiveOnlyBlobsScanned",
+        "pathObservationsScanned",
+        "environmentFilesFound",
+        "actualSecretMatches",
+        "privateKeysPublished",
+        "result"
+      ],
+      "properties": {
+        "scope": {
+          "const": "complete_recorded_public_git_object_union"
+        },
+        "patterns": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "falsePositiveLiterals": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "uniqueBlobsScanned": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "historicalOnlyBlobsScanned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correctiveOnlyBlobsScanned": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pathObservationsScanned": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "environmentFilesFound": {
+          "const": 0
+        },
+        "actualSecretMatches": {
+          "const": 0
+        },
+        "privateKeysPublished": {
+          "const": false
+        },
+        "result": {
+          "const": "no_actual_secret_match"
+        }
+      }
+    }
+  }
+}

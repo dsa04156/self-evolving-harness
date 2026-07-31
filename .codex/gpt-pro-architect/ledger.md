@@ -441,3 +441,34 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: any new attribution, scorer, mutation, candidate, runtime/evaluator comparison,
   provider, B0–B6, research, sealed/gate/final/temporal, promotion, deployment, release, or empirical
   claim action
+
+## Round 3RRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRR_PUBLICATION_GOVERNANCE_CLOSURE.md`
+- packet hash: `fd02406fc904bbf1a4b1b8d5fb13a3c3f7715da7cee354ee8af5c7295c840f55`
+- packet size: 13,447 characters / 13,453 bytes
+- corrective commit/tree:
+  `8b5f14400a7723c821bc54420e55da58dfa7601b` /
+  `1237af51815e9fd941c62ceb130d063584e13331`
+- remote ref: `refs/heads/main` at the corrective commit
+- transport: Oracle CLI 0.16.1 positive attach/reuse dry-run, then one recovered direct-CDP
+  submission to the exact existing tab
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- submission count: exactly one; observed user-message count increased from two to three
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrr.md`
+- raw-response verification: browser and local content both 9,938 characters / 9,940 bytes with
+  SHA-256 `9df707631279d1b423822c9e3011e3b564a245a09660217912dc8297577cd267`
+- architect decision: `REVISE`
+- accepted: deviation record, single-snapshot reconstruction, secret-scan handling within that
+  snapshot, ledger structure and class coverage, recursive anti-laundering for indexed nodes,
+  append-only closure form, deterministic validation, and bounded claims
+- blocking defect: missing historical public-object union across `c041f740`, `88e39cde`,
+  `a5d82564`, and `8b5f144`; the existing closure is therefore premature
+- authorized next: local-only union inventory/scan, ledger extension or replacement, five
+  historical-coverage negative cases, signed closure correction, clean validation, and narrow
+  resubmission
+- no additional Git push or broader provider/runtime/research/promotion/release action is authorized

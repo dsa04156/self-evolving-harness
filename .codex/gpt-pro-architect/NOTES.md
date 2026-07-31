@@ -216,3 +216,25 @@ any paid-provider request.
 - Real-provider use, new attribution/scorer/mutation/candidate/runtime/evaluator runs, B0–B6,
   research data or scheduling, promotion, deployment, release, and empirical claims remain
   prohibited until the publication-governance closure is reviewed.
+
+## Durable Round 3RRRRR publication-completeness decision
+
+- External decision: `REVISE`.
+- The signed deviation is accepted. The exposure-ledger schema, eligibility constants, artifact
+  classes, signatures, alias/blob/content matching, recursive dependency/wrapper/provenance
+  propagation, reset denials, separate closure form, clean validation, and claim discipline are
+  accepted for artifacts actually indexed.
+- The blocking defect is population completeness: `inventory-a5d8256.json` covers one tree, not the
+  public union from `c041f740`, `88e39cde`, `a5d82564`, and corrective commit `8b5f1440`.
+  Historical-only bytes and corrective-only bytes were therefore outside both the secret scan and
+  permanent exposure graph.
+- The existing deviation, snapshot inventory, ledger, and premature closure must remain unchanged.
+  A historical-union inventory, replacement ledger or extension, expanded scan, five historical
+  coverage tests, and signed superseding closure must be appended locally.
+- The next verifier must reconstruct the union independently from all recorded public roots and keep
+  explicit commits covered even if later unreachable.
+- No additional Git push is authorized. The correction and resubmission remain local to avoid
+  expanding the public set during accounting.
+- No evaluator-vault/authorship work, provider, attribution/scorer/mutation/candidate/evaluator run,
+  B0–B6, research data/scheduling, selection, promotion, deployment, release, or empirical claim is
+  authorized.

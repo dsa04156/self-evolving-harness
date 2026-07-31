@@ -26,6 +26,8 @@
     "verify:development-process-boundary": "npx -y node@24.18.1 --import tsx scripts/verify-development-process-boundary.ts",
     "create:publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-publication-governance.ts",
     "verify:publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-publication-governance.ts",
+    "create:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-historical-publication-governance.ts",
+    "verify:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-historical-publication-governance.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

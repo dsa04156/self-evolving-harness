@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/historical-public-exposure-ledger.schema.json",
+  "title": "Signed exposure ledger for the complete historical public Git object union",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ledgerId",
+    "recordType",
+    "governanceDomainId",
+    "deviationId",
+    "deviationRecordHash",
+    "priorLedgerId",
+    "priorLedgerHash",
+    "historicalInventoryId",
+    "historicalInventoryHash",
+    "publicationRootCommits",
+    "artifacts",
+    "propagationPolicy",
+    "allowedUseClasses",
+    "prohibitedUseClasses",
+    "createdAt",
+    "recordedBy",
+    "ledgerHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "ledgerId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "historical_public_exposure_ledger"
+    },
+    "governanceDomainId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "deviationId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "deviationRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "priorLedgerId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "priorLedgerHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "historicalInventoryId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "historicalInventoryHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicationRootCommits": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/gitObjectId"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "propagationPolicy": {
+      "$ref": "#/$defs/propagationPolicy"
+    },
+    "allowedUseClasses": {
+      "$ref": "#/$defs/allowedUses"
+    },
+    "prohibitedUseClasses": {
+      "$ref": "#/$defs/prohibitedUses"
+    },
+    "createdAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "ledgerHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "stringSet": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      }
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicDevelopment",
+        "eligibleForHeldOut",
+        "eligibleForSealed",
+        "eligibleForTemporalHoldout",
+        "eligibleForGate",
+        "eligibleForFinal",
+        "confirmatory",
+        "authorizedForResearchEvidence",
+        "authorizedForPromotion"
+      ],
+      "properties": {
+        "publicDevelopment": {
+          "const": true
+        },
+        "eligibleForHeldOut": {
+          "const": false
+        },
+        "eligibleForSealed": {
+          "const": false
+        },
+        "eligibleForTemporalHoldout": {
+          "const": false
+        },
+        "eligibleForGate": {
+          "const": false
+        },
+        "eligibleForFinal": {
+          "const": false
+        },
+        "confirmatory": {
+          "const": false
+        },
+        "authorizedForResearchEvidence": {
+          "const": false
+        },
+        "authorizedForPromotion": {
+          "const": false
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exposureId",
+        "artifactClass",
+        "artifactId",
+        "sourceKind",
+        "gitObjectType",
+        "gitObjectId",
+        "contentHash",
+        "paths",
+        "aliases",
+        "dependencies",
+        "provenanceReferences",
+        "eligibility"
+      ],
+      "properties": {
+        "exposureId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "artifactClass": {
+          "type": "string",
+          "enum": [
+            "development_fixture",
+            "development_corpus",
+            "development_oracle",
+            "development_prototype",
+            "development_prediction",
+            "development_score",
+            "development_candidate",
+            "development_execution",
+            "development_evaluation",
+            "development_receipt",
+            "development_quarantine",
+            "development_documentation",
+            "published_source"
+          ]
+        },
+        "artifactId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "sourceKind": {
+          "type": "string",
+          "enum": [
+            "git_object",
+            "embedded_record"
+          ]
+        },
+        "gitObjectType": {
+          "type": "string",
+          "enum": [
+            "commit",
+            "tree",
+            "blob",
+            "embedded"
+          ]
+        },
+        "gitObjectId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/gitObjectId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "paths": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "aliases": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "dependencies": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "provenanceReferences": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "eligibility": {
+          "$ref": "#/$defs/eligibility"
+        }
+      }
+    },
+    "propagationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matchExposureId",
+        "matchArtifactId",
+        "matchPath",
+        "matchGitObjectId",
+        "matchContentHash",
+        "matchAlias",
+        "traverseDependencies",
+        "traverseWrappers",
+        "traverseProvenance",
+        "protocolVersionCannotReset",
+        "historyRewriteCannotReset",
+        "repositoryDeletionCannotReset",
+        "unreachableCommitRemainsExposed",
+        "defaultRestrictedUse"
+      ],
+      "properties": {
+        "matchExposureId": {
+          "const": true
+        },
+        "matchArtifactId": {
+          "const": true
+        },
+        "matchPath": {
+          "const": true
+        },
+        "matchGitObjectId": {
+          "const": true
+        },
+        "matchContentHash": {
+          "const": true
+        },
+        "matchAlias": {
+          "const": true
+        },
+        "traverseDependencies": {
+          "const": true
+        },
+        "traverseWrappers": {
+          "const": true
+        },
+        "traverseProvenance": {
+          "const": true
+        },
+        "protocolVersionCannotReset": {
+          "const": true
+        },
+        "historyRewriteCannotReset": {
+          "const": true
+        },
+        "repositoryDeletionCannotReset": {
+          "const": true
+        },
+        "unreachableCommitRemainsExposed": {
+          "const": true
+        },
+        "defaultRestrictedUse": {
+          "const": "deny"
+        }
+      }
+    },
+    "allowedUses": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "const": "public_development"
+        },
+        {
+          "const": "governance_audit"
+        },
+        {
+          "const": "development_archive"
+        }
+      ],
+      "items": false
+    },
+    "prohibitedUses": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "prefixItems": [
+        {
+          "const": "held_out"
+        },
+        {
+          "const": "sealed"
+        },
+        {
+          "const": "temporal_holdout"
+        },
+        {
+          "const": "gate"
+        },
+        {
+          "const": "final"
+        },
+        {
+          "const": "confirmatory"
+        },
+        {
+          "const": "research_selection"
+        },
+        {
+          "const": "promotion"
+        },
+        {
+          "const": "research_evidence"
+        },
+        {
+          "const": "claim_table"
+        }
+      ],
+      "items": false
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ the next gate:
 |---|---|---|
 | 03RRR | `PACKET_03RRR_DEVELOPMENT_ATTRIBUTION_AND_DRY_RUN.md` | approved for development plumbing only |
 | 03RRRR | `PACKET_03RRRR_PROCESS_BOUNDARY_AND_RUNTIME_EVIDENCE.md` | REVISE: technical boundary accepted; publication governance correction required |
+| 03RRRRR | `PACKET_03RRRRR_PUBLICATION_GOVERNANCE_CLOSURE.md` | REVISE: snapshot policy accepted; historical public-object union required |
 
 External transmission, code upload, paid-provider use, and sealed-test access require explicit user
 approval at the time of the action. Preparing a local packet does not grant those permissions.

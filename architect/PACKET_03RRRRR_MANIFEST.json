@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "packetId": "architect-gate3rrrrr-publication-governance-closure-1",
+  "createdAt": "2026-07-31T16:09:48+09:00",
+  "status": "reviewed_revise",
+  "respondsToDecisionSha256": "deab2175380d472a8581ab4baed07af8518fde3ffa0a90a6457bb03a234db9cf",
+  "correctiveCommit": "8b5f14400a7723c821bc54420e55da58dfa7601b",
+  "correctiveTree": "1237af51815e9fd941c62ceb130d063584e13331",
+  "remoteRef": "refs/heads/main",
+  "remoteCommit": "8b5f14400a7723c821bc54420e55da58dfa7601b",
+  "packet": {
+    "path": "architect/PACKET_03RRRRR_PUBLICATION_GOVERNANCE_CLOSURE.md",
+    "transportCopy": ".codex/gpt-pro-architect/packets/packet-3rrrrr.md",
+    "sha256": "fd02406fc904bbf1a4b1b8d5fb13a3c3f7715da7cee354ee8af5c7295c840f55",
+    "characterCount": 13447,
+    "byteCount": 13453,
+    "copiesByteIdentical": true,
+    "postCommitLocalOnly": true,
+    "pushed": false
+  },
+  "governanceRecords": {
+    "inventoryHash": "sha256:1765dbf575a1997b9e2915c3e1cbbd7118135fd76dff02df28765bc8561decb6",
+    "deviationRecordHash": "sha256:86a013e41c99fb1cf60e2d6377105ce88931c6f1416f829d791b5f76673eef4b",
+    "publicExposureLedgerHash": "sha256:2c6ba47d7940ffdfa371d123811bd5945a040a9601008411ca9a88d622d53ee6",
+    "remediationClosureHash": "sha256:242c889c616eab9c33787a1bd606c21e961e0f5be56e26eb466a4c0a84bb6cd6",
+    "publishedPathCount": 510,
+    "uniqueGitBlobCount": 501,
+    "exposureCount": 632,
+    "embeddedIdentifierCount": 109,
+    "artifactClassCount": 13,
+    "restrictedUseClassCount": 10
+  },
+  "validation": {
+    "publicationGovernanceVerifier": "pass",
+    "processBoundaryVerifier": "pass",
+    "typecheckBuild": "pass",
+    "fullTestSuite": {
+      "total": 109,
+      "passed": 109,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "secretMatches": 0,
+    "environmentFilesFound": 0,
+    "privateKeysPublished": false
+  },
+  "externalActions": {
+    "architectTransmission": true,
+    "correctiveCommitCount": 1,
+    "correctivePushCount": 1,
+    "providerCall": false,
+    "apiKeyRequestedOrStored": false,
+    "newAttributionOrScorerRun": false,
+    "newMutationCandidateOrEvaluationRun": false,
+    "researchSchedulerExecution": false,
+    "b0ThroughB6Execution": false,
+    "gateOrFinalAccess": false,
+    "promotion": false,
+    "deployment": false,
+    "release": false
+  },
+  "claimBoundary": {
+    "publicDevelopment": true,
+    "authorizedForResearchEvidence": false,
+    "heldOutEligibilityRestored": false,
+    "performanceClaim": false,
+    "attributionPerformanceClaim": false,
+    "generalizationClaim": false,
+    "securityClaim": false,
+    "selfImprovementClaim": false,
+    "providerUsed": false
+  },
+  "review": {
+    "reviewedAt": "2026-07-31T16:18:11+09:00",
+    "conversationUrl": "https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0",
+    "browserEndpoint": "127.0.0.1:9222",
+    "browserTarget": "4BA3B4F29D8FD1597A712A46C80CB67E",
+    "newWindowAllowed": false,
+    "newWindowOpened": false,
+    "transport": "Oracle CLI 0.16.1 positive exact-tab attach/reuse dry-run, then one recovered manual direct-CDP submission to the pinned target",
+    "submissionCount": 1,
+    "decision": "REVISE",
+    "responsePath": ".codex/gpt-pro-architect/responses/response-3rrrrr.md",
+    "responseSha256": "9df707631279d1b423822c9e3011e3b564a245a09660217912dc8297577cd267",
+    "responseCharacterCount": 9938,
+    "responseByteCount": 9940,
+    "harvest": "Saved latest terminal assistant innerText plus one LF; browser-computed and local SHA-256 matched exactly."
+  }
+}

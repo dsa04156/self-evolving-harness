@@ -47,6 +47,7 @@ export * from "./governance/development-artifact-quarantine.js";
 export * from "./governance/development-artifact-taint.js";
 export * from "./governance/development-prediction-seal.js";
 export * from "./governance/publication-exposure.js";
+export * from "./governance/historical-publication-exposure.js";
 export * from "./operations/session-lifecycle.js";
 export * from "./operations/session-definition.js";
 export * from "./operations/control-plane.js";
