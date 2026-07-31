@@ -238,3 +238,30 @@ any paid-provider request.
 - No evaluator-vault/authorship work, provider, attribution/scorer/mutation/candidate/evaluator run,
   B0–B6, research data/scheduling, selection, promotion, deployment, release, or empirical claim is
   authorized.
+
+## Durable Round 3RRRRRR historical-publication decision
+
+- External decision: `APPROVE`; blocking findings: none for the four recorded public roots through
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`.
+- The accepted union contains 64 commits, 456 recursive trees, 878 unique blobs, 19,742 per-commit
+  path/mode observations, and 891 transitions. It includes 350 historical-only and 27
+  corrective-only blobs.
+- The independently repeated scan reports zero actual secret matches, zero actual environment
+  files, and no published private key across the recorded public union. This is not a statement
+  about dependencies, the host, future commits, or unrecorded systems.
+- The replacement ledger binds exactly 1,398 Git objects plus 1,169 embedded content-addressed
+  identifiers across all 13 classes. Public bytes remain permanently ineligible for held-out,
+  sealed, temporal, gate/final, confirmatory, research-selection/evidence, and promotion use.
+- The earlier closure remains byte-identical and explicitly premature. The signed superseding
+  closure repairs it append-only without restoring secrecy, eligibility, research authority, or
+  promotion authority.
+- Clean validation was accepted as 116/116 non-audit tests plus 1/1 isolated Unix audit test. The
+  disclosed monolithic missed-close race was not credited and does not establish arbitrary
+  concurrent test-runner reliability.
+- Authorized next: local deterministic evaluator-vault and independent-authorship trust contracts
+  using synthetic metadata only; freeze role keys/mounts/actions, opaque handles, one-way result
+  release, access ledger, and fail-closed attacks; add historical-ledger contamination rejections;
+  submit a narrow packet.
+- No Git push, release, API credential/provider, real gate/final/temporal/withheld-public/
+  multi-cause/Terminal-Bench body, research scheduler or B0–B6, pilot/threshold, attribution
+  evaluation, selection, promotion, deployment, or empirical claim is authorized.

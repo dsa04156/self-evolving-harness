@@ -472,3 +472,39 @@ response path, interpreted decision, required revisions, and the commit containi
   historical-coverage negative cases, signed closure correction, clean validation, and narrow
   resubmission
 - no additional Git push or broader provider/runtime/research/promotion/release action is authorized
+
+## Round 3RRRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRRR_HISTORICAL_PUBLICATION_COMPLETENESS.md`
+- packet hash: `f1f0e74a7b0198bace6e206ff49a3e208b4c6fa8d01fa9865b4bfabcfdd4d37f`
+- packet size: 13,963 characters / 13,969 bytes
+- local corrective commit/tree:
+  `39b69be04185317f56a47183a2f78b9afde5ef6c` /
+  `ecded4539d0e8be967691cd501d013e89eac9333`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no additional push
+- transport: one recovered direct-CDP submission to the exact existing tab after the long insert
+  timed out; full composer state was verified before exactly one send
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- submission count: exactly one; observed user-message count increased from two to three
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrr.md`
+- raw-response verification: browser and local content both 10,517 characters / 10,523 bytes with
+  SHA-256 `7070922e4ea18844d1ffb0dde9e9076085feff97b260eb3086acf6e4f3295074`
+- architect decision: `APPROVE`
+- accepted: four-root historical Git-object union, all historical path/mode/deletion states,
+  complete 878-blob secret scan, exact 1,398-object replacement ledger, 1,169 embedded identifiers,
+  five required historical laundering denials, append-only superseding closure, and 117/117 clean
+  deterministic test population
+- claim boundary: closure applies only through public commit `8b5f144`; local `39b69be` is not
+  public; no secrecy, held-out eligibility, research authority, performance, or safety claim is
+  restored or created
+- authorized next: local deterministic body-free evaluator-vault and independent-authorship
+  contracts with synthetic metadata, access-ledger/fail-closed tests, public-history contamination
+  rejection, and a narrow packet
+- still prohibited: Git push/release, API credential/provider, real task body, research scheduler or
+  B0–B6, pilot/threshold, attribution evaluation, gate/final/temporal/withheld-public access,
+  selection, promotion/canary/deployment, and empirical claims
