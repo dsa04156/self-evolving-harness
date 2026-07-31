@@ -112,3 +112,31 @@ any paid-provider request.
   governance deviation and cannot become research evidence without a new architect disposition.
 - The current fixture runner chooses good/fault outcomes from manifest identity; it is plumbing
   evidence, not meaningful attribution accuracy.
+
+## Durable Round 3R HarnessFaultBench decision
+
+- External decision: `REVISE`.
+- The 28 visible `D_mine` bodies and their deterministic executions exceeded the scope authorized by
+  the Gate 3 readiness decision. They are not gate/final contamination, must not be deleted, and must
+  receive a signed governance-deviation record.
+- The existing fixture bodies, causal report, suite commitment, and 28/28 scorer output are
+  `development_only`, `non_confirmatory`, and `unauthorized_for_research_evidence`. They must be
+  mechanically excluded from research manifests, candidate inputs, attribution evaluation, B0–B6,
+  promotion, and claims.
+- The manifest-ID runner is accepted only as structural fixture and label-oracle scorer plumbing.
+  Its 28/28 score is not attribution accuracy and its current commitment can never become the official
+  research split by renaming.
+- Attribution readiness requires separate execution and oracle authority domains. The executor,
+  provider, tools, trace producer, verifier, and attribution adapter may not consume fixture IDs,
+  target component labels, known-good/fault manifest IDs, expected outcomes, or equivalent encodings.
+- All seven mutable families must affect actual runtime decision points. Provider behavior must be a
+  function only of canonical requests and observable state; tools only of validated tool IDs and
+  arguments; the verifier only of observable output/state.
+- A label-blind allowlist adapter and adversarial leakage tests are blocking requirements.
+- Corrected fixtures remain development-only until a new semantic suite commitment and a narrow
+  Architect resubmission are accepted.
+- The correction-only deterministic scope is authorized. Provider smoke is a separate frozen action
+  and remains unexecuted because this project has no provider API credential.
+- Attribution-model evaluation, B0–B6, research pilot, mutation, candidate selection, promotion,
+  deployment, gate/final/temporal/withheld-public bodies, empirical claims, push, release, and
+  publication remain prohibited.

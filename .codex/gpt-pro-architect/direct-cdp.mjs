@@ -286,7 +286,7 @@ async function sendExisting(client, expectedUserCount) {
     before.stopButtonPresent ||
     typeof before.composerText !== "string" ||
     before.composerTextLength === null ||
-    before.composerTextLength < 12_000 ||
+    before.composerTextLength < 8_000 ||
     !before.sendButtonPresent ||
     before.sendButtonDisabled
   ) {

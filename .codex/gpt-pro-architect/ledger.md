@@ -281,4 +281,38 @@ response path, interpreted decision, required revisions, and the commit containi
 - excluded: source upload, full evidence body, credentials, private keys, gate/final data, raw traces,
   provider call, paid action, deployment, push, release, and publication
 - authorized transport: same exact project conversation, endpoint, and browser target only
-- status: prepared, not yet transmitted
+- status: transmitted and reviewed; see Round 3R
+
+## Round 3R — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3r.md`
+- authoritative project copy: `architect/PACKET_03R_HFB_MINE_REVIEW.md`
+- packet hash: `6d3be1dd8707e820098f52b16976c7f8b90a9d4cd989819202ffe570479b3e4c`
+- transport: Oracle CLI 0.16.1 dry-run followed by manual direct-CDP exact-tab submission
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- recovery: the first direct-CDP operation inserted the complete 9,085-character prompt but timed out
+  before submission; the recovery command verified the existing composer text and submitted it once
+- submission count: exactly one; observed user-message count increased from two to three
+- model evidence: Oracle requested `gpt-5-pro` and dry-run resolved the existing target; direct CDP
+  reused the same previously Pro-selected tab; server identity remains vendor-opaque
+- raw response: `.codex/gpt-pro-architect/responses/response-3r.md`
+- raw-response verification: browser `innerText` plus one final LF equals the local file:
+  13,293 characters / 13,311 bytes
+- response hash: `29aff8598f70bd5453c1cb7c46b529229c6c07df1ec4427228cae00f101c161d`
+- architect decision: `REVISE`
+- governance disposition: construction and execution of the 28 visible `D_mine` fixtures exceeded
+  Round 3 authorization; the artifacts must be preserved, formally recorded, and mechanically
+  quarantined as development-only, non-confirmatory, and unauthorized for research evidence
+- correctness disposition: the manifest-ID runner is accepted only as structural/scorer plumbing,
+  not as a semantically executable attribution benchmark
+- authorized next: correction-only deterministic semantic-fixture work, including governance
+  quarantine, explicit renaming, execution/oracle authority separation, seven-family runtime
+  semantics, input-driven fake provider/tools, outcome-driven verifier, label-blind adapter, leakage
+  tests, replacement development evidence, and a narrow resubmission
+- still prohibited: attribution-model evaluation or accuracy, candidate generation, B0–B6, pilot,
+  mutation, selection, promotion/canary/deployment, gate/final/temporal/withheld-public construction
+  or access, research/performance/generalization/security/self-improvement claims, push, release, or
+  publication
