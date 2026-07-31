@@ -13,6 +13,7 @@
     "check": "npx -y node@24.18.1 ./node_modules/typescript/bin/tsc --noEmit",
     "test": "npx -y node@24.18.1 --import tsx --test test/**/*.test.ts",
     "test:coverage": "npx -y node@24.18.1 --import tsx --test --experimental-test-coverage test/**/*.test.ts",
+    "create:hfb-governance-deviation": "npx -y node@24.18.1 --import tsx scripts/create-hfb-governance-deviation.ts",
     "validate:hfb-mine": "npx -y node@24.18.1 --import tsx scripts/validate-harness-fault-bench.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
