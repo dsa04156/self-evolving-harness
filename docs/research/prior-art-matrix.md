@@ -9,6 +9,7 @@ judgment, and “not found” is limited to the inspected artifacts in
 | Gajae-Code | yes | yes | receipts/events | not found | not found | not found | no | partial: owner/receipts, no evolution boundary |
 | OpenAI Codex | yes | yes, product runtime | rollout/items | not found | not found | not found | no | permissions/sandbox exist, no evolution boundary |
 | Oh My OpenAgent | host-owned | host-specific hooks | host-dependent | no | no | no | no | host-dependent |
+| OxyGent | yes, MAS/ReAct | request replay, retry, background tasks; no separate inspected session state machine | call-tree nodes, ES history, ratings | per-prompt versions/history/revert; no whole-harness lineage | prompt-only LLM rewrite with structural checks | no candidate held-out gate found | parallel/reflexion runtime components, not a matched-budget experiment contract | permission lists and factory deny-list; no independent proposer/evaluator/promoter plane |
 | AHE | NexAU-owned | experiment resume/rollback | layered traces/reports | Git iterations/worktrees | prompt-constrained file edits | same-loop evaluation; transfer reported | incomplete in original release | filesystem/read-only contract, not a demonstrated hostile-principal boundary |
 | Meta-Harness | domain/host-specific | experiment resume | filesystem logs/frontier | candidate files/frontier | one-mechanism prompt; free-form code | validation/test separation in text-classification example | no unified matched-budget suite | no first-class trust plane |
 | Self-Harness | DeepAgent-based in paper | not a product ops plane | structured failure records | explicit `h_t → h_t+1` | yes, minimal proposals | held-in + held-out regression | no parallel/sequential matched-budget comparison in method | fixed evaluator concept; implementation isolation unknown |
@@ -22,6 +23,8 @@ The following cannot be claimed as new:
 
 - a model/tool loop, session persistence, sandbox controls, or streamed item events;
 - filesystem memory, skills, hooks, subagents, or background jobs;
+- unified agent/tool/LLM/flow abstractions, permission-gated component calls, live prompt versions, hot
+  reload, or prompt revert;
 - evaluate → analyze → improve;
 - candidate archives or Git worktrees;
 - weakness mining, rich failure records, bounded proposals, held-in/held-out regression checks, or

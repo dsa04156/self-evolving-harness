@@ -1,7 +1,7 @@
 # Source Ledger
 
 Status: Gate 1 evidence draft  
-Research cut-off: 2026-07-30 (Asia/Seoul)  
+Research cut-off: 2026-07-31 (Asia/Seoul)
 Method: public sources were cloned or opened read-only. README claims are recorded as claims unless a
 corresponding execution path was found in source. `Observed fact` and `Inference` are intentionally
 separate.
@@ -204,6 +204,37 @@ Permanent code references:
 [outer loop](https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/DGM_outer.py),
 [self-improvement step](https://github.com/jennyzzt/dgm/blob/a565fd2d1dca504ef5104a7cc0f3bdc4ab9b4fd2/self_improve_step.py).
 
+## S10 — OxyGent
+
+- Website: <https://oxygent.jd.com/>
+- Repository: <https://github.com/jd-opensource/OxyGent>
+- Branch / commit: `main` / `cd96268de5814dfb4e0444cfd687f97508cf996a`
+- Commit date: 2026-07-21T16:33:57+08:00
+- Paper: <https://arxiv.org/abs/2604.25602>, arXiv v2, 2026-04-29
+- Inspected: 2026-07-31
+- Source license: Apache-2.0
+- Paper license: arXiv non-exclusive distribution license
+- Reuse decision: comparison and design vocabulary only; no source copied and no OxyGent runtime
+  dependency added.
+
+| File / section | Observed fact | Inference | Status |
+|---|---|---|---|
+| `oxygent/oxy/base_oxy.py:71-195`; `oxygent/mas.py:312-375` | `Oxy` is the common executable abstraction for agents, tools, LLMs, and flows. It carries descriptions, schemas, permission lists, concurrency, timeout, retry, lifecycle callbacks, and a MAS reference; `MAS.init` registers and initializes the object graph. | OxyGent is useful prior art for a uniform runtime component interface, but its live object registry is not a content-addressed `HarnessVersion` component DAG. | implemented |
+| `oxygent/mas.py:874-899`; `oxygent/schemas/oxy.py:246-385`; `oxygent/oxy/base_oxy.py:609-780` | `MAS.call` constructs an `OxyRequest`; nested `OxyRequest.call` checks the caller’s permitted tools/components, creates call-tree metadata, applies a timeout, and invokes `Oxy.execute`. `Oxy.execute` performs interception, persistence, hooks, bounded retry, and post-processing. | This is an owned MAS runtime path rather than a wrapper around another agent harness. Permission lists are runtime checks, but not independent OS-principal isolation. | implemented |
+| `oxygent/oxy/agents/react_agent.py:306-440`; `oxygent/oxy/agents/parallel_agent.py:21-68`; `oxygent/oxy/flows/reflexion.py:171-255` | ReAct constructs context, calls an LLM, executes permitted tools, appends observations, and repeats. ParallelAgent fans one request out and synthesizes results. Reflexion repeatedly asks a worker and evaluator to improve the same answer. | These are strong Task Execution Loop and B1/B2 implementation references. Reflexion and component retries remain task-time retry/refinement, not harness evolution. | implemented |
+| `oxygent/live_prompt/manager.py:63-197,359-425`; `oxygent/live_prompt/version.py:16-328`; `oxygent/routes.py:1439-1537` | Live prompts have incrementing versions, archived history, multi-instance version polling, hot reload, and revert-as-new-version. The optimization endpoint asks an LLM to rewrite one prompt, applies structural substring checks, and can immediately save/hot-reload it when `auto_apply` is true. | OxyGent has genuine prompt artifact versioning and rollback-adjacent behavior. It does not, in this path, create an independently evaluated multi-component candidate `HarnessVersion` or require a held-out gate, matched budget, external promoter, or immutable evaluator before activation. | implemented prompt lifecycle; harness lifecycle absent in inspected path |
+| `applications/oxybank/app/services/annotation_service.py:35-220`; `applications/oxybank/app/services/sample_service.py:215-265,421-469`; `applications/oxybank/README.md` | OxyBank dispatches status-triggered annotation agents, applies their field changes, records per-sample version history, and synchronizes retrieval projections. Elasticsearch is described as the authoritative sample store and Vearch as a vector projection. | The paper’s “evolution engine” is concretely supported as an AI-data backflow, annotation, and retrieval lifecycle. That lifecycle must not be conflated with mutation and promotion of executable harness versions. | implemented |
+| `examples/agents/demo_evaluate_and_evolve.py:73-126` | The example reads saved LLM nodes, has a reviewer agent filter them, and writes accepted messages to `sft_dataset.jsonl`. | The named example produces training data; it neither updates model weights nor implements a harness candidate/promotion lifecycle. | implemented |
+| inspected runtime, live-prompt, OxyBank, examples, and tests | Searches found no typed `HarnessVersion` lifecycle, bounded multi-component mutation proposal, disjoint held-out acceptance gate, matched-budget comparison, or separate proposer/evaluator/promoter authority chain. | OxyGent narrows the novelty claim: unified components, trace observability, prompt versions, hot reload, and data feedback are prior art. The remaining proposed gap is enforced whole-harness lineage plus evaluation and trust-plane separation. | absent in inspected paths; unknown for uninspected or unreleased artifacts |
+
+Permanent code references:
+[Oxy lifecycle](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/oxy/base_oxy.py),
+[nested invocation](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/schemas/oxy.py),
+[ReAct loop](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/oxy/agents/react_agent.py),
+[live-prompt manager](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/live_prompt/manager.py),
+[prompt optimization route](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/routes.py),
+[OxyBank annotation dispatcher](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/applications/oxybank/app/services/annotation_service.py).
+
 ## Evidence gaps
 
 1. Self-Harness has no inspected public implementation, so process isolation and exact data-flow claims
@@ -214,3 +245,6 @@ Permanent code references:
    its implementation must not be copied.
 4. Absence of an evolution lifecycle in large repositories is scoped to inspected paths and searches, not
    a proof about every historical branch or unreleased component.
+5. OxyGent’s paper uses “evolution” for OxyBank-driven data feedback and joint evolution. The ledger
+   records what is executable at the pinned SHA and does not infer unavailable training, deployment, or
+   promotion machinery from that term.

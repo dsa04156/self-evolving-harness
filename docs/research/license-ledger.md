@@ -7,6 +7,8 @@ interfaces and execution behavior, record citations, then write original code wi
 |---|---|---|---:|---|
 | Gajae-Code | source at `8778760…` | MIT | no direct reuse planned | Permissive, but clean-room avoids accidental derivative coupling. |
 | Oh My OpenAgent | source at `258fab0…` | Sustainable Use License 1.0 plus third-party licenses | no | Default license restricts commercial use and non-free redistribution; treat as source-available. |
+| OxyGent | source at `cd96268…` | Apache-2.0 | no direct reuse planned | Runtime and live-prompt behavior are compared at an exact SHA; implementation remains clean-room. |
+| OxyGent paper | arXiv 2604.25602v2 | arXiv non-exclusive distribution license | no | Cite and paraphrase; do not assume a Creative Commons grant. |
 | OpenAI Codex | source at `6219b7c…` | Apache-2.0 | no direct reuse planned | Concepts/interfaces only; preserve attribution if policy later changes. |
 | AHE | source at `faf44bc…` | MIT | no direct reuse planned | Paper and code cited; Agent Debugger is not fully open. |
 | AHE paper | arXiv 2604.25850 | CC BY 4.0 | figures/text only with attribution, not needed | Paraphrase and cite. |

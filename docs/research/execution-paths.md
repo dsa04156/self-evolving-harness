@@ -54,6 +54,50 @@ OpenCode loads plugin
 The roadmap’s Core/MCP/Skills/Adapter layering is reusable design guidance, but the runtime adapter is not
 an independent executor.
 
+## OxyGent: owned MAS execution and live-prompt update
+
+Task execution:
+
+```text
+MAS.__aenter__ / init
+  → register Oxy agents, tools, LLMs, and flows
+  → initialize storage, organization graph, and dynamic prompt bindings
+MAS.call
+  → construct OxyRequest and bind MAS
+  → selected Oxy.execute
+    → preprocess + trace pre-log
+    → restart/replay interceptor
+    → before hooks
+    → bounded component retry around _execute
+      → ReActAgent builds instruction + short memory + query + ReAct memory
+      → OxyRequest.call(callee)
+        → registry lookup + permitted-tool/permitted-Oxy check
+        → clone request + call-tree/parallel metadata
+        → timeout-wrapped callee.execute
+      → append observations and repeat
+    → after hooks + post-process + trace persistence/messages
+```
+
+Prompt update is a separate adjacent path:
+
+```text
+POST /api/prompts/optimize
+  → read active prompt
+  → PromptOptimizer asks a registered LLM for a rewritten prompt
+  → JSON parsing + framework substring/placeholder checks
+  → optional auto_apply
+    → PromptManager archives current prompt version
+    → increments and saves the new prompt version
+    → hot-reloads bound agents
+  → history API can revert old content by creating another new prompt version
+```
+
+This is meaningful prompt versioning and runtime hot-swapping. It is not the proposed outer loop:
+there is no inspected multi-component candidate `HarnessVersion`, isolated held-in/held-out evaluation,
+matched-budget comparison, or external promotion authority between rewrite and activation. OxyBank’s
+status-triggered annotation path similarly versions training/retrieval samples rather than executable
+harnesses.
+
 ## OpenAI Codex: thread/turn execution
 
 ```text

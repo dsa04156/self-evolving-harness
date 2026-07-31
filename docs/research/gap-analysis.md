@@ -7,6 +7,8 @@ Existing systems demonstrate each of the following in isolation or in overlappin
 - production-grade agent loops, tools, permissions, events, and durable sessions;
 - deterministic operations control, recovery, and receipts;
 - reusable skills/hooks/adapters;
+- unified agent/tool/LLM/flow component abstractions, permission-gated dynamic calls, prompt history,
+  hot reload, prompt revert, and data-feedback/annotation loops;
 - filesystem candidate archives and worktrees;
 - observability-driven trace analysis;
 - weakness mining, bounded proposals, regression validation, and rejected-edit memory;
@@ -15,6 +17,13 @@ Existing systems demonstrate each of the following in isolation or in overlappin
 
 Building another loop around a model, or another `evaluate → edit → rerun` script, would not be a
 meaningful contribution.
+
+OxyGent is especially important to the boundary of the claim. It combines an owned multi-agent runtime,
+call-graph observability, live prompt versions, runtime hot reload, and OxyBank data feedback. Therefore
+this project cannot claim novelty for “modular and evolvable agents,” versioned prompts, rollback-like
+prompt revert, or continuous data feedback. Its narrower systems question begins only when several
+versioned harness components form one immutable candidate, candidate activation is mediated by disjoint
+evaluation and promotion authorities, and search/test budgets and data access are externally enforced.
 
 ## Genuine unresolved systems question
 
@@ -70,6 +79,9 @@ The project is not sufficiently distinct if any of these occur:
    proposer, judge, summarizer, and evaluator-side model calls consistently.
 6. **Benchmark risk:** synthetic attribution accuracy may not predict real Terminal-Bench improvement.
    The two tracks must be reported separately.
+7. **Terminology risk:** OxyGent legitimately calls its data-feedback and prompt-management facilities
+   evolution. The project must state its stricter operational definition instead of implying that the
+   prior usage is wrong.
 
 ## Gate 1 recommendation
 
