@@ -155,6 +155,16 @@ export interface HarnessDiff {
   readonly disabledConditionalDiffCount: number;
 }
 
+export interface HarnessClosureComponent {
+  readonly componentManifest: ComponentManifest;
+  readonly payload: JsonValue;
+}
+
+export interface HarnessClosureExport {
+  readonly harnessManifest: HarnessVersionManifest;
+  readonly componentEntries: readonly HarnessClosureComponent[];
+}
+
 export class HarnessComponentRegistry {
   readonly #schemas: SchemaRegistry;
   readonly #artifacts: ArtifactStore;
@@ -273,6 +283,43 @@ export class HarnessComponentRegistry {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing harness ${harnessVersionId}`);
     }
     return cloneValue(stored.manifest);
+  }
+
+  public async exportHarnessClosure(
+    harnessVersionId: string,
+  ): Promise<HarnessClosureExport> {
+    const harnessManifest = this.getHarness(harnessVersionId);
+    const manifests = new Map<string, ComponentManifest>();
+    const visit = (componentManifestId: string): void => {
+      if (manifests.has(componentManifestId)) return;
+      const manifest = this.getComponent(componentManifestId);
+      for (const dependency of manifest.identity.dependencies) {
+        visit(dependency.component.componentManifestId);
+      }
+      manifests.set(componentManifestId, manifest);
+    };
+    for (const binding of harnessManifest.identity.componentBindings) {
+      visit(binding.component.componentManifestId);
+    }
+    const componentEntries: HarnessClosureComponent[] = [];
+    for (const componentManifest of [...manifests.values()].sort((left, right) =>
+      left.componentManifestId.localeCompare(right.componentManifestId),
+    )) {
+      componentEntries.push({
+        componentManifest,
+        payload: await this.getPayload(componentManifest.componentManifestId),
+      });
+    }
+    assertCondition(
+      componentEntries.length ===
+        harnessManifest.identity.behaviorClosure.componentCount,
+      "HASH_MISMATCH",
+      "Exported component closure count differs from the harness manifest",
+    );
+    return {
+      harnessManifest,
+      componentEntries,
+    };
   }
 
   public async validateDetachedComponent(

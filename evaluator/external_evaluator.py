@@ -1010,6 +1010,7 @@ def verify_filesystem_snapshot(
         descriptor,
         {
             "schemaVersion",
+            "baseCommit",
             "headCommit",
             "treeHash",
             "entries",
@@ -1024,6 +1025,7 @@ def verify_filesystem_snapshot(
     }
     if (
         descriptor.get("schemaVersion") != 1
+        or not is_lower_hex(descriptor.get("baseCommit"), {40, 64})
         or not is_lower_hex(descriptor.get("headCommit"), {40, 64})
         or not is_lower_hex(descriptor.get("treeHash"), {40, 64})
         or not isinstance(expected_hash, str)
@@ -1077,7 +1079,10 @@ def verify_filesystem_snapshot(
             expected_directories.add(parent)
             parent = os.path.dirname(parent)
         previous_path = relative
-    if len(descriptor["treeHash"]) != len(descriptor["headCommit"]):
+    if (
+        len(descriptor["treeHash"]) != len(descriptor["headCommit"])
+        or len(descriptor["baseCommit"]) != len(descriptor["headCommit"])
+    ):
         raise ValueError("filesystem snapshot mixes Git object formats")
     root_metadata = os.stat(root, follow_symlinks=False)
     if not stat.S_ISDIR(root_metadata.st_mode):
@@ -1130,6 +1135,381 @@ def verify_filesystem_snapshot(
     return expected_hash
 
 
+def content_id(prefix: str, value: Any) -> str:
+    return prefix + ":" + sha256(value).removeprefix("sha256:")
+
+
+def verify_component_reference(
+    reference: Any,
+    manifests: dict[str, dict[str, Any]],
+) -> str:
+    if not isinstance(reference, dict):
+        raise ValueError("component reference is not an object")
+    require_exact_keys(
+        reference,
+        {
+            "componentId",
+            "componentManifestId",
+            "typeEntryId",
+            "semanticVersion",
+            "manifestHash",
+        },
+        "component reference",
+    )
+    manifest_id = reference.get("componentManifestId")
+    manifest = manifests.get(manifest_id)
+    if manifest is None:
+        raise ValueError("component reference escapes the candidate bundle")
+    identity = manifest["identity"]
+    expected_manifest_hash = (
+        "sha256:" + manifest_id.removeprefix("cm-sha256:")
+    )
+    if (
+        reference.get("componentId") != identity.get("componentId")
+        or reference.get("typeEntryId")
+        != identity["typeRegistryRef"].get("typeEntryId")
+        or reference.get("semanticVersion") != identity.get("semanticVersion")
+        or reference.get("manifestHash") != expected_manifest_hash
+    ):
+        raise ValueError("component reference does not match its manifest")
+    return manifest_id
+
+
+def component_closure_document(
+    root_ids: list[str],
+    manifests: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any], int]:
+    visited: dict[str, dict[str, Any]] = {}
+    visiting: set[str] = set()
+
+    def visit(manifest_id: str) -> None:
+        if manifest_id in visited:
+            return
+        if manifest_id in visiting:
+            raise ValueError("candidate component dependency cycle")
+        manifest = manifests.get(manifest_id)
+        if manifest is None:
+            raise ValueError("candidate component closure is incomplete")
+        visiting.add(manifest_id)
+        for dependency in manifest["identity"]["dependencies"]:
+            if not isinstance(dependency, dict):
+                raise ValueError("component dependency is not an object")
+            require_exact_keys(
+                dependency,
+                {"relation", "component"},
+                "component dependency",
+            )
+            visit(verify_component_reference(dependency["component"], manifests))
+        visiting.remove(manifest_id)
+        visited[manifest_id] = manifest
+
+    for root_id in root_ids:
+        visit(root_id)
+    components = []
+    artifacts_by_hash: dict[str, dict[str, Any]] = {}
+    for manifest in visited.values():
+        identity = manifest["identity"]
+        intrinsic = {
+            key: value
+            for key, value in identity.items()
+            if key not in {"componentIntrinsicId", "behaviorClosure"}
+        }
+        dependency_intrinsic_ids = sorted(
+            manifests[
+                dependency["component"]["componentManifestId"]
+            ]["identity"]["componentIntrinsicId"]
+            for dependency in identity["dependencies"]
+        )
+        components.append(
+            {
+                "componentIntrinsicId": identity["componentIntrinsicId"],
+                "identityHash": sha256(intrinsic),
+                "payloadHash": identity["payload"]["artifact"]["contentHash"],
+                "dependencyIntrinsicIds": dependency_intrinsic_ids,
+            }
+        )
+        artifact = identity["payload"]["artifact"]
+        content_hash = artifact["contentHash"]
+        previous = artifacts_by_hash.get(content_hash)
+        if previous is not None and previous != artifact:
+            raise ValueError("candidate reuses an artifact hash with changed metadata")
+        artifacts_by_hash[content_hash] = artifact
+    components.sort(key=lambda component: component["componentIntrinsicId"])
+    artifacts = sorted(
+        artifacts_by_hash.values(), key=lambda artifact: artifact["contentHash"]
+    )
+    document = {
+        "profile": "seh-c14n-int-v1",
+        "components": components,
+        "artifacts": artifacts,
+    }
+    canonical_bytes = len(canonical(document)) + sum(
+        artifact["sizeBytes"] for artifact in artifacts
+    )
+    return document, canonical_bytes
+
+
+def verify_behavior_closure(
+    behavior_closure: Any,
+    root_ids: list[str],
+    manifests: dict[str, dict[str, Any]],
+) -> None:
+    if not isinstance(behavior_closure, dict):
+        raise ValueError("behavior closure is not an object")
+    require_exact_keys(
+        behavior_closure,
+        {"closureHash", "componentCount", "artifactCount", "canonicalBytes"},
+        "behavior closure",
+    )
+    document, canonical_bytes = component_closure_document(root_ids, manifests)
+    if (
+        behavior_closure.get("closureHash") != sha256(document)
+        or behavior_closure.get("componentCount") != len(document["components"])
+        or behavior_closure.get("artifactCount") != len(document["artifacts"])
+        or behavior_closure.get("canonicalBytes") != canonical_bytes
+    ):
+        raise ValueError("candidate behavior closure mismatch")
+
+
+def verify_candidate_harness_bundle(
+    root: str,
+    expected_source_base_commit: str,
+) -> dict[str, str]:
+    bundle_path = os.path.join(root, ".seh-candidate-bundle.json")
+    metadata = os.stat(bundle_path, follow_symlinks=False)
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise PermissionError("candidate harness bundle is not a single regular file")
+    with open(bundle_path, "rb") as bundle_file:
+        bundle = parse_canonical_json(bundle_file.read())
+    if not isinstance(bundle, dict):
+        raise ValueError("candidate harness bundle is not an object")
+    require_exact_keys(
+        bundle,
+        {
+            "schemaVersion",
+            "bundleId",
+            "identity",
+            "harnessManifest",
+            "componentEntries",
+        },
+        "candidate harness bundle",
+    )
+    core = {
+        key: value for key, value in bundle.items() if key != "bundleId"
+    }
+    if (
+        bundle.get("schemaVersion") != 1
+        or bundle.get("bundleId") != content_id("bundle-sha256", core)
+    ):
+        raise ValueError("candidate harness bundle content ID mismatch")
+    identity = bundle.get("identity")
+    if not isinstance(identity, dict):
+        raise ValueError("candidate bundle identity is not an object")
+    require_exact_keys(
+        identity,
+        {
+            "canonicalizationProfile",
+            "protocolId",
+            "parentHarnessVersionId",
+            "candidateHarnessVersionId",
+            "sourceBaseCommit",
+            "typeRegistryId",
+            "harnessManifestHash",
+            "behaviorClosureHash",
+            "componentManifestIds",
+        },
+        "candidate bundle identity",
+    )
+    if (
+        identity.get("canonicalizationProfile") != "seh-c14n-int-v1"
+        or PROTOCOL_ID_PATTERN.fullmatch(identity.get("protocolId", "")) is None
+        or HARNESS_ID_PATTERN.fullmatch(
+            identity.get("parentHarnessVersionId", "")
+        )
+        is None
+        or HARNESS_ID_PATTERN.fullmatch(
+            identity.get("candidateHarnessVersionId", "")
+        )
+        is None
+        or identity["parentHarnessVersionId"]
+        == identity["candidateHarnessVersionId"]
+        or not is_lower_hex(identity.get("sourceBaseCommit"), {40, 64})
+        or identity.get("sourceBaseCommit") != expected_source_base_commit
+        or SHA256_PATTERN.fullmatch(identity.get("harnessManifestHash", ""))
+        is None
+        or SHA256_PATTERN.fullmatch(identity.get("behaviorClosureHash", ""))
+        is None
+    ):
+        raise ValueError("candidate bundle identity pins are invalid")
+    entries = bundle.get("componentEntries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("candidate bundle has no component entries")
+    manifests: dict[str, dict[str, Any]] = {}
+    entry_ids: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError("candidate component entry is not an object")
+        require_exact_keys(
+            entry,
+            {"componentManifest", "payload"},
+            "candidate component entry",
+        )
+        manifest = entry["componentManifest"]
+        payload = entry["payload"]
+        if not isinstance(manifest, dict):
+            raise ValueError("candidate component manifest is not an object")
+        require_exact_keys(
+            manifest,
+            {"schemaVersion", "componentManifestId", "identity"},
+            "candidate component manifest",
+        )
+        manifest_identity = manifest.get("identity")
+        if not isinstance(manifest_identity, dict):
+            raise ValueError("candidate component identity is not an object")
+        require_exact_keys(
+            manifest_identity,
+            {
+                "canonicalizationProfile",
+                "componentIntrinsicId",
+                "componentId",
+                "semanticVersion",
+                "typeRegistryRef",
+                "payload",
+                "dependencies",
+                "behaviorClosure",
+            },
+            "candidate component identity",
+        )
+        manifest_id = manifest.get("componentManifestId")
+        intrinsic = {
+            key: value
+            for key, value in manifest_identity.items()
+            if key not in {"componentIntrinsicId", "behaviorClosure"}
+        }
+        payload_descriptor = manifest_identity.get("payload")
+        if not isinstance(payload_descriptor, dict):
+            raise ValueError("candidate payload descriptor is not an object")
+        require_exact_keys(
+            payload_descriptor,
+            {"language", "artifact", "capabilityIds", "capabilityDigest"},
+            "candidate payload descriptor",
+        )
+        artifact = payload_descriptor.get("artifact")
+        capability_ids = payload_descriptor.get("capabilityIds")
+        if not isinstance(artifact, dict):
+            raise ValueError("candidate artifact reference is not an object")
+        if set(artifact) not in (
+            {"contentHash", "mediaType", "sizeBytes"},
+            {"contentHash", "mediaType", "sizeBytes", "redacted"},
+        ):
+            raise ValueError("candidate artifact reference keys changed")
+        if (
+            manifest.get("schemaVersion") != 3
+            or not isinstance(manifest_id, str)
+            or manifest_id != content_id("cm-sha256", manifest_identity)
+            or manifest_identity.get("componentIntrinsicId")
+            != content_id("ci-sha256", intrinsic)
+            or not isinstance(capability_ids, list)
+            or capability_ids != sorted(capability_ids)
+            or len(set(capability_ids)) != len(capability_ids)
+            or payload_descriptor.get("capabilityDigest")
+            != sha256({"capabilityIds": capability_ids})
+            or artifact.get("contentHash") != sha256(payload)
+            or artifact.get("sizeBytes") != len(canonical(payload))
+            or not isinstance(manifest_identity.get("dependencies"), list)
+        ):
+            raise ValueError("candidate component identity or payload hash mismatch")
+        if manifest_id in manifests:
+            raise ValueError("duplicate candidate component manifest")
+        manifests[manifest_id] = manifest
+        entry_ids.append(manifest_id)
+    declared_ids = identity.get("componentManifestIds")
+    if (
+        entry_ids != sorted(entry_ids)
+        or len(set(entry_ids)) != len(entry_ids)
+        or declared_ids != entry_ids
+    ):
+        raise ValueError("candidate component entry order or identity list changed")
+    harness = bundle.get("harnessManifest")
+    if not isinstance(harness, dict):
+        raise ValueError("candidate harness manifest is not an object")
+    require_exact_keys(
+        harness,
+        {"schemaVersion", "harnessVersionId", "manifestHash", "identity"},
+        "candidate harness manifest",
+    )
+    harness_identity = harness.get("identity")
+    if not isinstance(harness_identity, dict):
+        raise ValueError("candidate harness identity is not an object")
+    require_exact_keys(
+        harness_identity,
+        {
+            "canonicalizationProfile",
+            "semanticVersion",
+            "requiredRuntimeContractHash",
+            "typeRegistryId",
+            "componentBindings",
+            "behaviorClosure",
+        },
+        "candidate harness identity",
+    )
+    harness_id = harness.get("harnessVersionId")
+    bindings = harness_identity.get("componentBindings")
+    if (
+        harness.get("schemaVersion") != 2
+        or harness_id != content_id("hv-sha256", harness_identity)
+        or harness_id != identity["candidateHarnessVersionId"]
+        or harness.get("manifestHash")
+        != "sha256:" + harness_id.removeprefix("hv-sha256:")
+        or harness.get("manifestHash") != identity["harnessManifestHash"]
+        or harness_identity.get("typeRegistryId") != identity["typeRegistryId"]
+        or not isinstance(bindings, list)
+        or not bindings
+    ):
+        raise ValueError("candidate harness manifest identity mismatch")
+    root_ids = []
+    slot_ids = []
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            raise ValueError("candidate harness binding is not an object")
+        require_exact_keys(binding, {"slotId", "component"}, "harness binding")
+        slot_ids.append(binding.get("slotId"))
+        root_ids.append(verify_component_reference(binding["component"], manifests))
+    if slot_ids != sorted(slot_ids) or len(set(slot_ids)) != len(slot_ids):
+        raise ValueError("candidate harness slots are noncanonical")
+    for manifest_id, manifest in manifests.items():
+        verify_behavior_closure(
+            manifest["identity"]["behaviorClosure"],
+            [manifest_id],
+            manifests,
+        )
+    verify_behavior_closure(
+        harness_identity["behaviorClosure"], root_ids, manifests
+    )
+    if (
+        harness_identity["behaviorClosure"]["closureHash"]
+        != identity["behaviorClosureHash"]
+    ):
+        raise ValueError("candidate harness closure pin mismatch")
+    reachable_document, _canonical_bytes = component_closure_document(
+        root_ids, manifests
+    )
+    reachable_intrinsic_ids = {
+        component["componentIntrinsicId"]
+        for component in reachable_document["components"]
+    }
+    bundled_intrinsic_ids = {
+        manifest["identity"]["componentIntrinsicId"]
+        for manifest in manifests.values()
+    }
+    if reachable_intrinsic_ids != bundled_intrinsic_ids:
+        raise ValueError("candidate bundle contains unreachable components")
+    return {
+        "bundleId": bundle["bundleId"],
+        "candidateHarnessVersionId": harness_id,
+    }
+
+
 def peer_credentials(connection: socket.socket) -> tuple[int, int, int]:
     raw = connection.getsockopt(
         socket.SOL_SOCKET,
@@ -1167,6 +1547,14 @@ def evaluator_loop(
             ):
                 raise ValueError(
                     "candidate filesystem snapshot pin does not match evaluator mount"
+                )
+            verified_candidate = config.get("verifiedCandidateHarnessVersionId")
+            if (
+                verified_candidate is not None
+                and payload["candidateHarnessVersionId"] != verified_candidate
+            ):
+                raise ValueError(
+                    "candidate harness ID does not match the verified bundle"
                 )
             core = build_evaluation_core(payload, config)
             core_hash = sha256(core)
@@ -1239,6 +1627,8 @@ def serve_unix(arguments: argparse.Namespace) -> int:
             "operationsKeyId",
             "protocolId",
             "candidateFilesystemSnapshotHash",
+            "candidateBundleId",
+            "candidateHarnessVersionId",
         },
         "evaluator config",
     )
@@ -1256,10 +1646,15 @@ def serve_unix(arguments: argparse.Namespace) -> int:
         parsed_config["operationsIdentity"], "operations_owner"
     )
     configured_snapshot = parsed_config.get("candidateFilesystemSnapshotHash")
+    configured_bundle = parsed_config.get("candidateBundleId")
+    configured_candidate = parsed_config.get("candidateHarnessVersionId")
+    verified_candidate_bundle: dict[str, str] | None = None
     if configured_snapshot is None:
         if (
             arguments.candidate_snapshot_root is not None
             or arguments.candidate_snapshot_descriptor is not None
+            or configured_bundle is not None
+            or configured_candidate is not None
         ):
             raise ValueError("unexpected filesystem snapshot mount")
     else:
@@ -1274,10 +1669,52 @@ def serve_unix(arguments: argparse.Namespace) -> int:
             arguments.candidate_snapshot_descriptor,
             configured_snapshot,
         )
+        if configured_bundle is None or configured_candidate is None:
+            if configured_bundle is not None or configured_candidate is not None:
+                raise ValueError("candidate bundle configuration is incomplete")
+        else:
+            if (
+                not isinstance(configured_bundle, str)
+                or re.fullmatch(
+                    r"bundle-sha256:[a-f0-9]{64}", configured_bundle
+                )
+                is None
+                or HARNESS_ID_PATTERN.fullmatch(configured_candidate) is None
+            ):
+                raise ValueError("candidate bundle configuration is invalid")
+            with open(
+                arguments.candidate_snapshot_descriptor,
+                "rb",
+            ) as snapshot_descriptor_file:
+                verified_snapshot_descriptor = parse_canonical_json(
+                    snapshot_descriptor_file.read()
+                )
+            verified_candidate_bundle = verify_candidate_harness_bundle(
+                arguments.candidate_snapshot_root,
+                verified_snapshot_descriptor["baseCommit"],
+            )
+            if (
+                verified_candidate_bundle["bundleId"] != configured_bundle
+                or verified_candidate_bundle["candidateHarnessVersionId"]
+                != configured_candidate
+            ):
+                raise ValueError(
+                    "candidate bundle does not match evaluator configuration"
+                )
     config = {
         **parsed_config,
         "evaluatorPrivateKeyPath": arguments.private_key,
         "operationsPublicKeyPath": arguments.operations_public_key,
+        "verifiedCandidateHarnessVersionId": (
+            None
+            if verified_candidate_bundle is None
+            else verified_candidate_bundle["candidateHarnessVersionId"]
+        ),
+        "verifiedCandidateBundleId": (
+            None
+            if verified_candidate_bundle is None
+            else verified_candidate_bundle["bundleId"]
+        ),
     }
     validate_secret_file(arguments.private_key, os.geteuid())
     public_key_metadata = os.stat(arguments.operations_public_key, follow_symlinks=False)

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/candidate-harness-bundle.schema.json",
+  "title": "Canonical Candidate Harness Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "bundleId",
+    "identity",
+    "harnessManifest",
+    "componentEntries"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "bundleId": {
+      "type": "string",
+      "pattern": "^bundle-sha256:[a-f0-9]{64}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalizationProfile",
+        "protocolId",
+        "parentHarnessVersionId",
+        "candidateHarnessVersionId",
+        "sourceBaseCommit",
+        "typeRegistryId",
+        "harnessManifestHash",
+        "behaviorClosureHash",
+        "componentManifestIds"
+      ],
+      "properties": {
+        "canonicalizationProfile": {
+          "const": "seh-c14n-int-v1"
+        },
+        "protocolId": {
+          "$ref": "./common.schema.json#/$defs/protocolId"
+        },
+        "parentHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "candidateHarnessVersionId": {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        "sourceBaseCommit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40,64}$"
+        },
+        "typeRegistryId": {
+          "$ref": "./common.schema.json#/$defs/typeRegistryId"
+        },
+        "harnessManifestHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "behaviorClosureHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "componentManifestIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "./common.schema.json#/$defs/componentManifestId"
+          }
+        }
+      }
+    },
+    "harnessManifest": {
+      "$ref": "./harness-version.schema.json"
+    },
+    "componentEntries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "componentManifest",
+          "payload"
+        ],
+        "properties": {
+          "componentManifest": {
+            "$ref": "./harness-component.schema.json"
+          },
+          "payload": {
+            "oneOf": [
+              {
+                "$ref": "./payloads/prompt-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/context-policy-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/memory-retrieval-policy-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/skill-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/workflow-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/routing-policy-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/tool-description-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/policy-json-payload.schema.json"
+              },
+              {
+                "$ref": "./payloads/immutable-artifact-descriptor.schema.json"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

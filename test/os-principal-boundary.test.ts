@@ -203,6 +203,8 @@ test(
         protocolId,
         candidateFilesystemSnapshotHash:
           snapshotDescriptor.filesystemSnapshotHash,
+        candidateBundleId: null,
+        candidateHarnessVersionId: null,
       },
     );
     await writeCanonical(

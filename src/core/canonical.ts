@@ -110,7 +110,8 @@ export function contentId(
     | "hv-sha256"
     | "protocol-sha256"
     | "ctr-sha256"
-    | "rss-sha256",
+    | "rss-sha256"
+    | "bundle-sha256",
   identity: unknown,
 ): string {
   return `${prefix}:${sha256Bytes(canonicalBytes(identity))}`;

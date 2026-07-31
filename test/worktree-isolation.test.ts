@@ -64,6 +64,21 @@ test("candidate Git worktree is filesystem-isolated from the active checkout", a
   await assert.rejects(manager.freeze(candidate), /Hard-linked tracked file/u);
   await rm(externalHardlink);
 
+  await assert.rejects(
+    manager.commitCandidateBundle(
+      candidate,
+      `bundle-sha256:${"0".repeat(64)}`,
+      canonicalBytes({
+        schemaVersion: 1,
+        bundleId: `bundle-sha256:${"0".repeat(64)}`,
+      }),
+    ),
+    /do not match their content ID/u,
+  );
+  await assert.rejects(
+    access(path.join(candidate.path, ".seh-candidate-bundle.json")),
+  );
+
   const frozen = await manager.freeze(candidate);
   assert.equal(frozen.baseCommit, frozen.headCommit);
   assert.equal(frozen.statusPorcelainV2, "");

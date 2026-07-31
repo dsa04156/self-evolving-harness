@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { constants } from "node:fs";
-import { lstat, mkdir, open } from "node:fs/promises";
+import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
@@ -282,6 +282,14 @@ export interface EmulatedEvaluatorLaunch {
   readonly evaluatorSigner: PrincipalSigner;
 }
 
+export interface CandidateFilesystemSnapshotMount {
+  readonly rootPath: string;
+  readonly descriptorPath: string;
+  readonly filesystemSnapshotHash: string;
+  readonly bundleId: string;
+  readonly candidateHarnessVersionId: string;
+}
+
 export interface EvaluatorPeerCredentials {
   readonly pid: number;
   readonly uid: number;
@@ -415,6 +423,7 @@ export class ExternalEvaluatorClient {
   readonly #transactions: EvaluationTransactionStore;
   readonly #references: HarnessReferenceLedger | null;
   readonly #crashAfterStage: EvaluationTransactionStage | null;
+  readonly #candidateSnapshotMount: CandidateFilesystemSnapshotMount | null;
   #responseReplay = new ReplayGuard();
   #relayChild: ChildProcessWithoutNullStreams | null = null;
   #evaluatorChild: ChildProcessWithoutNullStreams | null = null;
@@ -437,6 +446,7 @@ export class ExternalEvaluatorClient {
     ids: IdFactory;
     references?: HarnessReferenceLedger;
     crashAfterStage?: EvaluationTransactionStage;
+    candidateSnapshotMount?: CandidateFilesystemSnapshotMount;
   }) {
     assertCondition(
       input.operationsSigner.identity.role === "operations_owner" &&
@@ -460,6 +470,22 @@ export class ExternalEvaluatorClient {
             input.evaluatorPrincipal.identity.identityDigest,
         "AUTHENTICATION_FAILED",
         "Emulated evaluator signer does not match the pinned public principal",
+      );
+    }
+    if (input.candidateSnapshotMount !== undefined) {
+      assertCondition(
+        input.emulatedLaunch !== undefined &&
+          /^sha256:[a-f0-9]{64}$/u.test(
+            input.candidateSnapshotMount.filesystemSnapshotHash,
+          ) &&
+          /^bundle-sha256:[a-f0-9]{64}$/u.test(
+            input.candidateSnapshotMount.bundleId,
+          ) &&
+          /^hv-sha256:[a-f0-9]{64}$/u.test(
+            input.candidateSnapshotMount.candidateHarnessVersionId,
+          ),
+        "SCHEMA_INVALID",
+        "A locally mounted candidate snapshot requires an emulated evaluator",
       );
     }
     this.#root = path.resolve(input.root);
@@ -487,6 +513,20 @@ export class ExternalEvaluatorClient {
     this.#ids = input.ids;
     this.#references = input.references ?? null;
     this.#crashAfterStage = input.crashAfterStage ?? null;
+    this.#candidateSnapshotMount =
+      input.candidateSnapshotMount === undefined
+        ? null
+        : {
+            rootPath: path.resolve(input.candidateSnapshotMount.rootPath),
+            descriptorPath: path.resolve(
+              input.candidateSnapshotMount.descriptorPath,
+            ),
+            filesystemSnapshotHash:
+              input.candidateSnapshotMount.filesystemSnapshotHash,
+            bundleId: input.candidateSnapshotMount.bundleId,
+            candidateHarnessVersionId:
+              input.candidateSnapshotMount.candidateHarnessVersionId,
+          };
     this.#log = new AppendOnlyLog<JsonValue>(
       path.join(input.root, "evolution"),
       "evaluation.results",
@@ -599,6 +639,14 @@ export class ExternalEvaluatorClient {
           ),
         "AUTHORIZATION_DENIED",
         "OS-enforced evaluation requires an exact candidate filesystem snapshot",
+      );
+    }
+    if (this.#candidateSnapshotMount !== null) {
+      assertCondition(
+        input.candidateFilesystemSnapshotHash ===
+          this.#candidateSnapshotMount.filesystemSnapshotHash,
+        "PROTOCOL_MISMATCH",
+        "Evaluation request does not match the mounted candidate snapshot",
       );
     }
     const evaluationResultId = this.#ids.next("evaluation-result");
@@ -974,13 +1022,55 @@ export class ExternalEvaluatorClient {
       Buffer.from(this.#operationsSigner.exportPublic().publicKeyPem, "utf8"),
       0o600,
     );
+    const snapshotMount = this.#candidateSnapshotMount;
+    if (snapshotMount !== null) {
+      const [rootMetadata, descriptorMetadata] = await Promise.all([
+        lstat(snapshotMount.rootPath),
+        lstat(snapshotMount.descriptorPath),
+      ]);
+      assertCondition(
+        rootMetadata.isDirectory() &&
+          !rootMetadata.isSymbolicLink() &&
+          descriptorMetadata.isFile() &&
+          !descriptorMetadata.isSymbolicLink() &&
+          descriptorMetadata.nlink === 1,
+        "AUTHORIZATION_DENIED",
+        "Candidate snapshot mount paths are not exact local objects",
+      );
+      const descriptor = parseStrictJson(
+        await readFile(snapshotMount.descriptorPath, "utf8"),
+      );
+      this.#schemas.validate(
+        `${SCHEMA_BASE_URL}filesystem-snapshot.schema.json`,
+        descriptor,
+      );
+      const descriptorObject = objectValue(
+        descriptor,
+        "candidate filesystem snapshot descriptor",
+      );
+      const {
+        filesystemSnapshotHash: _filesystemSnapshotHash,
+        ...descriptorCore
+      } = descriptorObject;
+      assertCondition(
+        descriptorObject["filesystemSnapshotHash"] ===
+          snapshotMount.filesystemSnapshotHash &&
+          sha256(descriptorCore) === snapshotMount.filesystemSnapshotHash,
+        "HASH_MISMATCH",
+        "Candidate snapshot mount descriptor hash mismatch",
+      );
+    }
     const config: JsonValue = {
       evaluatorIdentity: this.#evaluatorPrincipal.identity as unknown as JsonValue,
       evaluatorKeyId: this.#evaluatorPrincipal.keyId,
       operationsIdentity: this.#operationsSigner.identity as unknown as JsonValue,
       operationsKeyId: this.#operationsSigner.keyId,
       protocolId: this.#protocolId,
-      candidateFilesystemSnapshotHash: null,
+      candidateFilesystemSnapshotHash:
+        snapshotMount?.filesystemSnapshotHash ?? null,
+      candidateBundleId: snapshotMount?.bundleId ?? null,
+      candidateHarnessVersionId:
+        snapshotMount?.candidateHarnessVersionId ?? null,
     };
     await writeExclusiveOrVerify(configPath, canonicalBytes(config), 0o600);
     const socketName = path.basename(this.#endpoint.socketPath);
@@ -1030,6 +1120,16 @@ export class ExternalEvaluatorClient {
       "--ro-bind",
       configPath,
       "/run/config/evaluator.json",
+      ...(snapshotMount === null
+        ? []
+        : [
+            "--ro-bind",
+            snapshotMount.rootPath,
+            "/candidate-snapshot",
+            "--ro-bind",
+            snapshotMount.descriptorPath,
+            "/run/config/candidate-snapshot.json",
+          ]),
       "--proc",
       "/proc",
       "--dev",
@@ -1075,6 +1175,14 @@ export class ExternalEvaluatorClient {
       String(process.getgid?.() ?? 0),
       "--socket-mode",
       "600",
+      ...(snapshotMount === null
+        ? []
+        : [
+            "--candidate-snapshot-root",
+            "/candidate-snapshot",
+            "--candidate-snapshot-descriptor",
+            "/run/config/candidate-snapshot.json",
+          ]),
     ];
     const child = spawn("/usr/bin/bwrap", args, {
       detached: true,

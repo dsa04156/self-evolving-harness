@@ -12,7 +12,14 @@ import {
 import path from "node:path";
 import { TextDecoder } from "node:util";
 
-import { sha256, sha256Bytes, type JsonValue } from "../core/canonical.js";
+import {
+  canonicalBytes,
+  contentId,
+  parseStrictJson,
+  sha256,
+  sha256Bytes,
+  type JsonValue,
+} from "../core/canonical.js";
 import { HarnessError, assertCondition } from "../core/errors.js";
 
 interface GitBytesResult {
@@ -37,6 +44,7 @@ async function runGitBytes(
   repository: string,
   args: readonly string[],
   timeoutMillis = 30_000,
+  environment: Readonly<Record<string, string>> = {},
 ): Promise<GitBytesResult> {
   return new Promise<GitBytesResult>((resolve, reject) => {
     const child = spawn("/usr/bin/git", ["-C", repository, ...args], {
@@ -47,6 +55,7 @@ async function runGitBytes(
         LC_ALL: "C.UTF-8",
         GIT_CONFIG_NOSYSTEM: "1",
         GIT_TERMINAL_PROMPT: "0",
+        ...environment,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -82,8 +91,9 @@ async function runGit(
   repository: string,
   args: readonly string[],
   timeoutMillis = 30_000,
+  environment: Readonly<Record<string, string>> = {},
 ): Promise<{ readonly stdout: string; readonly stderr: string }> {
-  const result = await runGitBytes(repository, args, timeoutMillis);
+  const result = await runGitBytes(repository, args, timeoutMillis, environment);
   return { stdout: UTF8.decode(result.stdout), stderr: result.stderr };
 }
 
@@ -117,8 +127,16 @@ export interface MaterializedSnapshot {
   readonly totalBytes: number;
 }
 
+export interface CandidateBundleCommit {
+  readonly bundleId: string;
+  readonly bundleRelativePath: ".seh-candidate-bundle.json";
+  readonly candidateCommit: string;
+  readonly candidateTreeHash: string;
+}
+
 export interface FilesystemSnapshotDescriptor {
   readonly schemaVersion: 1;
+  readonly baseCommit: string;
   readonly headCommit: string;
   readonly treeHash: string;
   readonly entries: readonly FrozenSnapshotEntry[];
@@ -220,6 +238,7 @@ export class GitWorktreeManager {
     await this.#assertUnchanged(resolved, headCommit, treeHash);
     const filesystemSnapshotHash = sha256({
       schemaVersion: 1,
+      baseCommit: candidate.baseCommit,
       headCommit,
       treeHash,
       entries,
@@ -232,6 +251,164 @@ export class GitWorktreeManager {
       statusPorcelainV2,
       filesystemSnapshotHash,
       entries,
+    };
+  }
+
+  public async commitCandidateBundle(
+    candidate: CandidateWorktree,
+    bundleId: string,
+    canonicalBundleBytes: Uint8Array,
+  ): Promise<CandidateBundleCommit> {
+    assertCondition(
+      /^bundle-sha256:[a-f0-9]{64}$/u.test(bundleId),
+      "SCHEMA_INVALID",
+      "Candidate bundle ID is invalid",
+    );
+    assertCondition(
+      canonicalBundleBytes.byteLength > 0 &&
+        canonicalBundleBytes.byteLength <= MAX_SNAPSHOT_FILE_BYTES,
+      "PAYLOAD_TOO_LARGE",
+      "Candidate bundle exceeds the committed-file limit",
+    );
+    const parsedBundle = parseStrictJson(
+      UTF8.decode(Buffer.from(canonicalBundleBytes)),
+    );
+    assertCondition(
+      typeof parsedBundle === "object" &&
+        parsedBundle !== null &&
+        !Array.isArray(parsedBundle),
+      "SCHEMA_INVALID",
+      "Candidate bundle is not an object",
+    );
+    const { bundleId: parsedBundleId, ...bundleCore } = parsedBundle;
+    assertCondition(
+      parsedBundleId === bundleId &&
+        bundleId === contentId("bundle-sha256", bundleCore) &&
+        Buffer.compare(
+          Buffer.from(canonicalBundleBytes),
+          canonicalBytes(parsedBundle),
+        ) === 0,
+      "HASH_MISMATCH",
+      "Candidate bundle bytes do not match their content ID",
+    );
+    const resolved = await realpath(candidate.path);
+    assertCondition(
+      resolved.startsWith(`${this.#worktreeRoot}${path.sep}`),
+      "AUTHORIZATION_DENIED",
+      "Candidate is outside managed worktree root",
+    );
+    await this.#assertUnchanged(
+      resolved,
+      candidate.baseCommit,
+      candidate.initialTreeHash,
+    );
+    const bundleRelativePath = ".seh-candidate-bundle.json" as const;
+    const bundlePath = path.join(resolved, bundleRelativePath);
+    const handle = await open(
+      bundlePath,
+      constants.O_WRONLY |
+        constants.O_CREAT |
+        constants.O_EXCL |
+        constants.O_NOFOLLOW,
+      0o600,
+    );
+    try {
+      await handle.writeFile(canonicalBundleBytes);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    const bundleBlobId = (
+      await runGit(resolved, [
+        "hash-object",
+        "-w",
+        "--no-filters",
+        "--",
+        bundleRelativePath,
+      ])
+    ).stdout.trim();
+    assertCondition(
+      /^[a-f0-9]{40,64}$/u.test(bundleBlobId),
+      "HASH_MISMATCH",
+      "Git returned an invalid candidate bundle object ID",
+    );
+    await runGit(resolved, [
+      "update-index",
+      "--add",
+      "--cacheinfo",
+      `100644,${bundleBlobId},${bundleRelativePath}`,
+    ]);
+    const stagedPaths = (
+      await runGit(resolved, [
+        "diff",
+        "--cached",
+        "--name-only",
+        "--diff-filter=ACDMRTUXB",
+        "-z",
+      ])
+    ).stdout;
+    assertCondition(
+      stagedPaths === `${bundleRelativePath}\0`,
+      "AUTHORIZATION_DENIED",
+      "Candidate commit contains paths outside the canonical bundle",
+    );
+    const candidateTreeHash = (
+      await runGit(resolved, ["write-tree"])
+    ).stdout.trim();
+    const deterministicIdentity = {
+      GIT_AUTHOR_NAME: "SEH Candidate Materializer",
+      GIT_AUTHOR_EMAIL: "candidate@self-evolving-harness.invalid",
+      GIT_AUTHOR_DATE: "2000-01-01T00:00:00Z",
+      GIT_COMMITTER_NAME: "SEH Candidate Materializer",
+      GIT_COMMITTER_EMAIL: "candidate@self-evolving-harness.invalid",
+      GIT_COMMITTER_DATE: "2000-01-01T00:00:00Z",
+    };
+    const candidateCommit = (
+      await runGit(
+        resolved,
+        [
+          "commit-tree",
+          candidateTreeHash,
+          "-p",
+          candidate.baseCommit,
+          "-m",
+          `SEH candidate bundle ${bundleId}`,
+        ],
+        30_000,
+        deterministicIdentity,
+      )
+    ).stdout.trim();
+    await runGit(resolved, [
+      "update-ref",
+      "HEAD",
+      candidateCommit,
+      candidate.baseCommit,
+    ]);
+    const commitLine = (
+      await runGit(resolved, ["rev-list", "--parents", "-n", "1", "HEAD"])
+    ).stdout.trim();
+    const changedPaths = (
+      await runGit(resolved, [
+        "diff-tree",
+        "--no-commit-id",
+        "--name-only",
+        "-r",
+        "-z",
+        "HEAD",
+      ])
+    ).stdout;
+    assertCondition(
+      commitLine === `${candidateCommit} ${candidate.baseCommit}` &&
+        changedPaths === `${bundleRelativePath}\0`,
+      "HASH_MISMATCH",
+      "Candidate commit lineage or path set is not exact",
+    );
+    await this.#assertUnchanged(resolved, candidateCommit, candidateTreeHash);
+    return {
+      bundleId,
+      bundleRelativePath,
+      candidateCommit,
+      candidateTreeHash,
     };
   }
 
@@ -309,6 +486,7 @@ export class GitWorktreeManager {
   ): FilesystemSnapshotDescriptor {
     const core = {
       schemaVersion: 1 as const,
+      baseCommit: frozen.baseCommit,
       headCommit: frozen.headCommit,
       treeHash: frozen.treeHash,
       entries: frozen.entries,

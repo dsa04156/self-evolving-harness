@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -9,13 +9,16 @@ import {
   AttributionService,
   AuditTrail,
   BoundedMutationEngine,
+  CandidateBundleIsolationService,
   CandidateAdmissionService,
   EVALUATION_RESULT_SCHEMA_ID,
   EvidenceReceiptStore,
+  ExternalEvaluatorClient,
   EvolutionRunStore,
   HarnessComponentRegistry,
   HarnessError,
   HarnessEvolutionLoop,
+  GitWorktreeManager,
   HarnessLineageStore,
   HarnessQualificationStore,
   PrincipalRegistry,
@@ -27,7 +30,9 @@ import {
   SecretRedactor,
   SystemClock,
   WeaknessMiningService,
+  WorktreeExternalEvaluationExecutor,
   computeCandidateCostGate,
+  parseStrictJson,
   sha256,
   type EvaluationBudgetUsage,
   type EvaluationResult,
@@ -582,6 +587,13 @@ async function scenario(t: test.TestContext, mode: ScenarioMode) {
   };
   return {
     root,
+    schemas,
+    clock,
+    ids,
+    principals,
+    auditSigner,
+    operationsSigner,
+    evaluatorSigner,
     audit,
     receipts,
     qualification,
@@ -727,4 +739,226 @@ test("evaluation failure rejects the candidate once and records a failed evoluti
   await value.qualification.verifyAll();
   await value.receipts.verifyAll();
   await value.audit.verifyAll();
+});
+
+test("evolution loop evaluates the exact committed candidate bundle in an external process", async (t) => {
+  const value = await scenario(t, "approve");
+  const worktrees = new GitWorktreeManager(
+    path.resolve("."),
+    path.join(value.root, "candidate-worktrees"),
+  );
+  const isolation = new CandidateBundleIsolationService({
+    protocolId,
+    root: path.join(value.root, "candidate-isolation"),
+    registry: value.components,
+    schemas: value.schemas,
+    artifacts: new ArtifactStore(
+      path.join(value.root, "candidate-isolation-artifacts"),
+    ),
+    receipts: value.receipts,
+    operationsSigner: value.operationsSigner,
+    worktrees,
+  });
+  let clientIndex = 0;
+  const makeClient = (
+    isolated: ReturnType<typeof isolation.get>,
+  ): ExternalEvaluatorClient => {
+    clientIndex += 1;
+    const clientRoot = path.join(
+      value.root,
+      "worktree-external-evaluator",
+      String(clientIndex),
+    );
+    return new ExternalEvaluatorClient({
+      root: clientRoot,
+      protocolId,
+      endpoint: {
+        socketPath: path.join(clientRoot, "ipc", "evaluator.sock"),
+        expectedEvaluatorUid: process.getuid!(),
+        expectedEvaluatorGid: process.getgid!(),
+        pythonExecutable:
+          "/home/jinuk/.local/share/uv/python/cpython-3.13.14-linux-x86_64-gnu/bin/python3.13",
+        relayScriptPath: path.resolve("evaluator/unix_peer_relay.py"),
+      },
+      evaluatorPrincipal: value.evaluatorSigner.exportPublic(),
+      emulatedLaunch: {
+        isolationClass: "isolation_emulated",
+        pythonRoot:
+          "/home/jinuk/.local/share/uv/python/cpython-3.13.14-linux-x86_64-gnu",
+        scriptPath: path.resolve("evaluator/external_evaluator.py"),
+        evaluatorSigner: value.evaluatorSigner,
+      },
+      candidateSnapshotMount: {
+        rootPath: isolated.snapshot.path,
+        descriptorPath: isolated.snapshotDescriptorPath,
+        filesystemSnapshotHash:
+          isolated.frozen.filesystemSnapshotHash,
+        bundleId: isolated.bundle.bundleId,
+        candidateHarnessVersionId:
+          isolated.candidateHarnessVersionId,
+      },
+      schemas: value.schemas,
+      audit: value.audit,
+      operationsSigner: value.operationsSigner,
+      principals: value.principals,
+      clock: value.clock,
+      ids: value.ids,
+    });
+  };
+  const createPlan = async (context: {
+    parentHarnessVersionId: string;
+    candidate: { harnessVersionId: string };
+  }) => {
+    const outcomes = [
+      { parentPassed: true, candidatePassed: true, marker: "a" },
+      { parentPassed: false, candidatePassed: true, marker: "b" },
+    ] as const;
+    const taskPairs = [];
+    const sourceEvidenceReceiptIds = [];
+    for (const [index, outcome] of outcomes.entries()) {
+      const taskId = `task.worktree-external.${index}`;
+      const parentReceipt = await value.receipts.create({
+        receiptType: "evaluation",
+        subjectIds: [taskId, context.parentHarnessVersionId],
+        harnessVersionIds: [context.parentHarnessVersionId],
+        signer: value.operationsSigner,
+      });
+      const candidateReceipt = await value.receipts.create({
+        receiptType: "evaluation",
+        subjectIds: [taskId, context.candidate.harnessVersionId],
+        harnessVersionIds: [context.candidate.harnessVersionId],
+        signer: value.operationsSigner,
+      });
+      sourceEvidenceReceiptIds.push(
+        parentReceipt.receiptId,
+        candidateReceipt.receiptId,
+      );
+      taskPairs.push({
+        opaqueTaskHandleHash: digest(outcome.marker),
+        rolloutSeed: 17,
+        parentPassed: outcome.parentPassed,
+        candidatePassed: outcome.candidatePassed,
+        parentReceiptId: parentReceipt.receiptId,
+        candidateReceiptId: candidateReceipt.receiptId,
+      });
+    }
+    return {
+      methodId: "B6" as const,
+      runtimeStateSnapshotIds: [runtimeStateSnapshotId],
+      rolloutSeeds: [17],
+      manifestPins: {
+        protocol: digest("1"),
+        budget: digest("2"),
+        modelConfiguration: digest("3"),
+        split: digest("4"),
+        evaluator: digest("5"),
+        environment: digest("6"),
+        toolchain: digest("7"),
+        statisticalPlan: digest("8"),
+      },
+      taskPairs,
+      totalUsage,
+      pairedCi95LowerPercentagePointMicros: 0,
+      pairedCi95UpperPercentagePointMicros: 100_000_000,
+      sourceEvidenceReceiptIds,
+      costGate: computeCandidateCostGate({
+        gateTaskSetHash: digest("9"),
+        taskCount: 2,
+        candidatePasses: 2,
+        parentPasses: 1,
+        failToPassCount: 1,
+        passToFailCount: 0,
+        candidateFailedOrTimedOutTasks: 0,
+        parentFailedOrTimedOutTasks: 0,
+        candidateTotalChargedTokens: 15,
+        parentTotalChargedTokens: 15,
+        sourceLedgerReceiptIds: sourceEvidenceReceiptIds,
+      }),
+    };
+  };
+  const evaluator = new WorktreeExternalEvaluationExecutor({
+    isolation,
+    plan: createPlan,
+    client: makeClient,
+  });
+  const loop = new HarnessEvolutionLoop({
+    protocolId,
+    runs: value.runs,
+    miner: value.miner,
+    attributions: value.attributions,
+    mutations: value.mutations,
+    admission: value.admission,
+    qualification: value.qualification,
+    receipts: value.receipts,
+    operationsSigner: value.operationsSigner,
+    evaluator,
+    promotions: value.promotions,
+  });
+  let evolutionRunId: string | null = null;
+  try {
+    const result = await loop.run(value.loopInput);
+    evolutionRunId = result.run.evolutionRunId;
+    assert.equal(result.run.state, "decided");
+    assert.equal(result.run.outcome, "approved");
+    assert.equal(result.evaluation.evaluator.role, "evaluator");
+    const isolated = isolation.get(evolutionRunId);
+    assert.notEqual(isolated.worktree.baseCommit, isolated.commit.candidateCommit);
+    assert.equal(
+      isolated.commit.candidateCommit,
+      isolated.frozen.headCommit,
+    );
+    assert.equal(
+      isolated.frozen.entries.filter(
+        (entry) => entry.path === ".seh-candidate-bundle.json",
+      ).length,
+      1,
+    );
+    const bundle = parseStrictJson(
+      await readFile(
+        path.join(isolated.snapshot.path, ".seh-candidate-bundle.json"),
+        "utf8",
+      ),
+    ) as unknown as {
+      identity: { candidateHarnessVersionId: string };
+    };
+    assert.equal(
+      bundle.identity.candidateHarnessVersionId,
+      result.candidate.harnessVersionId,
+    );
+    assert.equal(
+      result.evaluation.candidateFilesystemSnapshotHash,
+      isolated.frozen.filesystemSnapshotHash,
+    );
+
+    const mismatched = makeClient(isolated);
+    await mismatched.start();
+    try {
+      const mismatchPlan = await createPlan({
+        parentHarnessVersionId: value.parent.harnessVersionId,
+        candidate: result.candidate,
+      });
+      const { costGate: _costGate, ...externalInput } = mismatchPlan;
+      await assert.rejects(
+        mismatched.evaluate({
+          ...externalInput,
+          parentHarnessVersionId: value.parent.harnessVersionId,
+          candidateHarnessVersionId: `hv-sha256:${"f".repeat(64)}`,
+          candidateFilesystemSnapshotHash:
+            isolated.frozen.filesystemSnapshotHash,
+        }),
+      );
+    } finally {
+      await mismatched.stop();
+    }
+    await value.runs.verifyAll();
+    await value.receipts.verifyAll();
+    await value.audit.verifyAll();
+  } finally {
+    if (evolutionRunId === null) {
+      evolutionRunId = (await value.runs.records()).at(-1)?.evolutionRunId ?? null;
+    }
+    if (evolutionRunId !== null) {
+      await isolation.disposeEphemeral(evolutionRunId).catch(() => undefined);
+    }
+  }
 });
