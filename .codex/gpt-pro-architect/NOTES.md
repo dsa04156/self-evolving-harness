@@ -312,3 +312,39 @@ any paid-provider request.
 - No push, API credential/provider, real task/verifier/label/path data, research scheduler/B0–B6,
   pilot, attribution evaluation, candidate selection, promotion, deployment, release, publication,
   or empirical/security/self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRRR OS-principal evaluator-vault decision
+
+- External decision: `APPROVE`; no blocking findings remain for the narrow eight-principal,
+  body-free evaluator-vault OS integration.
+- The distinct namespace and mapped host UID/GID identities, role-owned mode-0600 keys, role-specific
+  read-only projections, private state mounts, no-network/no-capability/NoNewPrivs controls, and
+  vault-exclusive authoritative journals are accepted under the stated RootlessKit, bubblewrap,
+  subordinate-ID, kernel, bootstrap, filesystem, and key-custody TCB assumptions.
+- `BlindedReviewerContractProjection` removes the direct benchmark-author identity exposure while
+  preserving protocol, contract, assignment, author-commitment, and frozen-reviewer binding.
+  Timing correlation, organizational knowledge, and low-entropy commitment anonymity are not
+  established.
+- Client and server SO_PEERCRED checks, role-key signatures, protocol/sequence/nonce/capability/state
+  checks, sticky-socket replacement denials, fresh-process reconstruction, and body-free responses
+  close the authenticated transport scope.
+- Actual concurrent workers produce one unlock plus one conflict; fresh-process duplicates are
+  rejected; SIGKILL after durable commit and during append recover one authoritative successor,
+  exact retry, and cleaned staging links.
+- The 26 role receipts, 20 authenticated transactions, 16 signed access records, promoter
+  projection, final audit, journal head, and nested tamper tests are accepted as tamper-evident,
+  not tamper-proof.
+- The approval is not evidence of real-body confidentiality, independent operational authorship,
+  production containment/security certification, distributed consistency, provider
+  interoperability, benchmark validity, attribution, improvement, generalization, or
+  self-improvement.
+- Authorized next: local deterministic custody of fixed inert bytes encrypted under vault-exclusive
+  authority, bound to existing commitments and a one-time evaluator capability, with ephemeral
+  read-only evaluator materialization and deterministic cleanup after success, crashes, timeout,
+  rejection, and response loss.
+- The next evidence must prove wrong-principal ciphertext/key/plaintext/cleanup denial, consumed or
+  expired capability non-rematerialization, exact-retry single release, and absence of plaintext,
+  key bytes, and inert payload bytes from logs, denials, evidence, arguments, and repository files.
+- No push, API credential/provider, real benchmark task body/verifier/label/path, research split or
+  scheduler/B0–B6, pilot, attribution evaluation, candidate selection, promotion, deployment,
+  release, publication, or empirical/security/self-improvement claim is authorized.

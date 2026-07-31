@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 03RRRRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,19 +16,21 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRRR direct CDP verified target
-  `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no stop button,
-  and the prior Round 03RRRRRRR response. The first insert operation timed out; recovery verified the
-  complete 17,087-character rendered composer and submitted it once without opening a new tab or
-  window.
+- last reuse preflight: Round 03RRRRRRRRR direct CDP verified target
+  `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
+  button, and the prior Round 03RRRRRRRR response. The first insert operation timed out; recovery
+  verified the complete 15,056-character rendered composer and submitted the packet once without
+  opening a new tab or window. That generation ended before producing an assistant message, so one
+  214-character continuation request was sent without resending the packet. The final response was
+  then harvested from the same conversation.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-07-31
-- last packet: `architect/PACKET_03RRRRRRRR_DURABLE_VAULT_STATE.md`
-- last packet sha256: `e65aac7f3026f460906f3f3a1fe41ab3d13e9eadae366730a62a1efa8bc6bc03`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrr.md`
-- last response sha256: `c4e4cfd5ae678ab44d4ab979323c50aaa7661c9d59aa97cc66ef838bb786dd11`
-- next packet: deterministic body-free OS-principal integration
+- last packet: `architect/PACKET_03RRRRRRRRR_OS_PRINCIPAL_VAULT_BOUNDARY.md`
+- last packet sha256: `15ef4a05c750a699a7578c227bd8a46cddaeb8e4dada0ac6c8247bea8544686e`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrr.md`
+- last response sha256: `75341301c40c4f426ee83644c1b9df097ed3937921b40b18c0282fcd0988a957`
+- next packet: deterministic inert-payload encrypted synthetic-custody rehearsal
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -68,10 +70,15 @@
   decisions, per-task predecessor binding, monotonic lease epochs, resource-side writer fences,
   commit-before-release, restart reconstruction, exact retry disposition, hard-link crash recovery,
   and actual child-process contention close the durable-state blocker.
-- current authorization: a local deterministic body-free OS-principal integration only. Run the
-  eight frozen roles under distinct subordinate UID/GID principals with role keys and mounts,
-  exercise the complete synthetic commitment-only workflow and durable vault protocol, and prove
-  wrong-principal file/socket/signal/network denials. No push, API credential/provider, real task
-  body/verifier/label/path, research scheduler/B0–B6, pilot, attribution evaluation, selection,
-  promotion/canary/deployment, empirical/security/self-improvement claim, release, or publication is
-  authorized.
+- Round 03RRRRRRRRR decision: `APPROVE`. Eight distinct subordinate UID/GID principals, role-owned
+  keys and mounts, blinded reviewer projection, authenticated peer-credential Unix transport,
+  durable contention/recovery, SIGKILL recovery, and nested-signature tamper detection close the
+  body-free OS-integration gate.
+- current authorization: a local deterministic synthetic-custody rehearsal only. Encrypt a fixed
+  inert payload under vault-exclusive key authority, bind it to the admitted opaque-handle and
+  one-time evaluator capability, materialize plaintext read-only and ephemerally for the evaluator,
+  prove cleanup across completion/crash/timeout/rejection/response-loss, prove denial and
+  non-rematerialization, and retain only commitment-level evidence. No push, credential/provider,
+  real task/verifier/label/path, research split or scheduler/B0–B6, pilot, attribution evaluation,
+  selection, promotion/canary/deployment, empirical/security/self-improvement claim, release, or
+  publication is authorized.

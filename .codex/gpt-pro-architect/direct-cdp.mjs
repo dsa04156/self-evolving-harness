@@ -101,7 +101,7 @@ const stateExpression = `(() => {
   const stopButton = buttons.find((button) =>
     button.dataset.testid === "stop-button" ||
     /stop generating|stop streaming|중지/i.test(
-      (button.getAttribute("aria-label") ?? "") + " " + button.innerText,
+      button.getAttribute("aria-label") ?? "",
     ),
   );
   const sendButton =
@@ -125,10 +125,36 @@ const stateExpression = `(() => {
         ? null
         : Boolean(sendButton.disabled),
     stopButtonPresent: stopButton !== undefined,
+    stopButtonTestId: stopButton?.dataset.testid ?? null,
+    stopButtonAriaLabel: stopButton?.getAttribute("aria-label") ?? null,
+    stopButtonText: stopButton?.innerText ?? null,
     userCount: userMessages.length,
     assistantCount: assistantMessages.length,
     latestAssistantLength: latestAssistant.length,
     latestAssistantPrefix: latestAssistant.slice(0, 160),
+    latestAssistantSuffix: latestAssistant.slice(-400),
+    messageSummaries: messages.map((message, index) => {
+      const messageText = message.innerText ?? "";
+      return {
+        index,
+        role: message.getAttribute("data-message-author-role"),
+        length: messageText.length,
+        prefix: messageText.slice(0, 100),
+        suffix: messageText.slice(-100),
+      };
+    }),
+    actionButtons: buttons
+      .map((button, index) => ({
+        index,
+        testId: button.dataset.testid ?? null,
+        ariaLabel: button.getAttribute("aria-label"),
+        text: button.innerText,
+      }))
+      .filter((button) =>
+        /retry|regenerate|continue|try again|resume|send|stop|다시|계속|재시도|보내기|중지/i.test(
+          (button.ariaLabel ?? "") + " " + button.text,
+        ),
+      ),
     buttonTestIds: buttons
       .map((button) => button.dataset.testid)
       .filter((value) => value !== undefined)
@@ -333,6 +359,78 @@ async function sendExisting(client, expectedUserCount) {
   );
 }
 
+async function resumeInterrupted(client, expectedLastUserLength) {
+  const before = await pageState(client);
+  const lastMessage = before.messageSummaries.at(-1);
+  if (
+    before.stopButtonPresent ||
+    before.composerText !== "" ||
+    lastMessage?.role !== "user" ||
+    lastMessage.length !== expectedLastUserLength
+  ) {
+    throw new Error(
+      `conversation is not safe to resume: ${JSON.stringify(before)}`,
+    );
+  }
+  const prompt =
+    "Your response was interrupted before producing an assistant message. " +
+    "Return the required decision format for the immediately preceding packet now. " +
+    "Do not require the packet to be resent, and do not invent evidence.";
+  const focused = await client.evaluate(`(() => {
+    const composer =
+      document.querySelector("#prompt-textarea") ??
+      document.querySelector('[contenteditable="true"][data-virtualkeyboard="true"]') ??
+      document.querySelector('[contenteditable="true"]');
+    if (composer === null) return false;
+    composer.focus();
+    return document.activeElement === composer || composer.contains(document.activeElement);
+  })()`);
+  if (!focused) throw new Error("could not focus the ChatGPT composer");
+  await client.send("Input.insertText", { text: prompt });
+  const filled = await pageState(client);
+  if (filled.composerText !== prompt || !filled.sendButtonPresent) {
+    throw new Error(
+      `resume prompt was not inserted exactly: ${JSON.stringify(filled)}`,
+    );
+  }
+  const clicked = await client.evaluate(`(() => {
+    const send = document.querySelector('button[data-testid="send-button"]');
+    if (send === null || send.disabled) return false;
+    send.click();
+    return true;
+  })()`);
+  if (!clicked) throw new Error("resume prompt send button was unavailable");
+  const deadline = Date.now() + 15_000;
+  let after = await pageState(client);
+  while (Date.now() < deadline && after.userCount !== before.userCount + 1) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    after = await pageState(client);
+  }
+  if (after.userCount !== before.userCount + 1) {
+    throw new Error(
+      `resume submission was not observed exactly once: ${JSON.stringify({
+        before,
+        after,
+      })}`,
+    );
+  }
+  console.log(
+    JSON.stringify(
+      {
+        resumedInterruptedResponse: true,
+        target: EXPECTED_TARGET,
+        url: EXPECTED_URL,
+        userCountBefore: before.userCount,
+        userCountAfter: after.userCount,
+        assistantCountBefore: before.assistantCount,
+        assistantCountAfter: after.assistantCount,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 async function harvest(client, baselineResponsePath) {
   const baselineResponse = (
     await readFile(baselineResponsePath, "utf8")
@@ -413,6 +511,14 @@ async function main() {
         throw new Error("send-existing requires the expected user count");
       }
       await sendExisting(client, expectedUserCount);
+    } else if (mode === "resume-interrupted") {
+      const expectedLastUserLength = Number(process.argv[3]);
+      if (!Number.isSafeInteger(expectedLastUserLength)) {
+        throw new Error(
+          "resume-interrupted requires the expected last user length",
+        );
+      }
+      await resumeInterrupted(client, expectedLastUserLength);
     } else if (mode === "harvest") {
       const baselineResponsePath = process.argv[3];
       if (baselineResponsePath === undefined) {
@@ -421,7 +527,7 @@ async function main() {
       await harvest(client, baselineResponsePath);
     } else {
       throw new Error(
-        "mode must be inspect, digest-latest, submit, send-existing, or harvest",
+        "mode must be inspect, digest-latest, submit, send-existing, resume-interrupted, or harvest",
       );
     }
   } finally {

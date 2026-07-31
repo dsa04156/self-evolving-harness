@@ -9,6 +9,7 @@
 | 2 | `architect/PACKET_02_RUNTIME_AND_TRUST.md` | `f01c9d106662ebd041281accf9e34625db1e14fc88688f80196f428bb3678e9d` | `responses/response-2.md` (`e12a59450b967bfde4a81f7b30aee2c50c037537af45c96f8944e5981ddc5cd1`) | REVISE |
 | 2R | `architect/PACKET_02R_RUNTIME_AND_TRUST.md` | `123f3a048bc92ce606ce6bb5415e8f8b8e4c59ab29dd9986f4fe59d2f485f792` | `responses/response-2r.md` (`f1fafea24cd2a87722e9ec87e2b796d4fa40b62ab1dfa76780158065727b442c`) | APPROVE |
 | 3 | `architect/PACKET_03_GATE3_READINESS.md` | `41d03f8f32a497c445218240c05aaf36c3404b6996173a182c7d512d50b367c6` | `responses/response-3.md` (`52992fdac76c72d306de937e386191ca1dc82a9685a993317d7ffcf01d1bf62d`) | REVISE |
+| 3RRRRRRRRR | `architect/PACKET_03RRRRRRRRR_OS_PRINCIPAL_VAULT_BOUNDARY.md` | `15ef4a05c750a699a7578c227bd8a46cddaeb8e4dada0ac6c8247bea8544686e` | `responses/response-3rrrrrrrrr.md` (`75341301c40c4f426ee83644c1b9df097ed3937921b40b18c0282fcd0988a957`) | APPROVE |
 
 Every future row must record the actual packet hash, transport time, external thread identifier, raw
 response path, interpreted decision, required revisions, and the commit containing those revisions.
@@ -586,3 +587,57 @@ response path, interpreted decision, required revisions, and the commit containi
   data, research scheduler or B0–B6, pilot/attribution evaluation, candidate selection,
   promotion/canary/deployment, and empirical, containment, security, generalization, or
   self-improvement claims
+
+## Round 3RRRRRRRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrrrrrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRRRRRRR_OS_PRINCIPAL_VAULT_BOUNDARY.md`
+- packet hash: `15ef4a05c750a699a7578c227bd8a46cddaeb8e4dada0ac6c8247bea8544686e`
+- packet size: 14,451 characters / 14,477 bytes
+- implementation commit/tree:
+  `864d211484f802ac0d82fe9d3c21382e0ad48e80` /
+  `afb3b172510cee31df04a78e55bdff71b16bb030`
+- documentation-only OxyGent commit/tree present at submission:
+  `875e3325d319361019efa9ccf6e28f97a351dd29` /
+  `d42bbd91f2909f6ea2971989fe2edad648b8ed21`
+- remote ref remained `refs/heads/main` at
+  `8b5f14400a7723c821bc54420e55da58dfa7601b`; no additional push
+- validation: exact Node 24.18.1 deterministic suite 130/130; line 95.97%, branch 90.59%, function
+  93.28%; build, type/static checks, OS-boundary verifier, Python compilation, and diff check pass;
+  new-boundary secret scan and private-key/environment-file scan found zero actual matches
+- OS evidence file/internal hashes:
+  `628416d6b77203484d5709d10ed095026f14c4eb39f16f61caf968b7f590437b` /
+  `sha256:727d4c0ed60d217e1d0781f0af4a74183f65319949156f149051722c7289baea`
+- transport: the complete long packet was submitted once to the exact existing tab after insert
+  timeout recovery. The first generation ended before emitting an assistant message. One
+  214-character continuation request was sent in the same conversation without resending the
+  packet; the final response was then harvested. No new Chrome window or tab was opened.
+- transport-selector correction: a Korean status button labelled `생각 중지됨` had initially been
+  classified as an active stop control because its visible text contained `중지`. The selector was
+  narrowed to the real `stop-button`/ARIA control. The status-button click changed neither response
+  bytes nor conversation content.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- packet submission count: exactly one; recovery continuation count: exactly one
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrr.md`
+- raw-response verification: browser and local content both 11,379 characters / 11,385 bytes with
+  SHA-256 `75341301c40c4f426ee83644c1b9df097ed3937921b40b18c0282fcd0988a957`
+- architect decision: `APPROVE`
+- blocking findings: none for the narrow eight-principal, body-free evaluator-vault OS integration
+- accepted: eight distinct namespace and mapped host identities, role-owned keys and mounts,
+  blinded reviewer projection, peer-credential Unix transport, durable CAS reconstruction,
+  process contention, actual SIGKILL recovery, exact retry, cleanup of abandoned staging links,
+  nested signature verification, and OS-level denial results
+- claim boundary: local synthetic body-free authorization/isolation evidence only; no real-body
+  confidentiality, production containment/security certification, provider, benchmark validity,
+  attribution, performance, generalization, or self-improvement result
+- authorized next: local deterministic synthetic-custody rehearsal with a fixed inert encrypted
+  payload, vault-exclusive key, commitment binding, one-time ephemeral read-only evaluator
+  materialization, deterministic cleanup across completion/crash/timeout/rejection/response-loss,
+  denial and non-rematerialization tests, and commitment-only retained evidence
+- still prohibited: push/release/publication, API credential/provider, real benchmark task body,
+  verifier/label/path, any research split or scheduler/B0–B6, pilot/attribution evaluation,
+  candidate selection, promotion/canary/deployment, and empirical, containment, security,
+  generalization, or self-improvement claims
