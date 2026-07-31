@@ -186,6 +186,7 @@ function smokeCore(input: {
       allowedHost: "none",
       allowedPort: 0,
       tlsServerName: "none",
+      maxTunnelBytes: 0,
       brokerImplementationHash: digest("5"),
       policyHash: digest("6"),
     },

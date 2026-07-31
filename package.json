@@ -13,7 +13,8 @@
     "check": "npx -y node@24.18.1 ./node_modules/typescript/bin/tsc --noEmit",
     "test": "npx -y node@24.18.1 --import tsx --test test/**/*.test.ts",
     "test:coverage": "npx -y node@24.18.1 --import tsx --test --experimental-test-coverage test/**/*.test.ts",
-    "cli": "npx -y node@24.18.1 --import tsx src/cli.ts"
+    "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
+    "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

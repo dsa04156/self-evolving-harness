@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "status": "frozen_pre_call",
+  "purpose": "synthetic_non_benchmark_provider_smoke",
+  "datasetPermissions": [
+    "deterministic"
+  ],
+  "provider": {
+    "providerId": "openai-responses",
+    "apiOrigin": "https://api.openai.com:443",
+    "apiPath": "/v1/responses",
+    "apiModel": "gpt-5.6-luna",
+    "modelIdentity": "openai:gpt-5.6-luna@alias-observed-2026-07-31",
+    "serviceTier": "default",
+    "reasoningEffort": "none",
+    "store": false,
+    "parallelToolCalls": false,
+    "pricing": {
+      "currency": "USD",
+      "inputMicrosPerMillionTokens": 1000000,
+      "cachedInputMicrosPerMillionTokens": 100000,
+      "cacheWriteMicrosPerMillionTokens": 1250000,
+      "outputMicrosPerMillionTokens": 6000000,
+      "reasoningIncludedInOutput": true,
+      "sourceHash": "sha256:264ac32014b845baa24a3134826d4577c052ac21d90742df59f124e55417348d",
+      "effectiveAt": "2026-07-31T00:00:00.000Z"
+    },
+    "pricingSourcePath": "configs/provider-pricing.openai-gpt-5.6-luna.json"
+  },
+  "request": {
+    "requestId": "provider-request.openai-smoke.1",
+    "modelIdentity": "openai:gpt-5.6-luna@alias-observed-2026-07-31",
+    "instructions": "This is a synthetic provider transport conformance check, not a benchmark. Reply with exactly SYNTHETIC_PROVIDER_OK and no other text.",
+    "input": [
+      {
+        "kind": "text",
+        "role": "user",
+        "content": "Synthetic non-benchmark input. Return the fixed conformance token."
+      }
+    ],
+    "tools": [],
+    "maxOutputTokens": 32,
+    "reasoningEffort": "none"
+  },
+  "expectedOutput": "SYNTHETIC_PROVIDER_OK",
+  "caps": {
+    "providerCallAttempts": 1,
+    "totalChargedTokens": 256,
+    "providerCostMicros": 1000,
+    "wallClockMillis": 60000,
+    "requestBytes": 32768,
+    "responseBytes": 262144
+  },
+  "egress": {
+    "transport": "unix_connect_allowlist",
+    "allowedHost": "api.openai.com",
+    "allowedPort": 443,
+    "tlsServerName": "api.openai.com",
+    "maxTunnelBytes": 2097152,
+    "brokerImplementationHash": "sha256:d696aee6582ebdf74c9adf48e1cc69254fb49cc2c5adcfc05f5e9fb46fa36fdd",
+    "policyHash": "sha256:99dc5a00135e06d890799c9ea39f4f3c5c8cacce3dfe0187b8fa29e480207229"
+  },
+  "credentialEnvironmentVariable": "OPENAI_API_KEY",
+  "artifacts": {
+    "egressBrokerImplementationPath": "evaluator/egress_connect_broker.py"
+  },
+  "sourceUrls": [
+    "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+    "https://developers.openai.com/api/docs/guides/latest-model"
+  ],
+  "reproducibilityTier": "provider_alias_non_snapshot_smoke_only",
+  "noHarnessMutation": true,
+  "createdAt": "2026-07-31T00:00:00.000Z"
+}

@@ -33,6 +33,8 @@ export * from "./providers/openai-responses-provider.js";
 export * from "./providers/provider-proxy.js";
 export * from "./providers/provider-proxy-wire.js";
 export * from "./providers/provider-smoke.js";
+export * from "./providers/real-smoke-artifacts.js";
+export * from "./providers/real-smoke-plan.js";
 export * from "./runtime/agent-loop.js";
 export * from "./runtime/budget.js";
 export * from "./runtime/context.js";

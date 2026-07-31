@@ -240,6 +240,7 @@
         "allowedHost",
         "allowedPort",
         "tlsServerName",
+        "maxTunnelBytes",
         "brokerImplementationHash",
         "policyHash"
       ],
@@ -271,6 +272,11 @@
             "none",
             "api.openai.com"
           ]
+        },
+        "maxTunnelBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
         },
         "brokerImplementationHash": {
           "$ref": "./common.schema.json#/$defs/sha256"

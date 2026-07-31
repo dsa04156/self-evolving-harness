@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/provider-pricing-source.schema.json",
+  "title": "Observed Provider Pricing Source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hashDomain",
+    "observationType",
+    "providerId",
+    "apiModel",
+    "modelIdentity",
+    "currency",
+    "inputMicrosPerMillionTokens",
+    "cachedInputMicrosPerMillionTokens",
+    "cacheWriteMicrosPerMillionTokens",
+    "outputMicrosPerMillionTokens",
+    "reasoningIncludedInOutput",
+    "observedAt",
+    "sourceUrls"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "hashDomain": {
+      "const": "ProviderPricingSource.v1"
+    },
+    "observationType": {
+      "const": "official_documentation_observation"
+    },
+    "providerId": {
+      "const": "openai-responses"
+    },
+    "apiModel": {
+      "const": "gpt-5.6-luna"
+    },
+    "modelIdentity": {
+      "const": "openai:gpt-5.6-luna@alias-observed-2026-07-31"
+    },
+    "currency": {
+      "const": "USD"
+    },
+    "inputMicrosPerMillionTokens": {
+      "const": 1000000
+    },
+    "cachedInputMicrosPerMillionTokens": {
+      "const": 100000
+    },
+    "cacheWriteMicrosPerMillionTokens": {
+      "const": 1250000
+    },
+    "outputMicrosPerMillionTokens": {
+      "const": 6000000
+    },
+    "reasoningIncludedInOutput": {
+      "const": true
+    },
+    "observedAt": {
+      "const": "2026-07-31T00:00:00.000Z"
+    },
+    "sourceUrls": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "https://developers.openai.com/api/docs/models/gpt-5.6-luna"
+        },
+        {
+          "const": "https://developers.openai.com/api/docs/guides/latest-model"
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    }
+  }
+}

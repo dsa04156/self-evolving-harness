@@ -73,6 +73,7 @@ export interface ProviderSmokeCore {
     readonly allowedHost: "none" | "api.openai.com";
     readonly allowedPort: 0 | 443;
     readonly tlsServerName: "none" | "api.openai.com";
+    readonly maxTunnelBytes: number;
     readonly brokerImplementationHash: string;
     readonly policyHash: string;
   };
@@ -228,13 +229,17 @@ export function assertProviderSmokeContract(input: {
             "unix_connect_allowlist" &&
           manifest.egress.allowedHost === "api.openai.com" &&
           manifest.egress.allowedPort === 443 &&
-          manifest.egress.tlsServerName === "api.openai.com"
+          manifest.egress.tlsServerName === "api.openai.com" &&
+          manifest.egress.maxTunnelBytes >=
+            manifest.caps.requestBytes +
+              manifest.caps.responseBytes
       : manifest.provider.apiOrigin === "none" &&
           manifest.provider.apiPath === "none" &&
           manifest.egress.transport === "none" &&
           manifest.egress.allowedHost === "none" &&
           manifest.egress.allowedPort === 0 &&
-          manifest.egress.tlsServerName === "none",
+          manifest.egress.tlsServerName === "none" &&
+          manifest.egress.maxTunnelBytes === 0,
     "AUTHORIZATION_DENIED",
     "Provider and egress modes are inconsistent",
   );

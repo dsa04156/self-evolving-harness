@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/real-provider-smoke-evidence.schema.json",
+  "title": "Real Provider Smoke Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evidenceType",
+    "status",
+    "purpose",
+    "sourceCommit",
+    "planHash",
+    "protocolId",
+    "budgetFreezeId",
+    "providerSmokeManifestId",
+    "phaseAccountId",
+    "modelIdentity",
+    "reproducibilityTier",
+    "noBenchmarkData",
+    "noHarnessMutation",
+    "requestAttemptCount",
+    "expectedOutput",
+    "expectedOutputMatched",
+    "providerStatus",
+    "result",
+    "isolation",
+    "secretScanPassed",
+    "startedAt",
+    "completedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "evidenceType": {
+      "const": "real_provider_smoke"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "provider_failed",
+        "output_mismatch"
+      ]
+    },
+    "purpose": {
+      "const": "synthetic_non_benchmark_provider_smoke"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "planHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "budgetFreezeId": {
+      "type": "string",
+      "pattern": "^bf-sha256:[a-f0-9]{64}$"
+    },
+    "providerSmokeManifestId": {
+      "type": "string",
+      "pattern": "^psm-sha256:[a-f0-9]{64}$"
+    },
+    "phaseAccountId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "modelIdentity": {
+      "const": "openai:gpt-5.6-luna@alias-observed-2026-07-31"
+    },
+    "reproducibilityTier": {
+      "const": "provider_alias_non_snapshot_smoke_only"
+    },
+    "noBenchmarkData": {
+      "const": true
+    },
+    "noHarnessMutation": {
+      "const": true
+    },
+    "requestAttemptCount": {
+      "const": 1
+    },
+    "expectedOutput": {
+      "const": "SYNTHETIC_PROVIDER_OK"
+    },
+    "expectedOutputMatched": {
+      "type": "boolean"
+    },
+    "providerStatus": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled",
+        "budget_exhausted"
+      ]
+    },
+    "result": {
+      "$ref": "./provider-proxy-result.schema.json"
+    },
+    "isolation": {
+      "$ref": "#/$defs/isolation"
+    },
+    "secretScanPassed": {
+      "const": true
+    },
+    "startedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    }
+  },
+  "$defs": {
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "isolationClass",
+        "roleUids",
+        "hostRoleUids",
+        "providerPrivateOwner",
+        "providerCredentialOwner",
+        "runtimePrivateOwner",
+        "runtimeCredentialReadDenied",
+        "runtimeDirectNetworkDenied",
+        "providerDirectNetworkDenied",
+        "providerPeer",
+        "egressCredentialMount",
+        "egressTlsTermination",
+        "egressAllowedHost",
+        "egressAllowedPort",
+        "egressImplementationHash",
+        "egressPolicyHash",
+        "rawGateEvidenceHash"
+      ],
+      "properties": {
+        "isolationClass": {
+          "const": "os_enforced_provider_proxy_with_credential_blind_egress"
+        },
+        "roleUids": {
+          "const": {
+            "runtime": 1102,
+            "provider": 1106,
+            "egress": 1107
+          }
+        },
+        "hostRoleUids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "runtime",
+            "provider",
+            "egress"
+          ],
+          "properties": {
+            "runtime": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "provider": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "egress": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "providerPrivateOwner": {
+          "const": 1106
+        },
+        "providerCredentialOwner": {
+          "const": 1106
+        },
+        "runtimePrivateOwner": {
+          "const": 1102
+        },
+        "runtimeCredentialReadDenied": {
+          "const": true
+        },
+        "runtimeDirectNetworkDenied": {
+          "const": true
+        },
+        "providerDirectNetworkDenied": {
+          "const": true
+        },
+        "providerPeer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "uid",
+            "gid"
+          ],
+          "properties": {
+            "uid": {
+              "const": 1106
+            },
+            "gid": {
+              "const": 1106
+            }
+          }
+        },
+        "egressCredentialMount": {
+          "const": false
+        },
+        "egressTlsTermination": {
+          "const": false
+        },
+        "egressAllowedHost": {
+          "const": "api.openai.com"
+        },
+        "egressAllowedPort": {
+          "const": 443
+        },
+        "egressImplementationHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "egressPolicyHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "rawGateEvidenceHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

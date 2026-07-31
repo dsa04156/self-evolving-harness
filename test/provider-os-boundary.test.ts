@@ -215,6 +215,7 @@ test(
           allowedHost: "none",
           allowedPort: 0,
           tlsServerName: "none",
+          maxTunnelBytes: 0,
           brokerImplementationHash: digest("9"),
           policyHash: digest("a"),
         },
