@@ -279,6 +279,15 @@ test(
         { mode: 0o600 },
       );
     }
+    await writeCanonical(
+      path.join(root, "public", "principals.json"),
+      Object.fromEntries(
+        Object.entries(signers).map(([role, signer]) => [
+          role,
+          signer.exportPublic(),
+        ]),
+      ) as unknown as JsonValue,
+    );
     await writeFile(path.join(root, "public", "protocol-id"), protocolId, {
       mode: 0o600,
     });
@@ -408,6 +417,14 @@ test(
           networkDenied: string;
         }
       >;
+      publicPrincipals: Record<
+        string,
+        {
+          identity: { role: string };
+          keyId: string;
+          publicKeyPem: string;
+        }
+      >;
       integration: {
         isolationClass: string;
         nodeVersion: string;
@@ -481,11 +498,21 @@ test(
           null,
           Buffer.from(probe.challenge, "utf8"),
           createPublicKey(
-            signers[role as keyof typeof signers].exportPublic().publicKeyPem,
+            evidence.publicPrincipals[role]!.publicKeyPem,
           ),
           Buffer.from(probe.challengeSignature, "base64url"),
         ),
         true,
+      );
+      const expectedRole =
+        role === "operations"
+          ? "operations_owner"
+          : role === "audit"
+            ? "audit_store"
+            : role;
+      assert.equal(
+        evidence.publicPrincipals[role]!.identity.role,
+        expectedRole,
       );
       assert.equal(probe.effectiveCapabilities, "0000000000000000");
       assert.equal(probe.noNewPrivileges, "1");

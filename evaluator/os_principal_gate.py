@@ -800,6 +800,11 @@ def main() -> int:
             encoding="utf-8",
         ) as evaluator_config_file:
             evaluator_config = json.load(evaluator_config_file)
+        with open(
+            root / "public" / "principals.json",
+            encoding="utf-8",
+        ) as principals_file:
+            public_principals = json.load(principals_file)
         evidence = {
             "schemaVersion": 1,
             "isolationClass": "os_enforced_subordinate_uids",
@@ -809,6 +814,7 @@ def main() -> int:
                 role: outer_uid_for(uid) for role, uid in ROLE_UIDS.items()
             },
             "roleProbes": probes,
+            "publicPrincipals": public_principals,
             "integration": integration,
             "adversarial": adversarial,
             "wrongUidRejected": True,
