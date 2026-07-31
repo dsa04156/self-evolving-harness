@@ -1,5 +1,23 @@
 # Evolution Loop Change Log
 
+## 2026-07-31 — Executable HarnessFaultBench D_mine corpus
+
+Implementation commits:
+
+- `7b0a7c88456ac96ce816514a70d5a63f69c04071`
+- evidence-source hardening: `5bd8061c6d16af2271320f9a60127b03be71dc7e`
+
+- all 28 visible mine IDs now generate schema-valid, content-addressed known-good and faulty harnesses;
+- each pair differs in exactly one declared mutable component and one declarative patch;
+- immutable permission, safety, budget, fake-model identity, runtime contract, tool implementation, and
+  capability sets remain fixed;
+- the runner verifies good-pass/fault-fail, target-only recovery, non-target non-recovery, and three
+  identical replay hashes;
+- the public builder rejects gate, final, and multi-cause body construction;
+- the persisted suite commitment is `sha256:a48496598ee5ebef2ca4678e25c59d5a7666fc25e2ee16317ad933f715364b41`.
+
+The label-fed 28/28 scorer result is a scorer self-test, not an attribution or evolution result.
+
 ## 2026-07-31 — Candidate bundle across subordinate OS principals
 
 Implementation commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`

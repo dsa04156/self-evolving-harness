@@ -131,6 +131,17 @@ test("HarnessFaultBench builds 28 schema-valid causal D_mine fixtures", async (t
     HFB_MINE_COMMITMENT_SCHEMA_ID,
     firstCommitment as never,
   );
+  const persistedEvidence = parseStrictJson(
+    await readFile(
+      path.resolve(
+        "architect/evidence/harness-fault-bench-mine/evidence.json",
+      ),
+      "utf8",
+    ),
+  ) as unknown as {
+    suiteCommitment: typeof firstCommitment;
+  };
+  assert.deepEqual(persistedEvidence.suiteCommitment, firstCommitment);
   const secondRoot = await temporaryDirectory(t);
   const second = await buildMineSuite(secondRoot);
   assert.deepEqual(
@@ -194,6 +205,17 @@ test("HFB scorer is strict and the label oracle is only a scorer self-test", asy
   assert.equal(report.top3Correct, 28);
   assert.equal(report.top1Micros, 1_000_000);
   assert.equal(report.top3Micros, 1_000_000);
+  const persistedEvidence = parseStrictJson(
+    await readFile(
+      path.resolve(
+        "architect/evidence/harness-fault-bench-mine/evidence.json",
+      ),
+      "utf8",
+    ),
+  ) as unknown as {
+    scorerSelfTest: { scoreReport: typeof report };
+  };
+  assert.deepEqual(persistedEvidence.scorerSelfTest.scoreReport, report);
 
   const gateLabeled = structuredClone(documents[0]!);
   (gateLabeled as unknown as { splitRole: string }).splitRole = "gate";

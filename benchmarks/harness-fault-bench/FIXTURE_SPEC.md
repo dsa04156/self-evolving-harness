@@ -1,6 +1,6 @@
 # HarnessFaultBench-v0 Fixture Construction Contract
 
-Status: **FROZEN CANDIDATE FOR GATE 1RR; NO EXECUTABLE FIXTURE EXISTS**
+Status: **FROZEN CONTRACT; D_MINE IMPLEMENTED; GATE/FINAL BODIES NOT INSTANTIATED**
 Specification version: `hfb-fixture-spec-1.0.1`
 Change rule: any semantic change after Gate 1 approval requires a new spec/protocol ID and Architect review
 
@@ -9,6 +9,11 @@ Change rule: any semantic change after Gate 1 approval requires a new spec/proto
 HarnessFaultBench measures whether a system attributes deterministic, known injected harness defects to
 the correct component. It does not measure general coding ability, real-provider capability, or
 self-improvement.
+
+The checked-in executable implementation is restricted to IDs `01–04` (`D_mine`). Its synthetic
+author/reviewer identities support deterministic development validation only and do not satisfy the
+independent-authorship condition for a sealed dataset. IDs `05–08` and all multi-cause bodies remain
+uninstantiated.
 
 ## Fixed inventory
 

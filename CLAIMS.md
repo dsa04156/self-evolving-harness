@@ -88,15 +88,19 @@ model-specific retuning.
 ## Current evidence status
 
 Evidence snapshot: implementation commit
-`222b9209203a6f5b38dac41aebe89b2cfdc652e0`, tree
-`7ee7e54415a75418700de7d7b34d65616e6927bc`.
+`5bd8061c6d16af2271320f9a60127b03be71dc7e`, tree
+`8d0113de86a79bb0a95aa48c48817520acf7c55e`.
 
 | Claim | Current status | Evidence boundary |
 |---|---|---|
 | C-A1 | partially supported | Local source/import inspection and deterministic runtime tests find no Codex, Gajae-Code, or OpenCode invocation. The real-provider path is intentionally unexecuted under `NP-1`, so no live process-level provider claim is made. |
 | C-A2 | deterministically supported | The signed evolution-run journal requires a new candidate ID distinct from its parent, enforces an independent lifecycle, and passes approve, reject, failure, replay, and illegal-transition tests. |
 | C-A3 | deterministically and locally OS-boundary supported | Registry, closure, admission, canonical bundle, exact Git snapshot, external evaluator, and immutable-boundary tests pass within the documented local TCB. The same registry-generated candidate bundle passes under operations UID 1101 and evaluator UID 1103; a signed candidate-ID substitution is rejected. |
-| C-H1–C-H4 | unexecuted and unsupported | No research benchmark, live provider, gate, final, or temporal evaluation has run. |
+| C-H1–C-H4 | unexecuted and unsupported | No candidate attribution-performance run, live provider, gate, final, temporal evaluation, or B0–B6 comparison has run. |
+
+HarnessFaultBench `D_mine` infrastructure now has 28 deterministic fixtures and a persisted suite
+commitment. Every good/fault pair and causal intervention passes. The recorded 28/28 score is generated
+by a label-fed scorer oracle and proves only scorer correctness; it is not evidence for C-H1–C-H4.
 
 The current result is an architectural-conformance artifact. It is not evidence that the harness
 improves itself, generalizes, beats a baseline, or performs safely outside the stated local threat model.

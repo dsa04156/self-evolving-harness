@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "benchmarkId": "harness-fault-bench-v0",
-  "status": "fixture-contract-frozen-candidate-pending-gate1rr-fixtures-not-implemented",
+  "status": "mine-executable-gate-and-final-bodies-not-instantiated",
   "protocolVersion": "draft-1",
+  "fixtureSpecVersion": "hfb-fixture-spec-1.0.1",
   "frozenAt": "2026-07-30",
   "purpose": "Deterministic ground-truth attribution of injected harness component defects.",
   "singleFaultFamilies": [
@@ -37,9 +38,19 @@
     "content commitment"
   ],
   "metrics": {
-    "gateSingleFaultTop1Minimum": 0.7,
-    "gateSingleFaultTop3Minimum": 0.9,
-    "finalOnlyMultiCauseRecallAt2Minimum": 0.7
+    "gateSingleFaultTop1MinimumMicros": 700000,
+    "gateSingleFaultTop3MinimumMicros": 900000,
+    "finalOnlyMultiCauseRecallAt2MinimumMicros": 700000
+  },
+  "implementation": {
+    "mineExecutable": true,
+    "mineFixtureCount": 28,
+    "sourceCommit": "5bd8061c6d16af2271320f9a60127b03be71dc7e",
+    "suiteHash": "sha256:a48496598ee5ebef2ca4678e25c59d5a7666fc25e2ee16317ad933f715364b41",
+    "gateBodiesInstantiated": false,
+    "finalBodiesInstantiated": false,
+    "multiCauseBodiesInstantiated": false,
+    "labelOracleUse": "D_mine scorer self-test only; not attribution performance"
   },
   "multiCauseUse": "final-confirmatory-reporting-only; prohibited from candidate creation, selection, promotion, threshold tuning, and rollback policy"
 }

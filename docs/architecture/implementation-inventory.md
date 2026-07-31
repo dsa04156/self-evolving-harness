@@ -1,8 +1,8 @@
 # Implementation Inventory
 
-Implementation commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`
+Implementation commit: `5bd8061c6d16af2271320f9a60127b03be71dc7e`
 
-Implementation tree: `7ee7e54415a75418700de7d7b34d65616e6927bc`
+Implementation tree: `8d0113de86a79bb0a95aa48c48817520acf7c55e`
 
 Resource profile: `NP-1`
 
@@ -25,7 +25,7 @@ callable services is not marked complete when the required end-to-end control pa
 | Deliverable | Status | Evidence or gap |
 |---|---|---|
 | Architecture and loop diagrams | implemented | `docs/architecture/`, `docs/diagrams/` |
-| Component, event, evidence, lifecycle schemas | implemented | 55 JSON Schemas compile |
+| Component, event, evidence, lifecycle schemas | implemented | 59 JSON Schemas compile |
 | Session and harness state machines | implemented | separate stores and transition tests |
 | Threat model | implemented, bounded | no broad containment claim |
 | Minimum working runtime | implemented | deterministic CLI demo and runtime-loop tests |
@@ -39,7 +39,7 @@ callable services is not marked complete when the required end-to-end control pa
 | External evaluator process | coordinator-integrated | authenticated framed protocol, mounted candidate bundle verification, and crash recovery |
 | Promote/reject/rollback trail | implemented and coordinator-integrated | qualification and deployment decisions remain separate |
 | Matched B0–B6 budget machinery | implemented deterministically | no empirical research task has run |
-| Executable HarnessFaultBench fixtures | not implemented | fixture contract and split manifest only |
+| Executable HarnessFaultBench fixtures | `D_mine` implemented | 28 content-addressed good/fault harness pairs, finite fake tables, causal interventions, strict scorer; gate/final bodies absent |
 | Root shipping documentation | partial | root `README.md`, `ARCHITECTURE.md`, `SECURITY.md`, and final research reports remain |
 
 ## Completed integration slice
@@ -71,6 +71,11 @@ The slice added:
    bytes;
 9. a read-only snapshot mounted into the external Python evaluator, where the bundle ID, harness ID,
    manifest IDs, payload hashes, dependency closure, and request candidate ID are independently checked.
+10. deterministic construction of all 28 visible HarnessFaultBench `D_mine` cases;
+11. single-component diff, declared-patch, immutable trust-pin, capability, good/fault, restoration, and
+    three-replay validation for every mine case;
+12. a strict single-fault scorer and a label-fed self-test that is explicitly excluded from performance
+    evidence.
 
 Approval, rejection, and evaluator-failure paths pass. The integration exposed and fixed an existing
 promotion reason-code bug where gate IDs containing hyphens could not be represented by the frozen
@@ -78,7 +83,8 @@ schema.
 
 ## Next integration gaps
 
-1. Implement executable HarnessFaultBench fixtures without opening any research gate/final role.
+1. Implement the separate evaluator-vault and independent authorship workflow before creating any
+   HarnessFaultBench gate/final body.
 2. Add root shipping documentation and reproducibility commands.
 3. Preserve the local-only security wording: malicious host root/kernel, distributed deployment, and
    public-provider behavior remain outside this evidence.

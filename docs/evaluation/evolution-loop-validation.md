@@ -6,14 +6,14 @@ Resource profile: `NP-1`
 
 ## Frozen implementation under test
 
-- commit: `222b9209203a6f5b38dac41aebe89b2cfdc652e0`
-- tree: `7ee7e54415a75418700de7d7b34d65616e6927bc`
+- commit: `5bd8061c6d16af2271320f9a60127b03be71dc7e`
+- tree: `8d0113de86a79bb0a95aa48c48817520acf7c55e`
 - implementation: `src/evolution/evolution-loop.ts`
 - isolation: `src/evolution/candidate-bundle.ts`
 - external bridge: `src/evolution/worktree-evaluation-executor.ts`
 - schemas: `schemas/evolution-run-record.schema.json`,
   `schemas/candidate-harness-bundle.schema.json`
-- tests: `test/evolution-loop.test.ts`
+- tests: `test/evolution-loop.test.ts`, `test/harness-fault-bench.test.ts`
 
 This implementation creates a distinct signed `EvolutionRunRecord` lifecycle and composes weakness
 mining, attribution, bounded mutation, candidate creation, static admission, evaluator preparation,
@@ -29,16 +29,17 @@ role enabled.
 |---|---|
 | TypeScript no-emit check | pass |
 | TypeScript build | pass |
-| JSON Schema compilation | pass, 55 schemas |
-| Complete deterministic test suite | pass, 64/64 |
+| JSON Schema compilation | pass, 59 schemas |
+| Complete deterministic test suite | pass, 69/69 |
 | OS-principal boundary mode | pass |
 | External evaluator crash recovery | pass |
 | candidate closure → Git commit → read-only snapshot → external evaluator | pass (`isolation_emulated`) |
 | same candidate bundle under operations/evaluator subordinate UIDs | pass (`os_enforced_subordinate_uids`) |
 | detached candidate Git worktree independence | pass |
-| line coverage | 91.71449731531199% (`19814/21604`) |
-| branch coverage | 86.18421052631578% (`1703/1976`) |
-| function coverage | 89.61702127659575% (`1053/1175`) |
+| HarnessFaultBench visible `D_mine` causal fixtures | pass, 28/28 |
+| line coverage | 92.37755708343943% (`21766/23562`) |
+| branch coverage | 87.10289236605027% (`1837/2109`) |
+| function coverage | 90.21651964715318% (`1125/1247`) |
 
 Commands:
 
@@ -57,8 +58,8 @@ SEH_REQUIRE_OS_BOUNDARY=1 npx -y node@24.18.1 \
 The full boundary-mode run reported:
 
 ```text
-tests 64
-passed 64
+tests 69
+passed 69
 failed 0
 cancelled 0
 skipped 0
@@ -86,6 +87,9 @@ todo 0
     from the mounted bundle.
 13. The registry-generated bundle passes under operations UID 1101 and evaluator UID 1103, while a
     separately signed candidate-ID substitution is rejected without a final evaluation result.
+14. All 28 visible HarnessFaultBench mine fixtures reproduce their declared single-component patch,
+    preserve immutable trust pins/capabilities, satisfy the causal interventions, and replay
+    deterministically.
 
 ## Scope limits
 
@@ -98,7 +102,8 @@ todo 0
   Host root/kernel compromise remains outside the claim.
 - The persisted OS artifact includes every public principal and key so its challenge signatures can be
   checked without retaining any private key.
-- No live OpenAI request, Terminal-Bench task, HarnessFaultBench research split, pilot, gate, final, or
-  temporal task was executed.
+- No live OpenAI request, Terminal-Bench task, HarnessFaultBench gate/final task, candidate attribution
+  evaluation, pilot, or temporal task was executed. The visible `D_mine` corpus was executed only for
+  fixture/scorer plumbing validation.
 - This evidence supports lifecycle separation and bounded local authority. It does not support any
   self-improvement, benchmark, generalization, comparative-performance, or broad security claim.
