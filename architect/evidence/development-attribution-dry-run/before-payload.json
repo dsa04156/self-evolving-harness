@@ -1,0 +1,1 @@
+{"entryState":"start","language":"seh.workflow.v1","schemaVersion":1,"states":[{"actions":[{"action":"construct_context","targetId":null}],"stateId":"start"},{"actions":[],"stateId":"complete"}],"terminalStates":["complete"],"transitions":[{"from":"start","guard":"always","to":"complete","trigger":"action_succeeded"}]}
