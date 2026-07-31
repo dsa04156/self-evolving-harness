@@ -13,6 +13,8 @@ import {
   sha256Bytes,
   verifyGovernanceDeviationRecord,
   type GovernanceDeviationRecord,
+  type GovernanceRemediationClosureRecord,
+  verifyGovernanceRemediationClosure,
 } from "../src/index.js";
 
 interface StructuralEvidence {
@@ -39,11 +41,67 @@ const deviationPath = path.resolve(
 const evidencePath = path.resolve(
   "architect/evidence/harness-fault-bench-mine/evidence.json",
 );
+const closurePath = path.resolve(
+  "governance/remediation-closures/hfb-structural-oracle-2026-07-31.json",
+);
+const architectResponsePath = path.resolve(
+  ".codex/gpt-pro-architect/responses/response-3rr.md",
+);
+const semanticEvidencePath = path.resolve(
+  "architect/evidence/harness-fault-bench-semantic/evidence.json",
+);
 const schemas = await SchemaRegistry.load(path.resolve("schemas"));
 const record = parseStrictJson(
   await readFile(deviationPath, "utf8"),
 ) as unknown as GovernanceDeviationRecord;
 verifyGovernanceDeviationRecord({ record, schemas });
+const closure = parseStrictJson(
+  await readFile(closurePath, "utf8"),
+) as unknown as GovernanceRemediationClosureRecord;
+verifyGovernanceRemediationClosure({
+  record: closure,
+  deviation: record,
+  schemas,
+});
+
+const architectResponseHash =
+  `sha256:${sha256Bytes(await readFile(architectResponsePath))}`;
+if (
+  closure.architectDecision.responseSha256 !==
+  architectResponseHash
+) {
+  throw new Error("Remediation closure response hash drifted");
+}
+const semanticEvidenceBytes = await readFile(semanticEvidencePath);
+const semanticEvidenceHash =
+  `sha256:${sha256Bytes(semanticEvidenceBytes)}`;
+if (
+  closure.replacementEvidence.evidenceFileSha256 !==
+  semanticEvidenceHash
+) {
+  throw new Error("Remediation closure replacement evidence drifted");
+}
+const semanticEvidence = parseStrictJson(
+  semanticEvidenceBytes.toString("utf8"),
+) as {
+  readonly sourceCommit: string;
+  readonly suiteCommitment: {
+    readonly commitmentHash: string;
+  };
+  readonly labelBlindBoundary: {
+    readonly corpusHash: string;
+  };
+};
+if (
+  closure.replacementEvidence.semanticEvidenceSourceCommit !==
+    semanticEvidence.sourceCommit ||
+  closure.replacementEvidence.semanticSuiteCommitment !==
+    semanticEvidence.suiteCommitment.commitmentHash ||
+  closure.replacementEvidence.labelBlindCorpusCommitment !==
+    semanticEvidence.labelBlindBoundary.corpusHash
+) {
+  throw new Error("Remediation closure replacement commitments drifted");
+}
 
 const evidenceBytes = await readFile(evidencePath);
 const evidenceFileHash =
@@ -124,6 +182,7 @@ process.stdout.write(
     "PASS",
     `deviation=${record.deviationId}`,
     `record=${record.recordHash}`,
+    `closure=${closure.recordHash}`,
     `fixtures=${record.occurred.fixtureIds.length}`,
     `artifacts=${record.affectedArtifacts.length}`,
     `allowed=${DEVELOPMENT_EVIDENCE_USE_CLASSES.length}`,

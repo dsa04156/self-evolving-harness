@@ -34,6 +34,7 @@ export * from "./evolution/worktree-isolation.js";
 export * from "./evolution/worktree-evaluation-executor.js";
 export * from "./harness/component-registry.js";
 export * from "./governance/evidence-quarantine.js";
+export * from "./governance/remediation-closure.js";
 export * from "./operations/session-lifecycle.js";
 export * from "./operations/session-definition.js";
 export * from "./operations/control-plane.js";
