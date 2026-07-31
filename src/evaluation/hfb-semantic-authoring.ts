@@ -1021,8 +1021,11 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
         } as unknown as JsonValue,
         capabilityIds: ["tool.execute"],
       });
-    const immutableComponents = await Promise.all([
-      this.#registry.createComponent({
+    // The registry is an append-only transaction boundary. Authoring writes
+    // are deliberately serialized so instrumentation or scheduler timing
+    // cannot race sequence allocation.
+    const permission =
+      await this.#registry.createComponent({
         componentId:
           `${definition.fixtureId}.semantic.permission`,
         semanticVersion: "1.0.0",
@@ -1045,8 +1048,9 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
           },
         },
         capabilityIds: ["permission.authorize"],
-      }),
-      this.#registry.createComponent({
+      });
+    const safety =
+      await this.#registry.createComponent({
         componentId:
           `${definition.fixtureId}.semantic.safety`,
         semanticVersion: "1.0.0",
@@ -1063,8 +1067,9 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
           },
         },
         capabilityIds: ["safety.authorize"],
-      }),
-      this.#registry.createComponent({
+      });
+    const budget =
+      await this.#registry.createComponent({
         componentId:
           `${definition.fixtureId}.semantic.budget`,
         semanticVersion: "1.0.0",
@@ -1085,8 +1090,9 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
           },
         },
         capabilityIds: ["budget.enforce"],
-      }),
-      this.#registry.createComponent({
+      });
+    const modelIdentity =
+      await this.#registry.createComponent({
         componentId:
           `${definition.fixtureId}.semantic.model-identity`,
         semanticVersion: "1.0.0",
@@ -1103,14 +1109,7 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
           },
         },
         capabilityIds: ["model.invoke.pinned"],
-      }),
-    ]);
-    const [
-      permission,
-      safety,
-      budget,
-      modelIdentity,
-    ] = immutableComponents;
+      });
 
     const goodComponents = new Map<
       HfbMutableComponentType,
@@ -1180,22 +1179,22 @@ export class HarnessFaultBenchSemanticAuthoringBuilder {
       {
         slotId: "permission",
         componentManifestId:
-          permission!.componentManifestId,
+          permission.componentManifestId,
       },
       {
         slotId: "safety",
         componentManifestId:
-          safety!.componentManifestId,
+          safety.componentManifestId,
       },
       {
         slotId: "budget",
         componentManifestId:
-          budget!.componentManifestId,
+          budget.componentManifestId,
       },
       {
         slotId: "model_identity",
         componentManifestId:
-          modelIdentity!.componentManifestId,
+          modelIdentity.componentManifestId,
       },
     ];
     const goodBindings = [
