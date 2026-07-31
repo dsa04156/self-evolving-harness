@@ -77,10 +77,16 @@ export interface MutationProposal {
   readonly createdAt: string;
 }
 
+export type MutationProposalDisposition =
+  | "pending"
+  | "admitted"
+  | "accepted"
+  | "rejected";
+
 interface ProposalRecord {
   readonly proposal: MutationProposal;
   readonly mutationSignature: string;
-  readonly disposition: "pending" | "accepted" | "rejected";
+  readonly disposition: MutationProposalDisposition;
 }
 
 function decodePointer(pointer: string): string[] {
@@ -447,11 +453,64 @@ export class BoundedMutationEngine {
     mutationProposalId: string,
     disposition: "accepted" | "rejected",
   ): Promise<void> {
+    await this.#transitionDisposition(mutationProposalId, disposition, [
+      "pending",
+      "admitted",
+    ]);
+  }
+
+  public async markAdmitted(mutationProposalId: string): Promise<void> {
+    await this.#transitionDisposition(mutationProposalId, "admitted", [
+      "pending",
+    ]);
+  }
+
+  public async finalizeDisposition(
+    mutationProposalId: string,
+    disposition: "accepted" | "rejected",
+  ): Promise<void> {
+    const current = await this.#latestRecord(mutationProposalId);
+    if (current.disposition === disposition) return;
+    assertCondition(
+      current.disposition === "admitted",
+      "CONFLICT",
+      "Only an admitted proposal can receive a qualification disposition",
+    );
+    await this.#appendDisposition(current, disposition);
+  }
+
+  public async disposition(
+    mutationProposalId: string,
+  ): Promise<MutationProposalDisposition> {
+    return (await this.#latestRecord(mutationProposalId)).disposition;
+  }
+
+  async #transitionDisposition(
+    mutationProposalId: string,
+    disposition: MutationProposalDisposition,
+    allowedFrom: readonly MutationProposalDisposition[],
+  ): Promise<void> {
+    const current = await this.#latestRecord(mutationProposalId);
+    assertCondition(
+      allowedFrom.includes(current.disposition),
+      "CONFLICT",
+      `Proposal cannot transition ${current.disposition} → ${disposition}`,
+    );
+    await this.#appendDisposition(current, disposition);
+  }
+
+  async #latestRecord(mutationProposalId: string): Promise<ProposalRecord> {
     const current = (await this.#records())
       .filter((record) => record.proposal.mutationProposalId === mutationProposalId)
       .at(-1);
     assertCondition(current !== undefined, "ARTIFACT_UNAVAILABLE", "Unknown mutation proposal");
-    assertCondition(current.disposition === "pending", "CONFLICT", "Proposal already decided");
+    return current;
+  }
+
+  async #appendDisposition(
+    current: ProposalRecord,
+    disposition: MutationProposalDisposition,
+  ): Promise<void> {
     await this.#log.append({
       proposal: current.proposal,
       mutationSignature: current.mutationSignature,

@@ -1,6 +1,6 @@
 # Harness Evolution Loop
 
-Status: Gate 1RRR correction candidate
+Status: Gate 2-approved primitives with a deterministic first-class coordinator
 
 ## Contract
 
@@ -18,6 +18,52 @@ multiple execution traces
 
 The evolution loop consumes completed execution evidence; it does not hijack a running session. Its unit
 of change is a new `HarnessVersion`.
+
+## Implemented control path
+
+`src/evolution/evolution-loop.ts` now owns the authoritative deterministic composition:
+
+```text
+EvolutionRun(created)
+→ WeaknessMiningService
+→ EvolutionRun(weaknesses_mined)
+→ AttributionService
+→ EvolutionRun(attributed)
+→ BoundedMutationEngine creates a different HarnessVersion
+→ EvolutionRun(candidate_created)
+→ CandidateAdmissionService
+→ EvolutionRun(statically_validated)
+→ evaluator preparation receipt binds a candidate filesystem snapshot
+→ EvolutionRun(evaluating)
+→ evaluator-authenticated paired result
+→ EvolutionRun(evaluated)
+→ PromotionService approve/reject
+→ EvolutionRun(decided)
+```
+
+Every `EvolutionRunRecord` is operations-signed, schema-validated, append-only, and audit-linked.
+Committed identifiers cannot change in later phases. A record whose candidate ID equals its parent ID
+is rejected, so a task retry cannot be relabelled as evolution.
+
+Mutation proposal disposition is now two-stage:
+
+```text
+pending → admitted → accepted | rejected
+```
+
+Static validation only admits a proposal. Final accepted/rejected memory is written after the independent
+evaluation and qualification decision. An evaluator failure produces one failed evolution-run record,
+rejects the unqualified candidate, retains the parent, and does not retry the task or silently create a
+replacement candidate.
+
+Approval is still not deployment. The loop stops at the qualification decision; production-pointer CAS
+and rollback remain separate operations in `deployment.ts`.
+
+The evaluator preparation contract requires a non-null snapshot hash and at least one verified receipt
+that binds the candidate. The current integration tests use a separately signed deterministic evaluator
+result to test orchestration. The existing Git worktree manager and OS-external evaluator are tested
+independently. Materializing the component candidate bundle into the Git worktree and exercising that
+combined path remains a declared follow-up; this document does not claim it is already integrated.
 
 ## Data roles
 

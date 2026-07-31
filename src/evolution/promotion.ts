@@ -266,7 +266,13 @@ export class PromotionService {
         ? ["ALL_QUALIFICATION_GATES_PASSED"]
         : criteria
             .filter((criterion) => !criterion.passed)
-            .map((criterion) => `FAILED_${criterion.gateId.replaceAll(".", "_").toUpperCase()}`),
+            .map(
+              (criterion) =>
+                `FAILED_${criterion.gateId
+                  .replace(/[^A-Za-z0-9]+/gu, "_")
+                  .replace(/^_+|_+$/gu, "")
+                  .toUpperCase()}`,
+            ),
       criteria,
       decidedBy: this.#signer.identity,
       decidedAt: this.#clock.now().toISOString(),

@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/evolution-run-record.schema.json",
+  "title": "EvolutionRunRecord",
+  "description": "Operations-authenticated phase record for one outer-loop attempt. This lifecycle is distinct from both SessionLifecycle and HarnessVersionLifecycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "evolutionRunId",
+    "protocolId",
+    "selectionPolicy",
+    "previousState",
+    "state",
+    "parentHarnessVersionId",
+    "candidateHarnessVersionId",
+    "failurePatternIds",
+    "selectedFailurePatternId",
+    "attributionResultId",
+    "mutationProposalId",
+    "staticValidationResultId",
+    "candidateFilesystemSnapshotHash",
+    "evaluationResultId",
+    "promotionDecisionId",
+    "outcome",
+    "failureCode",
+    "transitionedBy",
+    "transitionedAt",
+    "auditLink",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "recordId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "evolutionRunId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "protocolId": {
+      "$ref": "./common.schema.json#/$defs/protocolId"
+    },
+    "selectionPolicy": {
+      "const": "highest_failure_count_then_signature_v1"
+    },
+    "previousState": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "$ref": "#/$defs/state"
+    },
+    "parentHarnessVersionId": {
+      "$ref": "./common.schema.json#/$defs/harnessVersionId"
+    },
+    "candidateHarnessVersionId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/harnessVersionId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "failurePatternIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "./common.schema.json#/$defs/entityId"
+      }
+    },
+    "selectedFailurePatternId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attributionResultId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mutationProposalId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "staticValidationResultId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "candidateFilesystemSnapshotHash": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evaluationResultId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "promotionDecisionId": {
+      "oneOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "outcome": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "approved",
+        "rejected",
+        "failed",
+        null
+      ]
+    },
+    "failureCode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "transitionedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "transitionedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "auditLink": {
+      "$ref": "./common.schema.json#/$defs/auditLink"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "state": {
+      "type": "string",
+      "enum": [
+        "created",
+        "weaknesses_mined",
+        "attributed",
+        "candidate_created",
+        "statically_validated",
+        "evaluating",
+        "evaluated",
+        "decided",
+        "failed"
+      ]
+    }
+  }
+}

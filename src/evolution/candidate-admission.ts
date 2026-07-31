@@ -371,7 +371,7 @@ export class CandidateAdmissionService {
       evidenceReceiptIds: [validationReceipt.receiptId],
       signer: this.#signer,
     });
-    await this.#mutations.setDisposition(proposal.mutationProposalId, "accepted");
+    await this.#mutations.markAdmitted(proposal.mutationProposalId);
     return { lineage, validation };
   }
 

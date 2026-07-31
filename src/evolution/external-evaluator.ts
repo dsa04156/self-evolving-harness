@@ -110,13 +110,46 @@ export interface ExternalEvaluationInput {
 }
 
 export interface EvaluationResult {
+  readonly schemaVersion: 4;
   readonly evaluationResultId: string;
   readonly protocolId: string;
+  readonly track: "contract" | "A" | "B" | "temporal";
+  readonly phase:
+    | "pilot"
+    | "mine"
+    | "gate"
+    | "offline_canary"
+    | "final"
+    | "temporal_replication"
+    | "deterministic";
+  readonly methodId: ExternalEvaluationInput["methodId"];
+  readonly datasetRole:
+    | "mine"
+    | "gate"
+    | "sealed_test"
+    | "withheld_public_test"
+    | "temporal_holdout"
+    | "deterministic"
+    | "pilot";
   readonly parentHarnessVersionId: string;
   readonly candidateHarnessVersionId: string;
   readonly candidateFilesystemSnapshotHash: string | null;
+  readonly runtimeStateSnapshotIds: readonly string[];
+  readonly rolloutSeeds: readonly number[];
+  readonly epistemicClass: "verifier_outcome";
+  readonly validity:
+    | "valid"
+    | "invalid_protocol"
+    | "invalid_manifest"
+    | "invalid_state_snapshot"
+    | "invalid_budget"
+    | "invalid_evidence"
+    | "invalid_data_access"
+    | "incomplete";
+  readonly taskPairs: readonly DeterministicTaskPair[];
   readonly aggregate: {
     readonly taskCount: number;
+    readonly rolloutSeedCount: number;
     readonly parentPassRateMicros: number;
     readonly candidatePassRateMicros: number;
     readonly deltaPercentagePointMicros: number;
@@ -124,6 +157,7 @@ export interface EvaluationResult {
     readonly failToPassCount: number;
     readonly pairedCi95LowerPercentagePointMicros: number;
     readonly pairedCi95UpperPercentagePointMicros: number;
+    readonly taskIsPrimaryUnit: true;
   };
   readonly totalUsage: EvaluationBudgetUsage;
   readonly gateChecks: readonly {

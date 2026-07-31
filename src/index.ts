@@ -20,6 +20,7 @@ export * from "./evolution/bounded-mutation.js";
 export * from "./evolution/candidate-admission.js";
 export * from "./evolution/external-evaluator.js";
 export * from "./evolution/evaluation-transaction.js";
+export * from "./evolution/evolution-loop.js";
 export * from "./evolution/deployment.js";
 export * from "./evolution/weakness-attribution.js";
 export * from "./evolution/worktree-isolation.js";
