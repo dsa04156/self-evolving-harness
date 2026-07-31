@@ -1,6 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import {
   ArtifactStore,
@@ -20,13 +22,27 @@ import {
 const DEVELOPMENT_EVIDENCE_SCHEMA_ID =
   "https://self-evolving-harness.local/schemas/benchmarks/harness-fault-development-evidence.schema.json";
 
-function sourceCommitArgument(): string {
-  const flagIndex = process.argv.indexOf("--source-commit");
-  const value = flagIndex >= 0 ? process.argv[flagIndex + 1] : undefined;
-  if (value === undefined || !/^[a-f0-9]{40}$/u.test(value)) {
-    throw new Error("--source-commit requires one exact 40-character Git SHA");
+const execFileAsync = promisify(execFile);
+
+async function verifiedSourceCommit(): Promise<string> {
+  const status = await execFileAsync("git", ["status", "--porcelain=v1"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  if (status.stdout.length !== 0) {
+    throw new Error(
+      "HarnessFaultBench evidence requires a clean Git worktree",
+    );
   }
-  return value;
+  const result = await execFileAsync("git", ["rev-parse", "--verify", "HEAD"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  const sourceCommit = result.stdout.trim();
+  if (!/^[a-f0-9]{40}$/u.test(sourceCommit)) {
+    throw new Error("Git HEAD did not resolve to one exact commit");
+  }
+  return sourceCommit;
 }
 
 const root = await mkdtemp(path.join(os.tmpdir(), "seh-hfb-validation-"));
@@ -67,7 +83,7 @@ try {
   const evidence = {
     schemaVersion: 1,
     evidenceClass: "deterministic_development_validation",
-    sourceCommit: sourceCommitArgument(),
+    sourceCommit: await verifiedSourceCommit(),
     specVersion: HFB_FIXTURE_SPEC_VERSION,
     datasetRole: "mine",
     suiteCommitment,
