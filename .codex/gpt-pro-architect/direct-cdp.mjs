@@ -207,7 +207,7 @@ async function submit(client, packetPath) {
   const packet = await readFile(packetPath, "utf8");
   const prompt = [
     "Continue the same self-evolving-harness architect review.",
-    "Treat the following Gate 2R packet as the sole new evidence.",
+    "Treat the following architect packet as the sole new evidence.",
     "Do not invent facts outside it. Return the packet's required decision format.",
     "",
     packet,
