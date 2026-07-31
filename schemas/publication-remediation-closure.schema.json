@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/publication-remediation-closure.schema.json",
+  "title": "Signed append-only publication remediation closure",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "closureId",
+    "recordType",
+    "governanceDomainId",
+    "deviationId",
+    "deviationRecordHash",
+    "correctiveDecision",
+    "inventoryHash",
+    "publicExposureLedgerId",
+    "publicExposureLedgerHash",
+    "validatorEvidence",
+    "remediation",
+    "claimBoundary",
+    "closedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "closureId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "publication_remediation_closure"
+    },
+    "governanceDomainId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "deviationId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "deviationRecordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "correctiveDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "round",
+        "decision",
+        "responsePath",
+        "responseSha256"
+      ],
+      "properties": {
+        "round": {
+          "const": "03RRRR"
+        },
+        "decision": {
+          "const": "REVISE"
+        },
+        "responsePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "responseSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "inventoryHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicExposureLedgerId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "publicExposureLedgerHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "validatorEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementationPath",
+        "implementationSha256",
+        "testPath",
+        "testSha256",
+        "verifierPath",
+        "verifierSha256"
+      ],
+      "properties": {
+        "implementationPath": {
+          "$ref": "#/$defs/path"
+        },
+        "implementationSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "testPath": {
+          "$ref": "#/$defs/path"
+        },
+        "testSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "verifierPath": {
+          "$ref": "#/$defs/path"
+        },
+        "verifierSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originalDeviationWasModified",
+        "originalStatusObserved",
+        "closureStatus",
+        "completedActions",
+        "outstandingActions"
+      ],
+      "properties": {
+        "originalDeviationWasModified": {
+          "const": false
+        },
+        "originalStatusObserved": {
+          "const": "in_progress"
+        },
+        "closureStatus": {
+          "const": "closed_by_append_only_record"
+        },
+        "completedActions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "outstandingActions": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "claimBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicationGovernanceClosed",
+        "publicDevelopmentArtifactsPermanent",
+        "heldOutEligibilityRestored",
+        "researchEvidenceAuthorized",
+        "promotionAuthorized",
+        "providerUsed",
+        "selfImprovementClaim"
+      ],
+      "properties": {
+        "publicationGovernanceClosed": {
+          "const": true
+        },
+        "publicDevelopmentArtifactsPermanent": {
+          "const": true
+        },
+        "heldOutEligibilityRestored": {
+          "const": false
+        },
+        "researchEvidenceAuthorized": {
+          "const": false
+        },
+        "promotionAuthorized": {
+          "const": false
+        },
+        "providerUsed": {
+          "const": false
+        },
+        "selfImprovementClaim": {
+          "const": false
+        }
+      }
+    },
+    "closedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

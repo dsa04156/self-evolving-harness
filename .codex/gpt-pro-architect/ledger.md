@@ -406,3 +406,38 @@ response path, interpreted decision, required revisions, and the commit containi
   research pilot/thresholds, confirmatory attribution, gate/final/temporal/withheld-public access,
   research selection, promotion/canary/deployment, performance/attribution/generalization/security/
   self-improvement claims, push, release, and publication
+
+## Round 3RRRR — 2026-07-31
+
+- sent: `.codex/gpt-pro-architect/packets/packet-3rrrr.md`
+- authoritative project copy:
+  `architect/PACKET_03RRRR_PROCESS_BOUNDARY_AND_RUNTIME_EVIDENCE.md`
+- packet hash: `bafb21844788b4178d7d0908a8a85d9113e242ea1d3e4b6dab249f8077eb13ff`
+- packet size: 19,107 characters / 19,131 bytes
+- implementation source commit/tree:
+  `88e39cdebf1df4db7688fff592363f5f867533ce` /
+  `ccb20381cc3308cb71954789614144575870eb83`
+- evidence commit/tree:
+  `a5d82564cece5ecb776a27c86512c3ec56f32787` /
+  `1bbc1a7623460cf52907758e7ee93149e18a0aec`
+- transport: Oracle CLI 0.16.1 positive attach/reuse dry-run followed by one recovered manual
+  direct-CDP submission to the exact pinned tab
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse result: exact existing project tab and URL; no new Chrome/window/tab, no cookie/storage access
+- submission count: exactly one
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrr.md`
+- raw-response verification: browser and local content both 14,458 characters / 14,462 bytes with
+  SHA-256 `deab2175380d472a8581ab4baed07af8518fde3ffa0a90a6457bb03a234db9cf`
+- architect decision: `REVISE`
+- accepted technical scope: eight-principal process isolation, durable prediction-before-label
+  release, proposer authority, actual standalone runtime evaluation, exact-candidate and recursive
+  non-promotability, self-verifying evidence reconstruction, and bounded claims
+- blocking scope: missing signed publication deviation, complete remote exposure ledger, permanent
+  anti-laundering enforcement, specified negative tests, append-only closure, and root disclosure
+- authorized next: a single corrective commit and push limited to those governance records,
+  validator/tests, six root documents, and a narrow correction packet
+- still prohibited: any new attribution, scorer, mutation, candidate, runtime/evaluator comparison,
+  provider, B0–B6, research, sealed/gate/final/temporal, promotion, deployment, release, or empirical
+  claim action

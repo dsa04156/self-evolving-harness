@@ -191,3 +191,28 @@ any paid-provider request.
   gate/final/temporal/withheld-public access, research selection, promotion/canary/deployment,
   performance/attribution/generalization/security/self-improvement claims, push, release, and
   publication remain prohibited.
+
+## Durable Round 3RRRR process-boundary and publication decision
+
+- External decision: `REVISE`.
+- The eight subordinate UID/GID roles, role-owned keys and mounts, delayed scorer capability,
+  durable prediction seal, seven rejected release attacks, proposer/oracle separation, actual
+  standalone parent/candidate runtime execution, signed evaluator result, recursive
+  non-promotability, and independent evidence reconstruction are technically accepted.
+- The synthetic result (parent 1/2, candidate 2/2, one fail-to-pass, zero pass-to-fail) remains
+  causality/transport evidence only. It is not reusable repair, performance, research attribution,
+  containment, or self-evolution evidence.
+- The three origin/main updates through implementation commit
+  `88e39cdebf1df4db7688fff592363f5f867533ce` and evidence checkpoint
+  `a5d82564cece5ecb776a27c86512c3ec56f32787` contradicted the narrower Round 03RRR no-push
+  authorization even though the user explicitly requested periodic GitHub updates.
+- Public exposure is irreversible. History rewrite or repository deletion cannot restore secrecy.
+  Every published artifact and derivative must remain public development material and be denied from
+  held-out, sealed, temporal, gate, final, confirmatory, research-selection, research-evidence,
+  promotion, and independent-claim roles.
+- Authorized next scope is only one corrective commit and push containing the signed publication
+  deviation, content-addressed inventory and exposure ledger, permanent validator and specified
+  negative tests, append-only closure, six factual root documents, and a narrow resubmission packet.
+- Real-provider use, new attribution/scorer/mutation/candidate/runtime/evaluator runs, B0–B6,
+  research data or scheduling, promotion, deployment, release, and empirical claims remain
+  prohibited until the publication-governance closure is reviewed.

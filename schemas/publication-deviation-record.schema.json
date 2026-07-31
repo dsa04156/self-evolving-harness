@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/publication-deviation-record.schema.json",
+  "title": "Signed publication-scope deviation record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "deviationId",
+    "recordType",
+    "governanceDomainId",
+    "priorDecision",
+    "dispositionDecision",
+    "userAuthorization",
+    "repository",
+    "publishedRefs",
+    "implementationSource",
+    "evidenceCheckpoint",
+    "inventory",
+    "secretScan",
+    "exceededAuthorization",
+    "accompanyingActions",
+    "permanentConsequence",
+    "remediation",
+    "recordedAt",
+    "recordedBy",
+    "recordHash",
+    "publicPrincipal",
+    "attestation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "deviationId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "recordType": {
+      "const": "publication_deviation"
+    },
+    "governanceDomainId": {
+      "$ref": "./common.schema.json#/$defs/entityId"
+    },
+    "priorDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "round",
+        "decision",
+        "responsePath",
+        "responseSha256"
+      ],
+      "properties": {
+        "round": {
+          "const": "03RRR"
+        },
+        "decision": {
+          "const": "APPROVE"
+        },
+        "responsePath": {
+          "$ref": "#/$defs/path"
+        },
+        "responseSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "dispositionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "round",
+        "decision",
+        "responsePath",
+        "responseSha256"
+      ],
+      "properties": {
+        "round": {
+          "const": "03RRRR"
+        },
+        "decision": {
+          "const": "REVISE"
+        },
+        "responsePath": {
+          "$ref": "#/$defs/path"
+        },
+        "responseSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "userAuthorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instructionText",
+        "instructionSha256",
+        "source",
+        "timestampAvailability"
+      ],
+      "properties": {
+        "instructionText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "instructionSha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "source": {
+          "const": "conversation_user_message"
+        },
+        "timestampAvailability": {
+          "const": "not_recorded"
+        }
+      }
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "publishedRefs": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refName",
+          "commit",
+          "tree",
+          "publishedAt",
+          "observationSource"
+        ],
+        "properties": {
+          "refName": {
+            "const": "refs/heads/main"
+          },
+          "commit": {
+            "$ref": "#/$defs/gitObjectId"
+          },
+          "tree": {
+            "$ref": "#/$defs/gitObjectId"
+          },
+          "publishedAt": {
+            "$ref": "./common.schema.json#/$defs/timestamp"
+          },
+          "observationSource": {
+            "const": "local_remote_tracking_reflog"
+          }
+        }
+      }
+    },
+    "implementationSource": {
+      "$ref": "#/$defs/gitBinding"
+    },
+    "evidenceCheckpoint": {
+      "$ref": "#/$defs/gitBinding"
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventoryId",
+        "inventoryHash",
+        "snapshotCommit",
+        "snapshotTree",
+        "entryCount",
+        "path"
+      ],
+      "properties": {
+        "inventoryId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "inventoryHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "snapshotCommit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "snapshotTree": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "entryCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "path": {
+          "$ref": "#/$defs/path"
+        }
+      }
+    },
+    "secretScan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scannedScopes",
+        "patterns",
+        "result",
+        "falsePositiveLiterals",
+        "environmentFilesFound",
+        "privateKeysPublished"
+      ],
+      "properties": {
+        "scannedScopes": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "patterns": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "result": {
+          "const": "no_actual_secret_match"
+        },
+        "falsePositiveLiterals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "environmentFilesFound": {
+          "const": 0
+        },
+        "privateKeysPublished": {
+          "const": false
+        }
+      }
+    },
+    "exceededAuthorization": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000
+    },
+    "accompanyingActions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerCall",
+        "researchExecution",
+        "gateOrFinalAccess",
+        "promotion",
+        "deployment",
+        "credentialPublication"
+      ],
+      "properties": {
+        "providerCall": {
+          "const": false
+        },
+        "researchExecution": {
+          "const": false
+        },
+        "gateOrFinalAccess": {
+          "const": false
+        },
+        "promotion": {
+          "const": false
+        },
+        "deployment": {
+          "const": false
+        },
+        "credentialPublication": {
+          "const": false
+        }
+      }
+    },
+    "permanentConsequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicExposureIrreversible",
+        "historyRewriteDoesNotRestoreSecrecy",
+        "repositoryDeletionDoesNotRestoreSecrecy",
+        "publishedArtifactsRequireExposureLedger"
+      ],
+      "properties": {
+        "publicExposureIrreversible": {
+          "const": true
+        },
+        "historyRewriteDoesNotRestoreSecrecy": {
+          "const": true
+        },
+        "repositoryDeletionDoesNotRestoreSecrecy": {
+          "const": true
+        },
+        "publishedArtifactsRequireExposureLedger": {
+          "const": true
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredActions"
+      ],
+      "properties": {
+        "status": {
+          "const": "in_progress"
+        },
+        "requiredActions": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        }
+      }
+    },
+    "recordedAt": {
+      "$ref": "./common.schema.json#/$defs/timestamp"
+    },
+    "recordedBy": {
+      "$ref": "./common.schema.json#/$defs/principalIdentity"
+    },
+    "recordHash": {
+      "$ref": "./common.schema.json#/$defs/sha256"
+    },
+    "publicPrincipal": {
+      "$ref": "#/$defs/publicPrincipal"
+    },
+    "attestation": {
+      "$ref": "./common.schema.json#/$defs/attestation"
+    }
+  },
+  "$defs": {
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "owner",
+        "remoteName",
+        "branch"
+      ],
+      "properties": {
+        "url": {
+          "const": "https://github.com/dsa04156/self-evolving-harness"
+        },
+        "owner": {
+          "const": "dsa04156"
+        },
+        "remoteName": {
+          "const": "origin"
+        },
+        "branch": {
+          "const": "main"
+        }
+      }
+    },
+    "gitBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commit",
+        "tree"
+      ],
+      "properties": {
+        "commit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "tree": {
+          "$ref": "#/$defs/gitObjectId"
+        }
+      }
+    },
+    "nonEmptyStrings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "publicPrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "keyId",
+        "publicKeyPem"
+      ],
+      "properties": {
+        "identity": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "keyId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "publicKeyPem": {
+          "type": "string",
+          "pattern": "^-----BEGIN PUBLIC KEY-----\\n[A-Za-z0-9+/=\\n]+-----END PUBLIC KEY-----\\n$",
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}
