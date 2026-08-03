@@ -74,7 +74,7 @@
     },
     "contractHashes": {
       "type": "object", "additionalProperties": false,
-      "required": ["inventory", "ownershipMatrix", "disclosureMatrix", "graphContract", "syntheticCapabilityDescriptor", "zeroBudget", "authorityState", "eligibilityState"],
+      "required": ["inventory", "ownershipMatrix", "disclosureMatrix", "graphContract", "syntheticCapabilityDescriptor", "zeroBudget", "authorityState", "eligibilityState", "syntheticFixtureContract"],
       "properties": {
         "inventory": { "$ref": "./common.schema.json#/$defs/sha256" },
         "ownershipMatrix": { "$ref": "./common.schema.json#/$defs/sha256" },
@@ -83,21 +83,28 @@
         "syntheticCapabilityDescriptor": { "$ref": "./common.schema.json#/$defs/sha256" },
         "zeroBudget": { "$ref": "./common.schema.json#/$defs/sha256" },
         "authorityState": { "$ref": "./common.schema.json#/$defs/sha256" },
-        "eligibilityState": { "$ref": "./common.schema.json#/$defs/sha256" }
+        "eligibilityState": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "syntheticFixtureContract": { "$ref": "./common.schema.json#/$defs/sha256" }
       }
     },
     "verificationFlags": {
       "type": "object", "additionalProperties": false,
-      "required": ["schemaValid", "signaturesValid", "sourceBindingsValid", "assemblyBindingValid", "contractsClosedAndBodyFree", "ownershipAndDisclosureMatricesExact", "oneWayGraphExact", "syntheticChainVerified", "roleBoundaryDisjoint", "capabilityUnissuedAndUnconsumed", "zeroExecutionBudget", "actualEvidenceRecordsAbsent", "finalIdentitiesAbsent", "oCreationAndActivationAbsent", "authoritiesGranted"],
+      "required": ["schemaValid", "signaturesValid", "sourceBindingsValid", "assemblyBindingValid", "priorReviseBindingValid", "contractsClosedAndBodyFree", "ownershipAndDisclosureMatricesExact", "oneWayGraphExact", "syntheticChainVerified", "threeTerminalScenariosVerified", "terminalBranchesMutuallyExclusive", "e0ToE1CoverageExact", "e3DispositionBoundToE2", "e4EligibilityExact", "roleBoundaryDisjoint", "capabilityUnissuedAndUnconsumed", "zeroExecutionBudget", "actualEvidenceRecordsAbsent", "finalIdentitiesAbsent", "oCreationAndActivationAbsent", "authoritiesGranted"],
       "properties": {
         "schemaValid": { "const": true },
         "signaturesValid": { "const": true },
         "sourceBindingsValid": { "const": true },
         "assemblyBindingValid": { "const": true },
+        "priorReviseBindingValid": { "const": true },
         "contractsClosedAndBodyFree": { "const": true },
         "ownershipAndDisclosureMatricesExact": { "const": true },
         "oneWayGraphExact": { "const": true },
         "syntheticChainVerified": { "const": true },
+        "threeTerminalScenariosVerified": { "const": true },
+        "terminalBranchesMutuallyExclusive": { "const": true },
+        "e0ToE1CoverageExact": { "const": true },
+        "e3DispositionBoundToE2": { "const": true },
+        "e4EligibilityExact": { "const": true },
         "roleBoundaryDisjoint": { "const": true },
         "capabilityUnissuedAndUnconsumed": { "const": true },
         "zeroExecutionBudget": { "const": true },
@@ -130,7 +137,7 @@
         "hashDomain": { "const": "CalibrationEvidenceContractReadiness.v1" },
         "readinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
         "recordType": { "const": "calibration_evidence_contract_readiness" },
-        "status": { "const": "offline_body_free_contracts_ready_only" },
+        "status": { "const": "offline_body_free_terminal_branches_ready_only" },
         "sourceSnapshot": {
           "type": "object", "additionalProperties": false,
           "required": ["sourceCommit", "sourceTree", "additionalPushPerformed"],
@@ -142,7 +149,7 @@
         },
         "priorBindings": {
           "type": "object", "additionalProperties": false,
-          "required": ["assemblyReadinessId", "assemblyReadinessHash", "assemblyReadinessRawSha256", "assemblyAuditReceiptId", "assemblyAuditReceiptHash", "assemblyAuditReceiptRawSha256", "assemblyEvidenceRulingRawSha256", "assemblyEvidenceDecision"],
+          "required": ["assemblyReadinessId", "assemblyReadinessHash", "assemblyReadinessRawSha256", "assemblyAuditReceiptId", "assemblyAuditReceiptHash", "assemblyAuditReceiptRawSha256", "assemblyEvidenceRulingRawSha256", "assemblyEvidenceDecision", "priorEvidenceReadinessId", "priorEvidenceReadinessHash", "priorEvidenceReadinessRawSha256", "priorEvidenceAuditReceiptId", "priorEvidenceAuditReceiptHash", "priorEvidenceAuditReceiptRawSha256", "priorEvidenceRulingRawSha256", "priorEvidenceDecision"],
           "properties": {
             "assemblyReadinessId": { "type": "string", "pattern": "^cpar-sha256:[a-f0-9]{64}$" },
             "assemblyReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
@@ -151,10 +158,18 @@
             "assemblyAuditReceiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
             "assemblyAuditReceiptRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
             "assemblyEvidenceRulingRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
-            "assemblyEvidenceDecision": { "const": "APPROVE" }
+            "assemblyEvidenceDecision": { "const": "APPROVE" },
+            "priorEvidenceReadinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
+            "priorEvidenceReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "priorEvidenceReadinessRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "priorEvidenceAuditReceiptId": { "type": "string", "pattern": "^cecrar-sha256:[a-f0-9]{64}$" },
+            "priorEvidenceAuditReceiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "priorEvidenceAuditReceiptRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "priorEvidenceRulingRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "priorEvidenceDecision": { "const": "REVISE" }
           }
         },
-        "artifacts": { "type": "array", "minItems": 18, "maxItems": 18, "items": { "$ref": "#/$defs/artifact" } },
+        "artifacts": { "type": "array", "minItems": 21, "maxItems": 21, "items": { "$ref": "#/$defs/artifact" } },
         "contractInventory": { "type": "array", "minItems": 13, "maxItems": 13, "items": { "$ref": "#/$defs/contractInventoryEntry" } },
         "ownershipMatrix": { "type": "array", "minItems": 5, "maxItems": 5 },
         "disclosureMatrix": { "type": "array", "minItems": 5, "maxItems": 5 },
@@ -162,12 +177,23 @@
         "syntheticCapabilityDescriptor": { "$ref": "./calibration-evidence-contracts.schema.json#/$defs/syntheticCapability" },
         "syntheticFixtureContract": {
           "const": {
-            "expectedRecordCount": 14,
-            "expectedStageCounts": { "E0": 3, "E1": 4, "E2": 5, "E3": 1, "E4": 1 },
+            "scenarioCount": 3,
+            "totalRecordCount": 30,
+            "scenarios": [
+              { "terminalDisposition": "aggregate_succeeded", "verifiedDisposition": "verified_aggregate", "expectedRecordCount": 9, "expectedStageCounts": { "E0": 4, "E1": 2, "E2": 1, "E3": 1, "E4": 1 }, "e4Expected": true },
+              { "terminalDisposition": "calibration_withdrawn", "verifiedDisposition": "verified_withdrawal", "expectedRecordCount": 12, "expectedStageCounts": { "E0": 6, "E1": 4, "E2": 1, "E3": 1, "E4": 0 }, "e4Expected": false },
+              { "terminalDisposition": "calibration_failed", "verifiedDisposition": "verified_failure", "expectedRecordCount": 9, "expectedStageCounts": { "E0": 4, "E1": 2, "E2": 2, "E3": 1, "E4": 0 }, "e4Expected": false }
+            ],
             "expectedStratumCount": 2,
+            "terminalBranchesMutuallyExclusive": true,
+            "e0ExecutionUsageExactlyOnce": true,
+            "e0AccountingHeadsMatch": true,
+            "e0OrphanOrReuseAllowed": false,
+            "e3DispositionBoundToE2": true,
+            "e4OnlyAfterVerifiedAggregate": true,
             "fixturesPersistedAsCalibrationEvidence": false,
             "actualEvidenceRecordsPersisted": 0,
-            "validlyResignedAttackFamiliesMinimum": 18
+            "validlyResignedAttackFamiliesMinimum": 30
           }
         },
         "contractHashes": { "$ref": "#/$defs/contractHashes" },
@@ -262,7 +288,7 @@
           "properties": {
             "readinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
             "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
-            "path": { "const": "governance/gate3/calibration-evidence-contract-readiness.json" },
+            "path": { "const": "governance/gate3/calibration-evidence-contract-readiness-v2.json" },
             "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
             "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
             "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },

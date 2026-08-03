@@ -99,7 +99,7 @@
     "evidenceRecordBase": {
       "type": "object",
       "required": [
-        "schemaVersion", "hashDomain", "evidenceRecordId", "recordType", "stage",
+        "schemaVersion", "hashDomain", "evidenceRecordId", "recordType", "stage", "attemptCommitment",
         "dependencies", "payload", "disposition", "budget", "creationMode", "recordedAt",
         "recordedBy", "evidenceRecordHash", "publicPrincipal", "attestation"
       ],
@@ -109,6 +109,7 @@
         "evidenceRecordId": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" },
         "recordType": { "$ref": "#/$defs/recordType" },
         "stage": { "type": "string", "enum": ["E0", "E1", "E2", "E3", "E4"] },
+        "attemptCommitment": { "$ref": "#/$defs/sha256" },
         "dependencies": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/reference" } },
         "payload": {},
         "disposition": { "$ref": "#/$defs/disposition" },
@@ -135,31 +136,46 @@
       "uniqueItems": true,
       "items": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" }
     },
+    "possiblyEmptyIdArray": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" }
+    },
+    "possiblyEmptyCommitmentArray": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sha256" }
+    },
     "executionPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["executionCommitment", "accountingContextCommitment", "capabilityCommitment", "expectedStrataCommitments", "executionOccurred"],
+      "required": ["stratumCommitment", "executionCommitment", "accountingHeadCommitment", "capabilityCommitment", "executionOccurred"],
       "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
         "executionCommitment": { "$ref": "#/$defs/sha256" },
-        "accountingContextCommitment": { "$ref": "#/$defs/sha256" },
+        "accountingHeadCommitment": { "$ref": "#/$defs/sha256" },
         "capabilityCommitment": { "$ref": "#/$defs/sha256" },
-        "expectedStrataCommitments": { "$ref": "#/$defs/commitmentArray" },
         "executionOccurred": { "const": false }
       }
     },
     "usagePayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["usageCommitment", "accountingContextCommitment", "capabilityCommitment", "chargeObserved"],
+      "required": ["stratumCommitment", "executionReceiptId", "usageCommitment", "accountingHeadCommitment", "capabilityCommitment", "chargeObserved"],
       "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "executionReceiptId": { "type": "string", "pattern": "^cer-sha256:[a-f0-9]{64}$" },
         "usageCommitment": { "$ref": "#/$defs/sha256" },
-        "accountingContextCommitment": { "$ref": "#/$defs/sha256" },
+        "accountingHeadCommitment": { "$ref": "#/$defs/sha256" },
         "capabilityCommitment": { "$ref": "#/$defs/sha256" },
         "chargeObserved": { "const": false }
       }
     },
     "executorIncidentPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["incidentCommitment", "incidentClass", "disclosed", "realIncidentObserved"],
+      "required": ["stratumCommitment", "incidentCommitment", "incidentClass", "disclosed", "realIncidentObserved"],
       "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
         "incidentCommitment": { "$ref": "#/$defs/sha256" },
         "incidentClass": { "const": "synthetic_conformance_incident" },
         "disclosed": { "const": true },
@@ -168,9 +184,12 @@
     },
     "measurementPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["stratumCommitment", "normalizedMeasurementCommitment", "normalizationContractCommitment", "missingnessState", "incidentCommitments", "rawMeasurementPresent"],
+      "required": ["stratumCommitment", "executionReceiptId", "usageReceiptId", "accountingHeadCommitment", "normalizedMeasurementCommitment", "normalizationContractCommitment", "missingnessState", "incidentCommitments", "rawMeasurementPresent"],
       "properties": {
         "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "executionReceiptId": { "type": "string", "pattern": "^cer-sha256:[a-f0-9]{64}$" },
+        "usageReceiptId": { "type": "string", "pattern": "^cur-sha256:[a-f0-9]{64}$" },
+        "accountingHeadCommitment": { "$ref": "#/$defs/sha256" },
         "normalizedMeasurementCommitment": { "$ref": "#/$defs/sha256" },
         "normalizationContractCommitment": { "$ref": "#/$defs/sha256" },
         "missingnessState": { "type": "string", "enum": ["complete", "missing_declared"] },
@@ -180,9 +199,10 @@
     },
     "evaluatorFailurePayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["stratumCommitment", "failureCommitment", "failureClass", "missingnessDeclared", "directProtocolAuthorRelease"],
+      "required": ["stratumCommitment", "incidentRecordId", "failureCommitment", "failureClass", "missingnessDeclared", "directProtocolAuthorRelease"],
       "properties": {
         "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "incidentRecordId": { "type": "string", "pattern": "^cir-sha256:[a-f0-9]{64}$" },
         "failureCommitment": { "$ref": "#/$defs/sha256" },
         "failureClass": { "type": "string", "enum": ["synthetic_missingness", "synthetic_evaluator_failure"] },
         "missingnessDeclared": { "const": true },
@@ -191,8 +211,10 @@
     },
     "evaluatorIncidentPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["incidentCommitment", "incidentClass", "incidentDisclosed", "directProtocolAuthorRelease"],
+      "required": ["stratumCommitment", "incidentRecordId", "incidentCommitment", "incidentClass", "incidentDisclosed", "directProtocolAuthorRelease"],
       "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "incidentRecordId": { "type": "string", "pattern": "^cir-sha256:[a-f0-9]{64}$" },
         "incidentCommitment": { "$ref": "#/$defs/sha256" },
         "incidentClass": { "const": "synthetic_evaluator_incident" },
         "incidentDisclosed": { "const": true },
@@ -209,20 +231,25 @@
     },
     "aggregatePayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["orderedE1RecordIds", "expectedStrataCommitments", "observedStrata", "gridCommitment", "rejectedCandidateCommitments", "ruleBranch", "precisionCheckCommitment", "evaluatorFailureRecordIds", "evaluatorIncidentRecordIds", "missingnessReported", "incidentsReported", "withdrawalState", "rawEvaluatorInputPresent", "protectedDataAccessed"],
+      "required": ["terminalDisposition", "orderedE1RecordIds", "expectedStrataCommitments", "observedStrata", "gridCommitment", "rejectedCandidateCommitments", "ruleBranch", "precisionCheckCommitment", "evaluatorFailureRecordIds", "evaluatorIncidentRecordIds", "missingnessReported", "incidentsReported", "withdrawalState", "requiredStrataComplete", "e0ToE1AccountingComplete", "unresolvedEvaluatorFailureCount", "unmatchedIncidentCount", "rawEvaluatorInputPresent", "protectedDataAccessed"],
       "properties": {
+        "terminalDisposition": { "const": "aggregate_succeeded" },
         "orderedE1RecordIds": { "$ref": "#/$defs/idArray" },
         "expectedStrataCommitments": { "$ref": "#/$defs/commitmentArray" },
         "observedStrata": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/observedStratum" } },
         "gridCommitment": { "$ref": "#/$defs/sha256" },
-        "rejectedCandidateCommitments": { "$ref": "#/$defs/commitmentArray" },
+        "rejectedCandidateCommitments": { "$ref": "#/$defs/possiblyEmptyCommitmentArray" },
         "ruleBranch": { "const": "synthetic_conformance_only" },
         "precisionCheckCommitment": { "$ref": "#/$defs/sha256" },
-        "evaluatorFailureRecordIds": { "$ref": "#/$defs/idArray" },
-        "evaluatorIncidentRecordIds": { "$ref": "#/$defs/idArray" },
-        "missingnessReported": { "const": true },
-        "incidentsReported": { "const": true },
+        "evaluatorFailureRecordIds": { "$ref": "#/$defs/possiblyEmptyIdArray" },
+        "evaluatorIncidentRecordIds": { "$ref": "#/$defs/possiblyEmptyIdArray" },
+        "missingnessReported": { "const": false },
+        "incidentsReported": { "const": false },
         "withdrawalState": { "const": "not_withdrawn_synthetic" },
+        "requiredStrataComplete": { "const": true },
+        "e0ToE1AccountingComplete": { "const": true },
+        "unresolvedEvaluatorFailureCount": { "const": 0 },
+        "unmatchedIncidentCount": { "const": 0 },
         "rawEvaluatorInputPresent": { "const": false },
         "protectedDataAccessed": { "const": false }
       }
@@ -239,17 +266,20 @@
     },
     "withdrawalPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["withdrawalCommitment", "withdrawalState", "selectedValuePresent"],
+      "required": ["terminalDisposition", "withdrawalCommitment", "withdrawalState", "withdrawalReason", "selectedValuePresent"],
       "properties": {
+        "terminalDisposition": { "const": "calibration_withdrawn" },
         "withdrawalCommitment": { "$ref": "#/$defs/sha256" },
-        "withdrawalState": { "type": "string", "enum": ["not_withdrawn_synthetic", "synthetic_withdrawal"] },
+        "withdrawalState": { "const": "synthetic_withdrawal" },
+        "withdrawalReason": { "const": "missing_required_stratum" },
         "selectedValuePresent": { "const": false }
       }
     },
     "scorerFailurePayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["failureCommitment", "failureClass", "rawEvaluatorInputPresent", "protectedDataAccessed"],
+      "required": ["terminalDisposition", "failureCommitment", "failureClass", "rawEvaluatorInputPresent", "protectedDataAccessed"],
       "properties": {
+        "terminalDisposition": { "const": "calibration_failed" },
         "failureCommitment": { "$ref": "#/$defs/sha256" },
         "failureClass": { "const": "synthetic_scorer_failure" },
         "rawEvaluatorInputPresent": { "const": false },
@@ -269,13 +299,21 @@
     },
     "verificationPayload": {
       "type": "object", "additionalProperties": false,
-      "required": ["verifiedE2RecordIds", "aggregateRecordId", "verificationCommitment", "referenceOnly", "aggregateVerified", "graphVerified", "missingnessAndIncidentCoverageVerified", "grantsAuthority"],
+      "required": ["disposition", "verifiedE2RecordIds", "terminalRecordIds", "aggregateRecordId", "withdrawalRecordId", "failureRecordIds", "verificationCommitment", "referenceOnly", "aggregateVerified", "branchExclusivityVerified", "e0ToE1CoverageVerified", "e1ToE2CoverageVerified", "e4Eligible", "graphVerified", "missingnessAndIncidentCoverageVerified", "grantsAuthority"],
       "properties": {
+        "disposition": { "type": "string", "enum": ["verified_aggregate", "verified_withdrawal", "verified_failure"] },
         "verifiedE2RecordIds": { "$ref": "#/$defs/idArray" },
-        "aggregateRecordId": { "type": "string", "pattern": "^acc-sha256:[a-f0-9]{64}$" },
+        "terminalRecordIds": { "$ref": "#/$defs/idArray" },
+        "aggregateRecordId": { "type": ["string", "null"], "pattern": "^acc-sha256:[a-f0-9]{64}$" },
+        "withdrawalRecordId": { "type": ["string", "null"], "pattern": "^cwr-sha256:[a-f0-9]{64}$" },
+        "failureRecordIds": { "$ref": "#/$defs/possiblyEmptyIdArray" },
         "verificationCommitment": { "$ref": "#/$defs/sha256" },
         "referenceOnly": { "const": true },
-        "aggregateVerified": { "const": true },
+        "aggregateVerified": { "type": "boolean" },
+        "branchExclusivityVerified": { "const": true },
+        "e0ToE1CoverageVerified": { "const": true },
+        "e1ToE2CoverageVerified": { "const": true },
+        "e4Eligible": { "type": "boolean" },
         "graphVerified": { "const": true },
         "missingnessAndIncidentCoverageVerified": { "const": true },
         "grantsAuthority": { "const": false }

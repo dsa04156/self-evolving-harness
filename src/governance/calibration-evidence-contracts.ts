@@ -50,6 +50,22 @@ export type CalibrationEvidenceOwnerRole =
   | "independent_verifier"
   | "protocol_author";
 
+export const CALIBRATION_ATTEMPT_TERMINAL_DISPOSITIONS = [
+  "aggregate_succeeded",
+  "calibration_withdrawn",
+  "calibration_failed",
+] as const;
+export type CalibrationAttemptTerminalDisposition =
+  (typeof CALIBRATION_ATTEMPT_TERMINAL_DISPOSITIONS)[number];
+
+export const CALIBRATION_VERIFIED_DISPOSITIONS = [
+  "verified_aggregate",
+  "verified_withdrawal",
+  "verified_failure",
+] as const;
+export type CalibrationVerifiedDisposition =
+  (typeof CALIBRATION_VERIFIED_DISPOSITIONS)[number];
+
 export const CALIBRATION_EVIDENCE_OWNERSHIP_MATRIX = [
   {
     stage: "E0",
@@ -138,6 +154,15 @@ export const CALIBRATION_EVIDENCE_GRAPH_CONTRACT = {
   directProtocolAuthorReleaseFromE1Allowed: false,
   executorToScorerBypassAllowed: false,
   scorerRawOrProtectedAccessAllowed: false,
+  attemptMixingAllowed: false,
+  terminalDispositions: CALIBRATION_ATTEMPT_TERMINAL_DISPOSITIONS,
+  verifiedDispositions: CALIBRATION_VERIFIED_DISPOSITIONS,
+  exactlyOneTerminalDispositionPerAttempt: true,
+  e0ExecutionAndUsagePerExpectedStratumExactlyOnce: true,
+  e0OrphanOrReuseAllowed: false,
+  accountingHeadMustMatchAcrossE0AndE1: true,
+  e3MustMatchTerminalE2Branch: true,
+  e4AllowedOnlyAfterVerifiedAggregate: true,
   oCreationAllowed: false,
   oActivationAllowed: false,
 } as const;
@@ -261,21 +286,24 @@ export interface CalibrationEvidenceReference {
 }
 
 export interface CalibrationExecutionPayload {
+  readonly stratumCommitment: string;
   readonly executionCommitment: string;
-  readonly accountingContextCommitment: string;
+  readonly accountingHeadCommitment: string;
   readonly capabilityCommitment: string;
-  readonly expectedStrataCommitments: readonly string[];
   readonly executionOccurred: false;
 }
 
 export interface CalibrationUsagePayload {
+  readonly stratumCommitment: string;
+  readonly executionReceiptId: string;
   readonly usageCommitment: string;
-  readonly accountingContextCommitment: string;
+  readonly accountingHeadCommitment: string;
   readonly capabilityCommitment: string;
   readonly chargeObserved: false;
 }
 
 export interface CalibrationIncidentPayload {
+  readonly stratumCommitment: string;
   readonly incidentCommitment: string;
   readonly incidentClass: "synthetic_conformance_incident";
   readonly disclosed: true;
@@ -284,6 +312,9 @@ export interface CalibrationIncidentPayload {
 
 export interface CalibrationMeasurementPayload {
   readonly stratumCommitment: string;
+  readonly executionReceiptId: string;
+  readonly usageReceiptId: string;
+  readonly accountingHeadCommitment: string;
   readonly normalizedMeasurementCommitment: string;
   readonly normalizationContractCommitment: string;
   readonly missingnessState: "complete" | "missing_declared";
@@ -293,6 +324,7 @@ export interface CalibrationMeasurementPayload {
 
 export interface CalibrationEvaluatorFailurePayload {
   readonly stratumCommitment: string;
+  readonly incidentRecordId: string;
   readonly failureCommitment: string;
   readonly failureClass: "synthetic_missingness" | "synthetic_evaluator_failure";
   readonly missingnessDeclared: true;
@@ -300,6 +332,8 @@ export interface CalibrationEvaluatorFailurePayload {
 }
 
 export interface CalibrationEvaluatorIncidentPayload {
+  readonly stratumCommitment: string;
+  readonly incidentRecordId: string;
   readonly incidentCommitment: string;
   readonly incidentClass: "synthetic_evaluator_incident";
   readonly incidentDisclosed: true;
@@ -307,6 +341,7 @@ export interface CalibrationEvaluatorIncidentPayload {
 }
 
 export interface AggregateCalibrationPayload {
+  readonly terminalDisposition: "aggregate_succeeded";
   readonly orderedE1RecordIds: readonly string[];
   readonly expectedStrataCommitments: readonly string[];
   readonly observedStrata: readonly {
@@ -319,9 +354,13 @@ export interface AggregateCalibrationPayload {
   readonly precisionCheckCommitment: string;
   readonly evaluatorFailureRecordIds: readonly string[];
   readonly evaluatorIncidentRecordIds: readonly string[];
-  readonly missingnessReported: true;
-  readonly incidentsReported: true;
+  readonly missingnessReported: false;
+  readonly incidentsReported: false;
   readonly withdrawalState: "not_withdrawn_synthetic";
+  readonly requiredStrataComplete: true;
+  readonly e0ToE1AccountingComplete: true;
+  readonly unresolvedEvaluatorFailureCount: 0;
+  readonly unmatchedIncidentCount: 0;
   readonly rawEvaluatorInputPresent: false;
   readonly protectedDataAccessed: false;
 }
@@ -334,12 +373,15 @@ export interface RejectedDerivationCandidatePayload {
 }
 
 export interface CalibrationWithdrawalPayload {
+  readonly terminalDisposition: "calibration_withdrawn";
   readonly withdrawalCommitment: string;
-  readonly withdrawalState: "not_withdrawn_synthetic" | "synthetic_withdrawal";
+  readonly withdrawalState: "synthetic_withdrawal";
+  readonly withdrawalReason: "missing_required_stratum";
   readonly selectedValuePresent: false;
 }
 
 export interface CalibrationScorerFailurePayload {
+  readonly terminalDisposition: "calibration_failed";
   readonly failureCommitment: string;
   readonly failureClass: "synthetic_scorer_failure";
   readonly rawEvaluatorInputPresent: false;
@@ -355,11 +397,19 @@ export interface CalibrationScorerIncidentPayload {
 }
 
 export interface CalibrationVerificationPayload {
+  readonly disposition: CalibrationVerifiedDisposition;
   readonly verifiedE2RecordIds: readonly string[];
-  readonly aggregateRecordId: string;
+  readonly terminalRecordIds: readonly string[];
+  readonly aggregateRecordId: string | null;
+  readonly withdrawalRecordId: string | null;
+  readonly failureRecordIds: readonly string[];
   readonly verificationCommitment: string;
   readonly referenceOnly: true;
-  readonly aggregateVerified: true;
+  readonly aggregateVerified: boolean;
+  readonly branchExclusivityVerified: true;
+  readonly e0ToE1CoverageVerified: true;
+  readonly e1ToE2CoverageVerified: true;
+  readonly e4Eligible: boolean;
   readonly graphVerified: true;
   readonly missingnessAndIncidentCoverageVerified: true;
   readonly grantsAuthority: false;
@@ -399,6 +449,7 @@ export interface CalibrationEvidenceRecord {
   readonly evidenceRecordId: string;
   readonly recordType: CalibrationEvidenceRecordType;
   readonly stage: CalibrationEvidenceStage;
+  readonly attemptCommitment: string;
   readonly dependencies: readonly CalibrationEvidenceReference[];
   readonly payload: CalibrationEvidencePayload;
   readonly disposition: typeof CALIBRATION_EVIDENCE_DISPOSITION;
@@ -469,6 +520,7 @@ function recordSpec(recordType: CalibrationEvidenceRecordType) {
 function recordIdentity(input: {
   readonly recordType: CalibrationEvidenceRecordType;
   readonly stage: CalibrationEvidenceStage;
+  readonly attemptCommitment: string;
   readonly dependencies: readonly CalibrationEvidenceReference[];
   readonly payload: CalibrationEvidencePayload;
   readonly disposition: typeof CALIBRATION_EVIDENCE_DISPOSITION;
@@ -685,8 +737,16 @@ function typedRecords<T extends CalibrationEvidenceRecordType>(
 export interface CalibrationEvidenceChainVerificationResult {
   readonly recordCount: number;
   readonly stageCounts: Readonly<Record<CalibrationEvidenceStage, number>>;
+  readonly terminalDisposition: CalibrationAttemptTerminalDisposition;
+  readonly verifiedDisposition: CalibrationVerifiedDisposition;
+  readonly e4Eligible: boolean;
   readonly expectedStratumCount: number;
   readonly observedStratumCount: number;
+  readonly e0ExecutionCoverageCount: number;
+  readonly e0UsageCoverageCount: number;
+  readonly orphanE0Count: 0;
+  readonly reusedE0Count: 0;
+  readonly unmatchedIncidentCount: 0;
   readonly issuedCapabilities: 0;
   readonly consumedCapabilities: 0;
   readonly providerModelRequestAttempts: 0;
@@ -712,10 +772,16 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
   assertCondition(input.records.length > 0, "VERIFICATION_FAILED", "Calibration evidence chain is empty");
   const byId = recordMap(input.records);
   const stageCounts = { E0: 0, E1: 0, E2: 0, E3: 0, E4: 0 };
+  const attemptCommitment = input.records[0]!.attemptCommitment;
   let previousStageIndex = -1;
   for (const record of input.records) {
     verifyCalibrationEvidenceRecord({ record, schemas: input.schemas });
     stageCounts[record.stage] += 1;
+    assertCondition(
+      record.attemptCommitment === attemptCommitment,
+      "VERIFICATION_FAILED",
+      "Evidence from different calibration attempts was mixed",
+    );
     const stageIndex = CALIBRATION_EVIDENCE_STAGES.indexOf(record.stage);
     assertCondition(stageIndex >= previousStageIndex, "VERIFICATION_FAILED", "Evidence records are reordered across stages");
     previousStageIndex = stageIndex;
@@ -747,7 +813,7 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
       );
     }
   }
-  for (const stage of CALIBRATION_EVIDENCE_STAGES) {
+  for (const stage of ["E0", "E1", "E2", "E3"] as const) {
     assertCondition(stageCounts[stage] > 0, "VERIFICATION_FAILED", `Evidence stage ${stage} is omitted`);
   }
 
@@ -764,31 +830,58 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
   const scorerIncidents = typedRecords(input.records, "CalibrationScorerIncidentRecord");
   const verifications = typedRecords(input.records, "CalibrationVerificationReceipt");
   const proposals = typedRecords(input.records, "ProtocolAuthorDerivedValueProposal");
-  for (const [label, values] of [
-    ["execution", executions], ["usage", usages], ["executor incident", executorIncidents],
-    ["evaluator failure", evaluatorFailures], ["evaluator incident", evaluatorIncidents],
-    ["aggregate", aggregates], ["rejected candidate", rejected], ["withdrawal", withdrawals],
-    ["scorer failure", scorerFailures], ["scorer incident", scorerIncidents],
-    ["verification", verifications], ["proposal", proposals],
-  ] as const) {
-    assertCondition(values.length === 1, "VERIFICATION_FAILED", `Synthetic chain requires exactly one ${label} record`);
-  }
+  assertCondition(verifications.length === 1, "VERIFICATION_FAILED", "Calibration attempt requires exactly one E3 verification receipt");
+  assertCondition(aggregates.length <= 1 && withdrawals.length <= 1, "VERIFICATION_FAILED", "Terminal aggregate or withdrawal cardinality differs");
+  assertCondition(executions.length === input.capability.expectedStrataCommitments.length, "VERIFICATION_FAILED", "Execution count differs from expected strata");
+  assertCondition(usages.length === input.capability.expectedStrataCommitments.length, "VERIFICATION_FAILED", "Usage count differs from expected strata");
   assertCondition(measurements.length === input.capability.expectedStrataCommitments.length, "VERIFICATION_FAILED", "Measurement count differs from expected strata");
 
-  const executionPayload = executions[0]!.payload as CalibrationExecutionPayload;
-  const usagePayload = usages[0]!.payload as CalibrationUsagePayload;
-  assertCondition(
-    executionPayload.capabilityCommitment === input.capability.capabilityCommitment &&
-      usagePayload.capabilityCommitment === input.capability.capabilityCommitment,
-    "VERIFICATION_FAILED",
-    "E0 capability commitment differs",
-  );
-  assertExactSet(executionPayload.expectedStrataCommitments, input.capability.expectedStrataCommitments, "E0 expected strata");
+  const executionByStratum = new Map<string, CalibrationEvidenceRecord>();
+  for (const execution of executions) {
+    const payload = execution.payload as CalibrationExecutionPayload;
+    assertCondition(payload.capabilityCommitment === input.capability.capabilityCommitment, "VERIFICATION_FAILED", "E0 execution capability commitment differs");
+    assertCondition(!executionByStratum.has(payload.stratumCommitment), "VERIFICATION_FAILED", "Duplicate E0 execution stratum");
+    executionByStratum.set(payload.stratumCommitment, execution);
+  }
+  assertExactSet([...executionByStratum.keys()], input.capability.expectedStrataCommitments, "E0 execution strata");
+  const usageByStratum = new Map<string, CalibrationEvidenceRecord>();
+  for (const usage of usages) {
+    const payload = usage.payload as CalibrationUsagePayload;
+    assertCondition(payload.capabilityCommitment === input.capability.capabilityCommitment, "VERIFICATION_FAILED", "E0 usage capability commitment differs");
+    assertCondition(!usageByStratum.has(payload.stratumCommitment), "VERIFICATION_FAILED", "Duplicate E0 usage stratum");
+    const execution = executionByStratum.get(payload.stratumCommitment);
+    assertCondition(execution !== undefined && payload.executionReceiptId === execution.evidenceRecordId, "VERIFICATION_FAILED", "E0 usage references the wrong execution receipt");
+    assertCondition(payload.accountingHeadCommitment === (execution.payload as CalibrationExecutionPayload).accountingHeadCommitment, "VERIFICATION_FAILED", "E0 accounting heads differ");
+    usageByStratum.set(payload.stratumCommitment, usage);
+  }
+  assertExactSet([...usageByStratum.keys()], input.capability.expectedStrataCommitments, "E0 usage strata");
+
+  const e0UseCounts = new Map<string, number>(input.records.filter((record) => record.stage === "E0").map((record) => [record.evidenceRecordId, 0]));
+  for (const record of input.records.filter((candidate) => candidate.stage === "E1")) {
+    for (const dependency of record.dependencies) {
+      const count = e0UseCounts.get(dependency.evidenceRecordId);
+      assertCondition(count !== undefined, "VERIFICATION_FAILED", "E1 references a non-E0 accounting source");
+      e0UseCounts.set(dependency.evidenceRecordId, count + 1);
+    }
+  }
+  for (const [recordId, count] of e0UseCounts) {
+    assertCondition(count === 1, "VERIFICATION_FAILED", count === 0 ? `Orphan E0 receipt ${recordId}` : `Reused E0 receipt ${recordId}`);
+  }
 
   const measurementStrata = measurements.map((record) => (record.payload as CalibrationMeasurementPayload).stratumCommitment);
   assertExactSet(measurementStrata, input.capability.expectedStrataCommitments, "E1 measurement strata");
   for (const measurement of measurements) {
     const payload = measurement.payload as CalibrationMeasurementPayload;
+    const execution = executionByStratum.get(payload.stratumCommitment);
+    const usage = usageByStratum.get(payload.stratumCommitment);
+    assertCondition(execution !== undefined && usage !== undefined, "VERIFICATION_FAILED", "E1 measurement has no matching E0 accounting pair");
+    assertExactSet(
+      measurement.dependencies.map((reference) => reference.evidenceRecordId),
+      [execution.evidenceRecordId, usage.evidenceRecordId],
+      "E1 execution and usage coverage",
+    );
+    assertCondition(payload.executionReceiptId === execution.evidenceRecordId && payload.usageReceiptId === usage.evidenceRecordId, "VERIFICATION_FAILED", "E1 accounting receipt IDs differ");
+    assertCondition(payload.accountingHeadCommitment === (execution.payload as CalibrationExecutionPayload).accountingHeadCommitment && payload.accountingHeadCommitment === (usage.payload as CalibrationUsagePayload).accountingHeadCommitment, "VERIFICATION_FAILED", "E0/E1 accounting head differs");
     if (payload.missingnessState === "missing_declared") {
       const represented = evaluatorFailures.some(
         (record) =>
@@ -799,6 +892,12 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
         represented,
         "VERIFICATION_FAILED",
         "Declared E1 missingness has no evaluator failure record",
+      );
+    } else {
+      assertCondition(
+        !evaluatorFailures.some((record) => (record.payload as CalibrationEvaluatorFailurePayload).stratumCommitment === payload.stratumCommitment),
+        "VERIFICATION_FAILED",
+        "Complete E1 measurement has an evaluator failure",
       );
     }
     for (const incidentCommitment of payload.incidentCommitments) {
@@ -814,38 +913,82 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
       );
     }
   }
-  for (const incident of executorIncidents) {
-    const represented = evaluatorIncidents.some((record) => record.dependencies.some((dependency) => dependency.evidenceRecordId === incident.evidenceRecordId));
-    assertCondition(represented, "VERIFICATION_FAILED", "Executor incident is not represented at E1");
+  for (const failure of evaluatorFailures) {
+    const payload = failure.payload as CalibrationEvaluatorFailurePayload;
+    assertCondition(failure.dependencies.length === 1 && failure.dependencies[0]!.evidenceRecordId === payload.incidentRecordId, "VERIFICATION_FAILED", "Evaluator failure does not bind one executor incident");
+    const incident = byId.get(payload.incidentRecordId);
+    assertCondition(incident?.recordType === "CalibrationIncidentRecord" && (incident.payload as CalibrationIncidentPayload).stratumCommitment === payload.stratumCommitment, "VERIFICATION_FAILED", "Evaluator failure incident stratum differs");
+  }
+  for (const incident of evaluatorIncidents) {
+    const payload = incident.payload as CalibrationEvaluatorIncidentPayload;
+    assertCondition(incident.dependencies.length === 1 && incident.dependencies[0]!.evidenceRecordId === payload.incidentRecordId, "VERIFICATION_FAILED", "Evaluator incident does not bind one executor incident");
+    const source = byId.get(payload.incidentRecordId);
+    assertCondition(source?.recordType === "CalibrationIncidentRecord" && (source.payload as CalibrationIncidentPayload).stratumCommitment === payload.stratumCommitment, "VERIFICATION_FAILED", "Evaluator incident stratum differs");
+    const measurement = measurements.find((record) => (record.payload as CalibrationMeasurementPayload).stratumCommitment === payload.stratumCommitment);
+    assertCondition(measurement !== undefined && (measurement.payload as CalibrationMeasurementPayload).incidentCommitments.includes(payload.incidentCommitment), "VERIFICATION_FAILED", "Evaluator incident is unmatched by its measurement");
   }
 
-  const aggregate = aggregates[0]!;
-  const aggregatePayload = aggregate.payload as AggregateCalibrationPayload;
   const allE1Ids = input.records.filter((record) => record.stage === "E1").map((record) => record.evidenceRecordId);
-  assertExactSet(
-    aggregate.dependencies.map((reference) => reference.evidenceRecordId),
-    allE1Ids,
-    "Aggregate E1 dependencies",
-  );
-  assertCondition(
-    canonicalize(aggregatePayload.orderedE1RecordIds) === canonicalize(allE1Ids),
-    "VERIFICATION_FAILED",
-    "Aggregate ordered E1 commitments are missing, substituted, or reordered",
-  );
-  assertExactSet(aggregatePayload.expectedStrataCommitments, input.capability.expectedStrataCommitments, "Aggregate expected strata");
-  assertExactSet(aggregatePayload.observedStrata.map((entry) => entry.stratumCommitment), input.capability.expectedStrataCommitments, "Aggregate observed strata");
-  for (const entry of aggregatePayload.observedStrata) {
-    const measurement = byId.get(entry.measurementRecordId);
-    assertCondition(measurement?.recordType === "CalibrationMeasurementCommitment", "VERIFICATION_FAILED", "Observed stratum does not reference an E1 measurement");
-    assertCondition((measurement.payload as CalibrationMeasurementPayload).stratumCommitment === entry.stratumCommitment, "VERIFICATION_FAILED", "Observed stratum commitment differs from its E1 measurement");
+  const e1UseCounts = new Map<string, number>(allE1Ids.map((recordId) => [recordId, 0]));
+  for (const record of input.records.filter((candidate) => candidate.stage === "E2")) {
+    for (const dependency of record.dependencies) {
+      const count = e1UseCounts.get(dependency.evidenceRecordId);
+      assertCondition(count !== undefined, "VERIFICATION_FAILED", "E2 references a non-E1 record");
+      e1UseCounts.set(dependency.evidenceRecordId, count + 1);
+    }
   }
-  assertCondition(aggregatePayload.gridCommitment === input.capability.gridCommitment, "VERIFICATION_FAILED", "Post-result grid substitution detected");
-  assertExactSet(aggregatePayload.evaluatorFailureRecordIds, evaluatorFailures.map((record) => record.evidenceRecordId), "Evaluator failure coverage");
-  assertExactSet(aggregatePayload.evaluatorIncidentRecordIds, evaluatorIncidents.map((record) => record.evidenceRecordId), "Evaluator incident coverage");
-  assertCondition(aggregatePayload.missingnessReported && aggregatePayload.incidentsReported, "VERIFICATION_FAILED", "Missingness or incidents are unreported");
+  for (const [recordId, count] of e1UseCounts) assertCondition(count === 1, "VERIFICATION_FAILED", count === 0 ? `Orphan E1 record ${recordId}` : `Reused E1 record ${recordId}`);
 
-  const rejectedPayload = rejected[0]!.payload as RejectedDerivationCandidatePayload;
-  assertCondition(rejectedPayload.gridCommitment === input.capability.gridCommitment, "VERIFICATION_FAILED", "Rejected candidate uses a substituted grid");
+  for (const record of rejected) assertCondition((record.payload as RejectedDerivationCandidatePayload).gridCommitment === input.capability.gridCommitment, "VERIFICATION_FAILED", "Rejected candidate uses a substituted grid");
+
+  const branchCount = (aggregates.length === 1 ? 1 : 0) + (withdrawals.length === 1 ? 1 : 0) + (scorerFailures.length > 0 ? 1 : 0);
+  assertCondition(branchCount === 1, "VERIFICATION_FAILED", "Calibration attempt does not have exactly one terminal disposition");
+  let terminalDisposition: CalibrationAttemptTerminalDisposition;
+  let verifiedDisposition: CalibrationVerifiedDisposition;
+  let terminalRecordIds: string[];
+  let aggregateRecordId: string | null = null;
+  let withdrawalRecordId: string | null = null;
+  let failureRecordIds: string[] = [];
+  if (aggregates.length === 1) {
+    terminalDisposition = "aggregate_succeeded";
+    verifiedDisposition = "verified_aggregate";
+    const aggregate = aggregates[0]!;
+    const aggregatePayload = aggregate.payload as AggregateCalibrationPayload;
+    assertCondition(withdrawals.length === 0 && scorerFailures.length === 0 && scorerIncidents.length === 0, "VERIFICATION_FAILED", "Successful aggregate is mixed with withdrawal or terminal failure evidence");
+    assertCondition(executorIncidents.length === 0 && evaluatorFailures.length === 0 && evaluatorIncidents.length === 0, "VERIFICATION_FAILED", "Successful aggregate contains unresolved evaluator or incident evidence");
+    assertCondition(measurements.every((record) => (record.payload as CalibrationMeasurementPayload).missingnessState === "complete"), "VERIFICATION_FAILED", "Successful aggregate has missing required strata");
+    assertExactSet(aggregate.dependencies.map((reference) => reference.evidenceRecordId), allE1Ids, "Aggregate E1 dependencies");
+    assertCondition(canonicalize(aggregatePayload.orderedE1RecordIds) === canonicalize(allE1Ids), "VERIFICATION_FAILED", "Aggregate ordered E1 commitments differ");
+    assertExactSet(aggregatePayload.expectedStrataCommitments, input.capability.expectedStrataCommitments, "Aggregate expected strata");
+    assertExactSet(aggregatePayload.observedStrata.map((entry) => entry.stratumCommitment), input.capability.expectedStrataCommitments, "Aggregate observed strata");
+    for (const entry of aggregatePayload.observedStrata) {
+      const measurement = byId.get(entry.measurementRecordId);
+      assertCondition(measurement?.recordType === "CalibrationMeasurementCommitment" && (measurement.payload as CalibrationMeasurementPayload).stratumCommitment === entry.stratumCommitment, "VERIFICATION_FAILED", "Aggregate observed stratum differs from E1");
+    }
+    assertCondition(aggregatePayload.terminalDisposition === terminalDisposition && aggregatePayload.gridCommitment === input.capability.gridCommitment, "VERIFICATION_FAILED", "Aggregate disposition or grid differs");
+    assertExactSet(aggregatePayload.evaluatorFailureRecordIds, [], "Successful aggregate evaluator failures");
+    assertExactSet(aggregatePayload.evaluatorIncidentRecordIds, [], "Successful aggregate evaluator incidents");
+    terminalRecordIds = [aggregate.evidenceRecordId];
+    aggregateRecordId = aggregate.evidenceRecordId;
+  } else if (withdrawals.length === 1) {
+    terminalDisposition = "calibration_withdrawn";
+    verifiedDisposition = "verified_withdrawal";
+    const withdrawal = withdrawals[0]!;
+    const payload = withdrawal.payload as CalibrationWithdrawalPayload;
+    assertCondition(aggregates.length === 0 && scorerFailures.length === 0 && scorerIncidents.length === 0, "VERIFICATION_FAILED", "Withdrawal is mixed with aggregate or terminal failure evidence");
+    assertCondition(payload.terminalDisposition === terminalDisposition && payload.withdrawalState === "synthetic_withdrawal", "VERIFICATION_FAILED", "Withdrawal disposition differs");
+    assertCondition(measurements.some((record) => (record.payload as CalibrationMeasurementPayload).missingnessState === "missing_declared") && evaluatorFailures.length > 0, "VERIFICATION_FAILED", "Withdrawal lacks declared missingness evidence");
+    assertExactSet(withdrawal.dependencies.map((reference) => reference.evidenceRecordId), allE1Ids, "Withdrawal E1 coverage");
+    terminalRecordIds = [withdrawal.evidenceRecordId];
+    withdrawalRecordId = withdrawal.evidenceRecordId;
+  } else {
+    terminalDisposition = "calibration_failed";
+    verifiedDisposition = "verified_failure";
+    assertCondition(aggregates.length === 0 && withdrawals.length === 0 && scorerFailures.length > 0, "VERIFICATION_FAILED", "Failure branch differs");
+    for (const failure of scorerFailures) assertCondition((failure.payload as CalibrationScorerFailurePayload).terminalDisposition === terminalDisposition, "VERIFICATION_FAILED", "Scorer failure disposition differs");
+    failureRecordIds = scorerFailures.map((record) => record.evidenceRecordId);
+    terminalRecordIds = [...failureRecordIds];
+  }
 
   const verification = verifications[0]!;
   const verificationPayload = verification.payload as CalibrationVerificationPayload;
@@ -856,24 +999,40 @@ export function verifySyntheticCalibrationEvidenceChain(input: {
     "E3 E2 dependencies",
   );
   assertExactSet(verificationPayload.verifiedE2RecordIds, allE2Ids, "E3 verified E2 records");
-  assertCondition(verificationPayload.aggregateRecordId === aggregate.evidenceRecordId, "VERIFICATION_FAILED", "E3 verifies the wrong aggregate");
-
-  const proposalPayload = proposals[0]!.payload as ProtocolAuthorDerivedValuePayload;
-  assertCondition(proposals[0]!.dependencies.length === 1 && proposals[0]!.dependencies[0]!.evidenceRecordId === verification.evidenceRecordId, "VERIFICATION_FAILED", "E4 does not depend exclusively on E3 verification");
-  assertCondition(proposalPayload.verificationReceiptId === verification.evidenceRecordId, "VERIFICATION_FAILED", "E4 references an unverified receipt");
-  assertCondition(proposalPayload.aggregateRecordId === aggregate.evidenceRecordId, "VERIFICATION_FAILED", "E4 references an unverified aggregate");
+  assertExactSet(verificationPayload.terminalRecordIds, terminalRecordIds, "E3 terminal records");
   assertCondition(
-    proposalPayload.freezeTransactionId === null && proposalPayload.finalProtocolId === null &&
-      proposalPayload.oProposalId === null && proposalPayload.oActivationId === null && !proposalPayload.grantsAuthority,
-    "AUTHORIZATION_DENIED",
-    "E4 attempts a freeze, final identity, O transition, or authority grant",
+    verificationPayload.disposition === verifiedDisposition &&
+      verificationPayload.aggregateRecordId === aggregateRecordId &&
+      verificationPayload.withdrawalRecordId === withdrawalRecordId,
+    "VERIFICATION_FAILED",
+    "E3 disposition does not match the terminal E2 branch",
   );
+  assertExactSet(verificationPayload.failureRecordIds, failureRecordIds, "E3 failure records");
+  const e4Eligible = terminalDisposition === "aggregate_succeeded";
+  assertCondition(verificationPayload.aggregateVerified === e4Eligible && verificationPayload.e4Eligible === e4Eligible, "VERIFICATION_FAILED", "E3 E4 eligibility differs from terminal disposition");
+
+  assertCondition(proposals.length === (e4Eligible ? 1 : 0), "VERIFICATION_FAILED", e4Eligible ? "Verified aggregate requires exactly one E4 proposal" : "E4 is forbidden after withdrawal or failure");
+  if (e4Eligible) {
+    const proposal = proposals[0]!;
+    const proposalPayload = proposal.payload as ProtocolAuthorDerivedValuePayload;
+    assertCondition(proposal.dependencies.length === 1 && proposal.dependencies[0]!.evidenceRecordId === verification.evidenceRecordId, "VERIFICATION_FAILED", "E4 does not depend exclusively on E3 verification");
+    assertCondition(proposalPayload.verificationReceiptId === verification.evidenceRecordId && proposalPayload.aggregateRecordId === aggregateRecordId, "VERIFICATION_FAILED", "E4 references an ineligible verification or aggregate");
+    assertCondition(proposalPayload.freezeTransactionId === null && proposalPayload.finalProtocolId === null && proposalPayload.oProposalId === null && proposalPayload.oActivationId === null && !proposalPayload.grantsAuthority, "AUTHORIZATION_DENIED", "E4 attempts a freeze, final identity, O transition, or authority grant");
+  }
 
   return {
     recordCount: input.records.length,
     stageCounts,
+    terminalDisposition,
+    verifiedDisposition,
+    e4Eligible,
     expectedStratumCount: input.capability.expectedStrataCommitments.length,
-    observedStratumCount: aggregatePayload.observedStrata.length,
+    observedStratumCount: measurements.filter((record) => (record.payload as CalibrationMeasurementPayload).missingnessState === "complete").length,
+    e0ExecutionCoverageCount: executions.length,
+    e0UsageCoverageCount: usages.length,
+    orphanE0Count: 0,
+    reusedE0Count: 0,
+    unmatchedIncidentCount: 0,
     issuedCapabilities: 0,
     consumedCapabilities: 0,
     providerModelRequestAttempts: 0,
@@ -906,6 +1065,7 @@ function creationMode(): CalibrationEvidenceRecord["creationMode"] {
 
 function fixtureRecord(input: {
   readonly recordType: CalibrationEvidenceRecordType;
+  readonly attemptCommitment: string;
   readonly dependencies: readonly CalibrationEvidenceReference[];
   readonly payload: CalibrationEvidencePayload;
   readonly recordedAt: string;
@@ -917,6 +1077,7 @@ function fixtureRecord(input: {
     schemas: input.schemas,
     value: {
       recordType: input.recordType,
+      attemptCommitment: input.attemptCommitment,
       dependencies: input.dependencies,
       payload: input.payload,
       disposition: CALIBRATION_EVIDENCE_DISPOSITION,
@@ -927,31 +1088,226 @@ function fixtureRecord(input: {
   });
 }
 
+export interface SyntheticCalibrationEvidenceScenarios {
+  readonly success: readonly CalibrationEvidenceRecord[];
+  readonly withdrawal: readonly CalibrationEvidenceRecord[];
+  readonly failure: readonly CalibrationEvidenceRecord[];
+}
+
+interface ScenarioAccountingPair {
+  readonly execution: CalibrationEvidenceRecord;
+  readonly usage: CalibrationEvidenceRecord;
+}
+
+function buildAccountingPair(input: {
+  readonly attemptCommitment: string;
+  readonly stratumCommitment: string;
+  readonly label: string;
+  readonly offset: number;
+  readonly time: (offset: number) => string;
+  readonly hash: (label: string) => string;
+  readonly capability: SyntheticCalibrationCapabilityDescriptor;
+  readonly signers: CalibrationEvidenceFixtureSigners;
+  readonly schemas: SchemaRegistry;
+}): ScenarioAccountingPair {
+  const accountingHeadCommitment = input.hash(`${input.label}.accounting-head`);
+  const execution = fixtureRecord({
+    recordType: "CalibrationExecutionReceipt",
+    attemptCommitment: input.attemptCommitment,
+    dependencies: [],
+    signer: input.signers.calibrationExecutor,
+    schemas: input.schemas,
+    recordedAt: input.time(input.offset),
+    payload: {
+      stratumCommitment: input.stratumCommitment,
+      executionCommitment: input.hash(`${input.label}.execution`),
+      accountingHeadCommitment,
+      capabilityCommitment: input.capability.capabilityCommitment,
+      executionOccurred: false,
+    },
+  });
+  const usage = fixtureRecord({
+    recordType: "CalibrationUsageReceipt",
+    attemptCommitment: input.attemptCommitment,
+    dependencies: [],
+    signer: input.signers.calibrationExecutor,
+    schemas: input.schemas,
+    recordedAt: input.time(input.offset + 1),
+    payload: {
+      stratumCommitment: input.stratumCommitment,
+      executionReceiptId: execution.evidenceRecordId,
+      usageCommitment: input.hash(`${input.label}.usage`),
+      accountingHeadCommitment,
+      capabilityCommitment: input.capability.capabilityCommitment,
+      chargeObserved: false,
+    },
+  });
+  return { execution, usage };
+}
+
+function buildMeasurement(input: {
+  readonly attemptCommitment: string;
+  readonly pair: ScenarioAccountingPair;
+  readonly stratumCommitment: string;
+  readonly label: string;
+  readonly missingnessState: "complete" | "missing_declared";
+  readonly incidentCommitments?: readonly string[];
+  readonly recordedAt: string;
+  readonly hash: (label: string) => string;
+  readonly signers: CalibrationEvidenceFixtureSigners;
+  readonly schemas: SchemaRegistry;
+}): CalibrationEvidenceRecord {
+  return fixtureRecord({
+    recordType: "CalibrationMeasurementCommitment",
+    attemptCommitment: input.attemptCommitment,
+    dependencies: [calibrationEvidenceReference(input.pair.execution), calibrationEvidenceReference(input.pair.usage)],
+    signer: input.signers.calibrationEvaluator,
+    schemas: input.schemas,
+    recordedAt: input.recordedAt,
+    payload: {
+      stratumCommitment: input.stratumCommitment,
+      executionReceiptId: input.pair.execution.evidenceRecordId,
+      usageReceiptId: input.pair.usage.evidenceRecordId,
+      accountingHeadCommitment: (input.pair.execution.payload as CalibrationExecutionPayload).accountingHeadCommitment,
+      normalizedMeasurementCommitment: input.hash(`${input.label}.measurement`),
+      normalizationContractCommitment: input.hash("normalization"),
+      missingnessState: input.missingnessState,
+      incidentCommitments: input.incidentCommitments ?? [],
+      rawMeasurementPresent: false,
+    },
+  });
+}
+
+export function buildSyntheticCalibrationEvidenceScenarios(input: {
+  readonly signers: CalibrationEvidenceFixtureSigners;
+  readonly schemas: SchemaRegistry;
+  readonly timestampPrefix?: string;
+}): SyntheticCalibrationEvidenceScenarios {
+  const capability = buildSyntheticCalibrationCapabilityDescriptor();
+  const time = (offset: number) => `${input.timestampPrefix ?? "2026-08-03T13:00:"}${offset.toString().padStart(2, "0")}.000Z`;
+  const hash = (label: string) => sha256Text(`seh.public-development.calibration-evidence.${label}.v2`);
+  const strata = capability.expectedStrataCommitments;
+
+  const successAttempt = hash("success.attempt");
+  const successAlpha = buildAccountingPair({ attemptCommitment: successAttempt, stratumCommitment: strata[0]!, label: "success.alpha", offset: 0, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const successBeta = buildAccountingPair({ attemptCommitment: successAttempt, stratumCommitment: strata[1]!, label: "success.beta", offset: 2, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const successMeasurementAlpha = buildMeasurement({ attemptCommitment: successAttempt, pair: successAlpha, stratumCommitment: strata[0]!, label: "success.alpha", missingnessState: "complete", recordedAt: time(4), hash, signers: input.signers, schemas: input.schemas });
+  const successMeasurementBeta = buildMeasurement({ attemptCommitment: successAttempt, pair: successBeta, stratumCommitment: strata[1]!, label: "success.beta", missingnessState: "complete", recordedAt: time(5), hash, signers: input.signers, schemas: input.schemas });
+  const successE1 = [successMeasurementAlpha, successMeasurementBeta];
+  const aggregate = fixtureRecord({
+    recordType: "AggregateCalibrationCommitment",
+    attemptCommitment: successAttempt,
+    dependencies: successE1.map(calibrationEvidenceReference),
+    signer: input.signers.calibrationScorer,
+    schemas: input.schemas,
+    recordedAt: time(6),
+    payload: {
+      terminalDisposition: "aggregate_succeeded",
+      orderedE1RecordIds: successE1.map((record) => record.evidenceRecordId),
+      expectedStrataCommitments: strata,
+      observedStrata: [
+        { stratumCommitment: strata[0]!, measurementRecordId: successMeasurementAlpha.evidenceRecordId },
+        { stratumCommitment: strata[1]!, measurementRecordId: successMeasurementBeta.evidenceRecordId },
+      ],
+      gridCommitment: capability.gridCommitment,
+      rejectedCandidateCommitments: [],
+      ruleBranch: "synthetic_conformance_only",
+      precisionCheckCommitment: hash("success.precision-check"),
+      evaluatorFailureRecordIds: [],
+      evaluatorIncidentRecordIds: [],
+      missingnessReported: false,
+      incidentsReported: false,
+      withdrawalState: "not_withdrawn_synthetic",
+      requiredStrataComplete: true,
+      e0ToE1AccountingComplete: true,
+      unresolvedEvaluatorFailureCount: 0,
+      unmatchedIncidentCount: 0,
+      rawEvaluatorInputPresent: false,
+      protectedDataAccessed: false,
+    },
+  });
+  const successVerification = fixtureRecord({
+    recordType: "CalibrationVerificationReceipt",
+    attemptCommitment: successAttempt,
+    dependencies: [calibrationEvidenceReference(aggregate)],
+    signer: input.signers.independentVerifier,
+    schemas: input.schemas,
+    recordedAt: time(7),
+    payload: {
+      disposition: "verified_aggregate",
+      verifiedE2RecordIds: [aggregate.evidenceRecordId],
+      terminalRecordIds: [aggregate.evidenceRecordId],
+      aggregateRecordId: aggregate.evidenceRecordId,
+      withdrawalRecordId: null,
+      failureRecordIds: [],
+      verificationCommitment: hash("success.verification"),
+      referenceOnly: true,
+      aggregateVerified: true,
+      branchExclusivityVerified: true,
+      e0ToE1CoverageVerified: true,
+      e1ToE2CoverageVerified: true,
+      e4Eligible: true,
+      graphVerified: true,
+      missingnessAndIncidentCoverageVerified: true,
+      grantsAuthority: false,
+    },
+  });
+  const proposal = fixtureRecord({
+    recordType: "ProtocolAuthorDerivedValueProposal",
+    attemptCommitment: successAttempt,
+    dependencies: [calibrationEvidenceReference(successVerification)],
+    signer: input.signers.protocolAuthor,
+    schemas: input.schemas,
+    recordedAt: time(8),
+    payload: {
+      aggregateRecordId: aggregate.evidenceRecordId,
+      verificationReceiptId: successVerification.evidenceRecordId,
+      derivedValueCommitment: hash("success.derived-value"),
+      disclosure: "commitment_only",
+      independentlyVerified: true,
+      freezeTransactionId: null,
+      finalProtocolId: null,
+      oProposalId: null,
+      oActivationId: null,
+      grantsAuthority: false,
+    },
+  });
+  const success = [successAlpha.execution, successAlpha.usage, successBeta.execution, successBeta.usage, ...successE1, aggregate, successVerification, proposal];
+
+  const withdrawalAttempt = hash("withdrawal.attempt");
+  const withdrawalAlpha = buildAccountingPair({ attemptCommitment: withdrawalAttempt, stratumCommitment: strata[0]!, label: "withdrawal.alpha", offset: 10, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const withdrawalBeta = buildAccountingPair({ attemptCommitment: withdrawalAttempt, stratumCommitment: strata[1]!, label: "withdrawal.beta", offset: 12, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const missingIncident = fixtureRecord({ recordType: "CalibrationIncidentRecord", attemptCommitment: withdrawalAttempt, dependencies: [], signer: input.signers.calibrationExecutor, schemas: input.schemas, recordedAt: time(14), payload: { stratumCommitment: strata[1]!, incidentCommitment: hash("withdrawal.missing-source"), incidentClass: "synthetic_conformance_incident", disclosed: true, realIncidentObserved: false } });
+  const disclosureIncident = fixtureRecord({ recordType: "CalibrationIncidentRecord", attemptCommitment: withdrawalAttempt, dependencies: [], signer: input.signers.calibrationExecutor, schemas: input.schemas, recordedAt: time(15), payload: { stratumCommitment: strata[1]!, incidentCommitment: hash("withdrawal.disclosure-source"), incidentClass: "synthetic_conformance_incident", disclosed: true, realIncidentObserved: false } });
+  const withdrawalMeasurementAlpha = buildMeasurement({ attemptCommitment: withdrawalAttempt, pair: withdrawalAlpha, stratumCommitment: strata[0]!, label: "withdrawal.alpha", missingnessState: "complete", recordedAt: time(16), hash, signers: input.signers, schemas: input.schemas });
+  const evaluatorIncidentCommitment = hash("withdrawal.evaluator-incident");
+  const withdrawalMeasurementBeta = buildMeasurement({ attemptCommitment: withdrawalAttempt, pair: withdrawalBeta, stratumCommitment: strata[1]!, label: "withdrawal.beta", missingnessState: "missing_declared", incidentCommitments: [evaluatorIncidentCommitment], recordedAt: time(17), hash, signers: input.signers, schemas: input.schemas });
+  const evaluatorFailure = fixtureRecord({ recordType: "CalibrationEvaluatorFailureRecord", attemptCommitment: withdrawalAttempt, dependencies: [calibrationEvidenceReference(missingIncident)], signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(18), payload: { stratumCommitment: strata[1]!, incidentRecordId: missingIncident.evidenceRecordId, failureCommitment: hash("withdrawal.evaluator-failure"), failureClass: "synthetic_missingness", missingnessDeclared: true, directProtocolAuthorRelease: false } });
+  const evaluatorIncident = fixtureRecord({ recordType: "CalibrationEvaluatorIncidentRecord", attemptCommitment: withdrawalAttempt, dependencies: [calibrationEvidenceReference(disclosureIncident)], signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(19), payload: { stratumCommitment: strata[1]!, incidentRecordId: disclosureIncident.evidenceRecordId, incidentCommitment: evaluatorIncidentCommitment, incidentClass: "synthetic_evaluator_incident", incidentDisclosed: true, directProtocolAuthorRelease: false } });
+  const withdrawalE1 = [withdrawalMeasurementAlpha, withdrawalMeasurementBeta, evaluatorFailure, evaluatorIncident];
+  const withdrawalRecord = fixtureRecord({ recordType: "CalibrationWithdrawalRecord", attemptCommitment: withdrawalAttempt, dependencies: withdrawalE1.map(calibrationEvidenceReference), signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(20), payload: { terminalDisposition: "calibration_withdrawn", withdrawalCommitment: hash("withdrawal.terminal"), withdrawalState: "synthetic_withdrawal", withdrawalReason: "missing_required_stratum", selectedValuePresent: false } });
+  const withdrawalVerification = fixtureRecord({ recordType: "CalibrationVerificationReceipt", attemptCommitment: withdrawalAttempt, dependencies: [calibrationEvidenceReference(withdrawalRecord)], signer: input.signers.independentVerifier, schemas: input.schemas, recordedAt: time(21), payload: { disposition: "verified_withdrawal", verifiedE2RecordIds: [withdrawalRecord.evidenceRecordId], terminalRecordIds: [withdrawalRecord.evidenceRecordId], aggregateRecordId: null, withdrawalRecordId: withdrawalRecord.evidenceRecordId, failureRecordIds: [], verificationCommitment: hash("withdrawal.verification"), referenceOnly: true, aggregateVerified: false, branchExclusivityVerified: true, e0ToE1CoverageVerified: true, e1ToE2CoverageVerified: true, e4Eligible: false, graphVerified: true, missingnessAndIncidentCoverageVerified: true, grantsAuthority: false } });
+  const withdrawal = [withdrawalAlpha.execution, withdrawalAlpha.usage, withdrawalBeta.execution, withdrawalBeta.usage, missingIncident, disclosureIncident, ...withdrawalE1, withdrawalRecord, withdrawalVerification];
+
+  const failureAttempt = hash("failure.attempt");
+  const failureAlpha = buildAccountingPair({ attemptCommitment: failureAttempt, stratumCommitment: strata[0]!, label: "failure.alpha", offset: 30, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const failureBeta = buildAccountingPair({ attemptCommitment: failureAttempt, stratumCommitment: strata[1]!, label: "failure.beta", offset: 32, time, hash, capability, signers: input.signers, schemas: input.schemas });
+  const failureMeasurementAlpha = buildMeasurement({ attemptCommitment: failureAttempt, pair: failureAlpha, stratumCommitment: strata[0]!, label: "failure.alpha", missingnessState: "complete", recordedAt: time(34), hash, signers: input.signers, schemas: input.schemas });
+  const failureMeasurementBeta = buildMeasurement({ attemptCommitment: failureAttempt, pair: failureBeta, stratumCommitment: strata[1]!, label: "failure.beta", missingnessState: "complete", recordedAt: time(35), hash, signers: input.signers, schemas: input.schemas });
+  const scorerFailure = fixtureRecord({ recordType: "CalibrationScorerFailureRecord", attemptCommitment: failureAttempt, dependencies: [calibrationEvidenceReference(failureMeasurementAlpha)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(36), payload: { terminalDisposition: "calibration_failed", failureCommitment: hash("failure.scorer-failure"), failureClass: "synthetic_scorer_failure", rawEvaluatorInputPresent: false, protectedDataAccessed: false } });
+  const scorerIncident = fixtureRecord({ recordType: "CalibrationScorerIncidentRecord", attemptCommitment: failureAttempt, dependencies: [calibrationEvidenceReference(failureMeasurementBeta)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(37), payload: { incidentCommitment: hash("failure.scorer-incident"), incidentClass: "synthetic_scorer_incident", incidentDisclosed: true, rawEvaluatorInputPresent: false, protectedDataAccessed: false } });
+  const failureE2 = [scorerFailure, scorerIncident];
+  const failureVerification = fixtureRecord({ recordType: "CalibrationVerificationReceipt", attemptCommitment: failureAttempt, dependencies: failureE2.map(calibrationEvidenceReference), signer: input.signers.independentVerifier, schemas: input.schemas, recordedAt: time(38), payload: { disposition: "verified_failure", verifiedE2RecordIds: failureE2.map((record) => record.evidenceRecordId), terminalRecordIds: [scorerFailure.evidenceRecordId], aggregateRecordId: null, withdrawalRecordId: null, failureRecordIds: [scorerFailure.evidenceRecordId], verificationCommitment: hash("failure.verification"), referenceOnly: true, aggregateVerified: false, branchExclusivityVerified: true, e0ToE1CoverageVerified: true, e1ToE2CoverageVerified: true, e4Eligible: false, graphVerified: true, missingnessAndIncidentCoverageVerified: true, grantsAuthority: false } });
+  const failure = [failureAlpha.execution, failureAlpha.usage, failureBeta.execution, failureBeta.usage, failureMeasurementAlpha, failureMeasurementBeta, ...failureE2, failureVerification];
+
+  return { success, withdrawal, failure };
+}
+
+/** Compatibility alias for callers that need the admissible success-branch fixture only. */
 export function buildSyntheticCalibrationEvidenceChain(input: {
   readonly signers: CalibrationEvidenceFixtureSigners;
   readonly schemas: SchemaRegistry;
   readonly timestampPrefix?: string;
 }): readonly CalibrationEvidenceRecord[] {
-  const capability = buildSyntheticCalibrationCapabilityDescriptor();
-  const time = (offset: number) => `${input.timestampPrefix ?? "2026-08-03T13:00:"}${offset.toString().padStart(2, "0")}.000Z`;
-  const hash = (label: string) => sha256Text(`seh.public-development.calibration-evidence.${label}.v1`);
-  const execution = fixtureRecord({ recordType: "CalibrationExecutionReceipt", dependencies: [], signer: input.signers.calibrationExecutor, schemas: input.schemas, recordedAt: time(0), payload: { executionCommitment: hash("execution"), accountingContextCommitment: hash("accounting"), capabilityCommitment: capability.capabilityCommitment, expectedStrataCommitments: capability.expectedStrataCommitments, executionOccurred: false } });
-  const usage = fixtureRecord({ recordType: "CalibrationUsageReceipt", dependencies: [], signer: input.signers.calibrationExecutor, schemas: input.schemas, recordedAt: time(1), payload: { usageCommitment: hash("usage"), accountingContextCommitment: hash("accounting"), capabilityCommitment: capability.capabilityCommitment, chargeObserved: false } });
-  const executorIncident = fixtureRecord({ recordType: "CalibrationIncidentRecord", dependencies: [], signer: input.signers.calibrationExecutor, schemas: input.schemas, recordedAt: time(2), payload: { incidentCommitment: hash("executor-incident"), incidentClass: "synthetic_conformance_incident", disclosed: true, realIncidentObserved: false } });
-  const e0MeasurementDependencies = [calibrationEvidenceReference(execution), calibrationEvidenceReference(usage)];
-  const measurementAlpha = fixtureRecord({ recordType: "CalibrationMeasurementCommitment", dependencies: e0MeasurementDependencies, signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(3), payload: { stratumCommitment: capability.expectedStrataCommitments[0]!, normalizedMeasurementCommitment: hash("measurement-alpha"), normalizationContractCommitment: hash("normalization"), missingnessState: "complete", incidentCommitments: [], rawMeasurementPresent: false } });
-  const measurementBeta = fixtureRecord({ recordType: "CalibrationMeasurementCommitment", dependencies: e0MeasurementDependencies, signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(4), payload: { stratumCommitment: capability.expectedStrataCommitments[1]!, normalizedMeasurementCommitment: hash("measurement-beta"), normalizationContractCommitment: hash("normalization"), missingnessState: "missing_declared", incidentCommitments: [hash("evaluator-incident")], rawMeasurementPresent: false } });
-  const evaluatorFailure = fixtureRecord({ recordType: "CalibrationEvaluatorFailureRecord", dependencies: [calibrationEvidenceReference(execution)], signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(5), payload: { stratumCommitment: capability.expectedStrataCommitments[1]!, failureCommitment: hash("evaluator-failure"), failureClass: "synthetic_missingness", missingnessDeclared: true, directProtocolAuthorRelease: false } });
-  const evaluatorIncident = fixtureRecord({ recordType: "CalibrationEvaluatorIncidentRecord", dependencies: [calibrationEvidenceReference(executorIncident)], signer: input.signers.calibrationEvaluator, schemas: input.schemas, recordedAt: time(6), payload: { incidentCommitment: hash("evaluator-incident"), incidentClass: "synthetic_evaluator_incident", incidentDisclosed: true, directProtocolAuthorRelease: false } });
-  const e1Records = [measurementAlpha, measurementBeta, evaluatorFailure, evaluatorIncident];
-  const e1Dependencies = e1Records.map(calibrationEvidenceReference);
-  const aggregate = fixtureRecord({ recordType: "AggregateCalibrationCommitment", dependencies: e1Dependencies, signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(7), payload: { orderedE1RecordIds: e1Records.map((record) => record.evidenceRecordId), expectedStrataCommitments: capability.expectedStrataCommitments, observedStrata: [{ stratumCommitment: capability.expectedStrataCommitments[0]!, measurementRecordId: measurementAlpha.evidenceRecordId }, { stratumCommitment: capability.expectedStrataCommitments[1]!, measurementRecordId: measurementBeta.evidenceRecordId }], gridCommitment: capability.gridCommitment, rejectedCandidateCommitments: [hash("rejected-candidate")], ruleBranch: "synthetic_conformance_only", precisionCheckCommitment: hash("precision-check"), evaluatorFailureRecordIds: [evaluatorFailure.evidenceRecordId], evaluatorIncidentRecordIds: [evaluatorIncident.evidenceRecordId], missingnessReported: true, incidentsReported: true, withdrawalState: "not_withdrawn_synthetic", rawEvaluatorInputPresent: false, protectedDataAccessed: false } });
-  const rejected = fixtureRecord({ recordType: "RejectedDerivationCandidateCommitment", dependencies: [calibrationEvidenceReference(measurementAlpha)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(8), payload: { rejectedCandidateCommitment: hash("rejected-candidate"), gridCommitment: capability.gridCommitment, rejectionReason: "synthetic_infeasible", valueDisclosed: false } });
-  const withdrawal = fixtureRecord({ recordType: "CalibrationWithdrawalRecord", dependencies: [calibrationEvidenceReference(evaluatorFailure)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(9), payload: { withdrawalCommitment: hash("withdrawal"), withdrawalState: "not_withdrawn_synthetic", selectedValuePresent: false } });
-  const scorerFailure = fixtureRecord({ recordType: "CalibrationScorerFailureRecord", dependencies: [calibrationEvidenceReference(evaluatorFailure)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(10), payload: { failureCommitment: hash("scorer-failure"), failureClass: "synthetic_scorer_failure", rawEvaluatorInputPresent: false, protectedDataAccessed: false } });
-  const scorerIncident = fixtureRecord({ recordType: "CalibrationScorerIncidentRecord", dependencies: [calibrationEvidenceReference(evaluatorIncident)], signer: input.signers.calibrationScorer, schemas: input.schemas, recordedAt: time(11), payload: { incidentCommitment: hash("scorer-incident"), incidentClass: "synthetic_scorer_incident", incidentDisclosed: true, rawEvaluatorInputPresent: false, protectedDataAccessed: false } });
-  const e2Records = [aggregate, rejected, withdrawal, scorerFailure, scorerIncident];
-  const verification = fixtureRecord({ recordType: "CalibrationVerificationReceipt", dependencies: e2Records.map(calibrationEvidenceReference), signer: input.signers.independentVerifier, schemas: input.schemas, recordedAt: time(12), payload: { verifiedE2RecordIds: e2Records.map((record) => record.evidenceRecordId), aggregateRecordId: aggregate.evidenceRecordId, verificationCommitment: hash("verification"), referenceOnly: true, aggregateVerified: true, graphVerified: true, missingnessAndIncidentCoverageVerified: true, grantsAuthority: false } });
-  const proposal = fixtureRecord({ recordType: "ProtocolAuthorDerivedValueProposal", dependencies: [calibrationEvidenceReference(verification)], signer: input.signers.protocolAuthor, schemas: input.schemas, recordedAt: time(13), payload: { aggregateRecordId: aggregate.evidenceRecordId, verificationReceiptId: verification.evidenceRecordId, derivedValueCommitment: hash("derived-value"), disclosure: "commitment_only", independentlyVerified: true, freezeTransactionId: null, finalProtocolId: null, oProposalId: null, oActivationId: null, grantsAuthority: false } });
-  return [execution, usage, executorIncident, ...e1Records, ...e2Records, verification, proposal];
+  return buildSyntheticCalibrationEvidenceScenarios(input).success;
 }

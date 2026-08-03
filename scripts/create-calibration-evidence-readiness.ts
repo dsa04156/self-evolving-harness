@@ -14,12 +14,13 @@ import {
   CALIBRATION_EVIDENCE_READINESS_ARTIFACT_SPECS,
   CALIBRATION_EVIDENCE_READINESS_AUDIT_PATH,
   CALIBRATION_EVIDENCE_READINESS_PATH,
+  CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT,
   CALIBRATION_EVIDENCE_ZERO_BUDGET,
   GitCalibrationEvidenceReadinessArtifactReader,
   PrincipalSigner,
   SchemaRegistry,
   buildSyntheticCalibrationCapabilityDescriptor,
-  buildSyntheticCalibrationEvidenceChain,
+  buildSyntheticCalibrationEvidenceScenarios,
   calibrationEvidenceContractHashes,
   canonicalize,
   createCalibrationEvidenceContractReadiness,
@@ -131,14 +132,14 @@ const principals = {
 };
 const roles = roleBoundary(principals);
 const capability = buildSyntheticCalibrationCapabilityDescriptor();
-const syntheticRecords = buildSyntheticCalibrationEvidenceChain({ signers: principals, schemas, timestampPrefix: "2026-08-03T15:00:" });
-const syntheticResult = verifySyntheticCalibrationEvidenceChain({ records: syntheticRecords, capability, roleBoundary: roles, schemas });
+const syntheticScenarios = buildSyntheticCalibrationEvidenceScenarios({ signers: principals, schemas, timestampPrefix: "2026-08-03T15:00:" });
+const syntheticResults = Object.values(syntheticScenarios).map((records) => verifySyntheticCalibrationEvidenceChain({ records, capability, roleBoundary: roles, schemas }));
 
 const readiness = createCalibrationEvidenceContractReadiness({
   schemas,
   signer: principals.protocolAuthor,
   value: {
-    status: "offline_body_free_contracts_ready_only",
+    status: "offline_body_free_terminal_branches_ready_only",
     sourceSnapshot: { sourceCommit, sourceTree, additionalPushPerformed: false },
     priorBindings: {
       assemblyReadinessId: "cpar-sha256:0ae47c5688fd04d6069ba406cd74b1b050bd94713e36d240fab08f4142470b42",
@@ -149,6 +150,14 @@ const readiness = createCalibrationEvidenceContractReadiness({
       assemblyAuditReceiptRawSha256: "sha256:d066dbf27815443c2a62ebfbaac0b06b157482db4e5e98d24085bf637b2f36a4",
       assemblyEvidenceRulingRawSha256: "sha256:094b31e93575c388a48b7a7f2482a0f7320c2dad0b8323e1eda1a09f93a6931c",
       assemblyEvidenceDecision: "APPROVE",
+      priorEvidenceReadinessId: "cecr-sha256:426f217d824d416fbfe49a472a8f1a7fe5a397d9914c5dcf2f498ec96e211c16",
+      priorEvidenceReadinessHash: "sha256:1ef20a04ec0d5328def4eda2e988497ed3e2f297ab60905011d2adbfaf351595",
+      priorEvidenceReadinessRawSha256: "sha256:03c593cec50b2c446f8d69680df608df914b019945747365f1894134ddfb6830",
+      priorEvidenceAuditReceiptId: "cecrar-sha256:1cdee884a76bacd0807117eda24185e554a8d1f7fd09b476f8e681933cb6988f",
+      priorEvidenceAuditReceiptHash: "sha256:39bb021229f501d62811744a8c061de7e89fdbebaa4c678da283779c5fbfcfcb",
+      priorEvidenceAuditReceiptRawSha256: "sha256:5a13e826e20f30152dfa610256cd81d08a97951fa812db781bb37a73e2392933",
+      priorEvidenceRulingRawSha256: "sha256:0e73d97bc113da856a2ddbb0a38cf40022cb4de0032dbaa96ae93fafcf36914c",
+      priorEvidenceDecision: "REVISE",
     },
     artifacts,
     contractInventory: CALIBRATION_EVIDENCE_CONTRACT_INVENTORY,
@@ -156,7 +165,7 @@ const readiness = createCalibrationEvidenceContractReadiness({
     disclosureMatrix: CALIBRATION_EVIDENCE_DISCLOSURE_MATRIX,
     graphContract: CALIBRATION_EVIDENCE_GRAPH_CONTRACT,
     syntheticCapabilityDescriptor: capability,
-    syntheticFixtureContract: { expectedRecordCount: 14, expectedStageCounts: { E0: 3, E1: 4, E2: 5, E3: 1, E4: 1 }, expectedStratumCount: 2, fixturesPersistedAsCalibrationEvidence: false, actualEvidenceRecordsPersisted: 0, validlyResignedAttackFamiliesMinimum: 18 },
+    syntheticFixtureContract: CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT,
     contractHashes: calibrationEvidenceContractHashes(),
     roleBoundary: roles,
     actualEvidenceRecords: [],
@@ -179,7 +188,7 @@ const independentVerification = createCalibrationEvidenceIndependentVerification
   readinessBytes,
   signer: principals.independentVerifier,
   verifiedAt: new Date().toISOString(),
-  verification: { schemaValid: true, signaturesValid: true, sourceBindingsValid: true, assemblyBindingValid: true, contractsClosedAndBodyFree: true, ownershipAndDisclosureMatricesExact: true, oneWayGraphExact: true, syntheticChainVerified: true, roleBoundaryDisjoint: true, capabilityUnissuedAndUnconsumed: true, zeroExecutionBudget: true, actualEvidenceRecordsAbsent: true, finalIdentitiesAbsent: true, oCreationAndActivationAbsent: true, authoritiesGranted: 0 },
+  verification: { schemaValid: true, signaturesValid: true, sourceBindingsValid: true, assemblyBindingValid: true, priorReviseBindingValid: true, contractsClosedAndBodyFree: true, ownershipAndDisclosureMatricesExact: true, oneWayGraphExact: true, syntheticChainVerified: true, threeTerminalScenariosVerified: true, terminalBranchesMutuallyExclusive: true, e0ToE1CoverageExact: true, e3DispositionBoundToE2: true, e4EligibilityExact: true, roleBoundaryDisjoint: true, capabilityUnissuedAndUnconsumed: true, zeroExecutionBudget: true, actualEvidenceRecordsAbsent: true, finalIdentitiesAbsent: true, oCreationAndActivationAbsent: true, authoritiesGranted: 0 },
 });
 const receipt = createCalibrationEvidenceReadinessAuditReceipt({
   schemas,
@@ -211,7 +220,8 @@ process.stdout.write(`${JSON.stringify({
   sourceTree,
   artifactCount: verificationResult.artifactCount,
   contractRecordTypeCount: verificationResult.contractRecordTypeCount,
-  syntheticFixtureRecordCount: syntheticResult.recordCount,
+  syntheticScenarioCount: syntheticResults.length,
+  syntheticFixtureRecordCount: syntheticResults.reduce((total, result) => total + result.recordCount, 0),
   unresolvedObligationCount: verificationResult.unresolvedObligationCount,
   actualEvidenceRecords: 0,
   issuedCapabilities: 0,

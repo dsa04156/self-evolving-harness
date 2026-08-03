@@ -24,6 +24,7 @@ import {
   CALIBRATION_EVIDENCE_ELIGIBILITY_STATE,
   CALIBRATION_EVIDENCE_FUTURE_IDENTITY_STATE,
   CALIBRATION_EVIDENCE_READINESS_ARTIFACT_SPECS,
+  CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT,
   calibrationEvidenceContractHashes,
   verifyCalibrationEvidenceContractReadinessSignature,
   verifyCalibrationEvidenceReadinessAuditSignatures,
@@ -49,6 +50,14 @@ const EXPECTED_PRIOR_BINDINGS = {
   assemblyAuditReceiptRawSha256: "sha256:d066dbf27815443c2a62ebfbaac0b06b157482db4e5e98d24085bf637b2f36a4",
   assemblyEvidenceRulingRawSha256: "sha256:094b31e93575c388a48b7a7f2482a0f7320c2dad0b8323e1eda1a09f93a6931c",
   assemblyEvidenceDecision: "APPROVE",
+  priorEvidenceReadinessId: "cecr-sha256:426f217d824d416fbfe49a472a8f1a7fe5a397d9914c5dcf2f498ec96e211c16",
+  priorEvidenceReadinessHash: "sha256:1ef20a04ec0d5328def4eda2e988497ed3e2f297ab60905011d2adbfaf351595",
+  priorEvidenceReadinessRawSha256: "sha256:03c593cec50b2c446f8d69680df608df914b019945747365f1894134ddfb6830",
+  priorEvidenceAuditReceiptId: "cecrar-sha256:1cdee884a76bacd0807117eda24185e554a8d1f7fd09b476f8e681933cb6988f",
+  priorEvidenceAuditReceiptHash: "sha256:39bb021229f501d62811744a8c061de7e89fdbebaa4c678da283779c5fbfcfcb",
+  priorEvidenceAuditReceiptRawSha256: "sha256:5a13e826e20f30152dfa610256cd81d08a97951fa812db781bb37a73e2392933",
+  priorEvidenceRulingRawSha256: "sha256:0e73d97bc113da856a2ddbb0a38cf40022cb4de0032dbaa96ae93fafcf36914c",
+  priorEvidenceDecision: "REVISE",
 } as const;
 
 export interface CalibrationEvidenceReadinessArtifactReader {
@@ -85,10 +94,11 @@ export class GitCalibrationEvidenceReadinessArtifactReader
 }
 
 export interface CalibrationEvidenceReadinessVerificationResult {
-  readonly artifactCount: 18;
+  readonly artifactCount: 21;
   readonly contractRecordTypeCount: 13;
   readonly evidenceStageCount: 5;
-  readonly syntheticFixtureRecordCount: 14;
+  readonly syntheticScenarioCount: 3;
+  readonly syntheticFixtureRecordCount: 30;
   readonly syntheticExpectedStratumCount: 2;
   readonly unresolvedObligationCount: number;
   readonly actualEvidenceRecords: 0;
@@ -248,6 +258,17 @@ export async function verifyCalibrationEvidenceContractReadinessAgainstArtifacts
   const rulingBytes = artifactBytes.get("assembly_evidence_ruling")!;
   ensure(`sha256:${sha256Bytes(rulingBytes)}` === EXPECTED_PRIOR_BINDINGS.assemblyEvidenceRulingRawSha256 && rulingBytes.toString("utf8").startsWith("DECISION: APPROVE\n"), "assembly Architect ruling differs");
 
+  const priorReadinessBytes = artifactBytes.get("prior_evidence_readiness")!;
+  const priorReadiness = parseStrictJson(priorReadinessBytes.toString("utf8")) as Record<string, JsonValue>;
+  ensure(`sha256:${sha256Bytes(priorReadinessBytes)}` === EXPECTED_PRIOR_BINDINGS.priorEvidenceReadinessRawSha256, "prior evidence readiness bytes differ");
+  ensure(priorReadiness["readinessId"] === EXPECTED_PRIOR_BINDINGS.priorEvidenceReadinessId && priorReadiness["readinessHash"] === EXPECTED_PRIOR_BINDINGS.priorEvidenceReadinessHash, "prior evidence readiness identity differs");
+  const priorReceiptBytes = artifactBytes.get("prior_evidence_readiness_receipt")!;
+  const priorReceipt = parseStrictJson(priorReceiptBytes.toString("utf8")) as Record<string, JsonValue>;
+  ensure(`sha256:${sha256Bytes(priorReceiptBytes)}` === EXPECTED_PRIOR_BINDINGS.priorEvidenceAuditReceiptRawSha256, "prior evidence audit bytes differ");
+  ensure(priorReceipt["receiptId"] === EXPECTED_PRIOR_BINDINGS.priorEvidenceAuditReceiptId && priorReceipt["receiptHash"] === EXPECTED_PRIOR_BINDINGS.priorEvidenceAuditReceiptHash, "prior evidence audit identity differs");
+  const priorRulingBytes = artifactBytes.get("prior_evidence_ruling")!;
+  ensure(`sha256:${sha256Bytes(priorRulingBytes)}` === EXPECTED_PRIOR_BINDINGS.priorEvidenceRulingRawSha256 && priorRulingBytes.toString("utf8").startsWith("DECISION: REVISE\n"), "prior evidence Architect ruling differs");
+
   ensure(CALIBRATION_EVIDENCE_RECORD_SPECS.length === 13, "record spec count differs");
   verifyClosedBodyFreeContractSchema(
     parseStrictJson(artifactBytes.get("evidence_contract_schema")!.toString("utf8")),
@@ -257,6 +278,7 @@ export async function verifyCalibrationEvidenceContractReadinessAgainstArtifacts
   ensure(sameJson(input.record.disclosureMatrix, CALIBRATION_EVIDENCE_DISCLOSURE_MATRIX), "disclosure matrix differs");
   ensure(sameJson(input.record.graphContract, CALIBRATION_EVIDENCE_GRAPH_CONTRACT), "graph contract differs");
   ensure(sameJson(input.record.syntheticCapabilityDescriptor, buildSyntheticCalibrationCapabilityDescriptor()), "synthetic capability descriptor differs");
+  ensure(sameJson(input.record.syntheticFixtureContract, CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT), "synthetic terminal-scenario contract differs");
   input.schemas.validate(
     "https://self-evolving-harness.local/schemas/calibration-evidence-contracts.schema.json",
     input.record.syntheticCapabilityDescriptor as unknown as JsonValue,
@@ -285,10 +307,11 @@ export async function verifyCalibrationEvidenceContractReadinessAgainstArtifacts
   ensure(obligationsCount === 7, "outstanding obligation count differs");
 
   return {
-    artifactCount: 18,
+    artifactCount: 21,
     contractRecordTypeCount: 13,
     evidenceStageCount: 5,
-    syntheticFixtureRecordCount: 14,
+    syntheticScenarioCount: 3,
+    syntheticFixtureRecordCount: 30,
     syntheticExpectedStratumCount: 2,
     unresolvedObligationCount: obligationsCount,
     actualEvidenceRecords: 0,

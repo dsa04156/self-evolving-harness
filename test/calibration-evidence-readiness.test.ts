@@ -13,11 +13,13 @@ import {
   CALIBRATION_EVIDENCE_OWNERSHIP_MATRIX,
   CALIBRATION_EVIDENCE_READINESS_ARTIFACT_SPECS,
   CALIBRATION_EVIDENCE_READINESS_PATH,
+  CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT,
   CALIBRATION_EVIDENCE_ZERO_BUDGET,
   PrincipalRegistry,
   SchemaRegistry,
   buildSyntheticCalibrationCapabilityDescriptor,
   buildSyntheticCalibrationEvidenceChain,
+  buildSyntheticCalibrationEvidenceScenarios,
   calibrationEvidenceContractHashes,
   canonicalBytes,
   canonicalize,
@@ -140,6 +142,7 @@ function cryptographicallyResignRecord(input: {
   const value: any = structuredClone({
     recordType: input.base.recordType,
     stage: input.base.stage,
+    attemptCommitment: input.base.attemptCommitment,
     dependencies: input.base.dependencies,
     payload: input.base.payload,
     disposition: input.base.disposition,
@@ -171,6 +174,16 @@ function replaceByOriginalId(
   replacement: CalibrationEvidenceRecord,
 ): CalibrationEvidenceRecord[] {
   return records.map((record) => record.evidenceRecordId === original.evidenceRecordId ? replacement : record);
+}
+
+function insertBeforeStage(
+  records: readonly CalibrationEvidenceRecord[],
+  stage: CalibrationEvidenceRecord["stage"],
+  record: CalibrationEvidenceRecord,
+): CalibrationEvidenceRecord[] {
+  const index = records.findIndex((candidate) => candidate.stage === stage);
+  assert.notEqual(index, -1);
+  return [...records.slice(0, index), record, ...records.slice(index)];
 }
 
 interface ReadinessFixture {
@@ -226,7 +239,7 @@ async function readinessFixture(): Promise<ReadinessFixture> {
     schemas,
     signer: currentSigners.protocolAuthor,
     value: {
-      status: "offline_body_free_contracts_ready_only",
+      status: "offline_body_free_terminal_branches_ready_only",
       sourceSnapshot: { sourceCommit: SOURCE_COMMIT, sourceTree: SOURCE_TREE, additionalPushPerformed: false },
       priorBindings: {
         assemblyReadinessId: "cpar-sha256:0ae47c5688fd04d6069ba406cd74b1b050bd94713e36d240fab08f4142470b42",
@@ -237,6 +250,14 @@ async function readinessFixture(): Promise<ReadinessFixture> {
         assemblyAuditReceiptRawSha256: "sha256:d066dbf27815443c2a62ebfbaac0b06b157482db4e5e98d24085bf637b2f36a4",
         assemblyEvidenceRulingRawSha256: "sha256:094b31e93575c388a48b7a7f2482a0f7320c2dad0b8323e1eda1a09f93a6931c",
         assemblyEvidenceDecision: "APPROVE",
+        priorEvidenceReadinessId: "cecr-sha256:426f217d824d416fbfe49a472a8f1a7fe5a397d9914c5dcf2f498ec96e211c16",
+        priorEvidenceReadinessHash: "sha256:1ef20a04ec0d5328def4eda2e988497ed3e2f297ab60905011d2adbfaf351595",
+        priorEvidenceReadinessRawSha256: "sha256:03c593cec50b2c446f8d69680df608df914b019945747365f1894134ddfb6830",
+        priorEvidenceAuditReceiptId: "cecrar-sha256:1cdee884a76bacd0807117eda24185e554a8d1f7fd09b476f8e681933cb6988f",
+        priorEvidenceAuditReceiptHash: "sha256:39bb021229f501d62811744a8c061de7e89fdbebaa4c678da283779c5fbfcfcb",
+        priorEvidenceAuditReceiptRawSha256: "sha256:5a13e826e20f30152dfa610256cd81d08a97951fa812db781bb37a73e2392933",
+        priorEvidenceRulingRawSha256: "sha256:0e73d97bc113da856a2ddbb0a38cf40022cb4de0032dbaa96ae93fafcf36914c",
+        priorEvidenceDecision: "REVISE",
       },
       artifacts,
       contractInventory: CALIBRATION_EVIDENCE_CONTRACT_INVENTORY,
@@ -244,7 +265,7 @@ async function readinessFixture(): Promise<ReadinessFixture> {
       disclosureMatrix: CALIBRATION_EVIDENCE_DISCLOSURE_MATRIX,
       graphContract: CALIBRATION_EVIDENCE_GRAPH_CONTRACT,
       syntheticCapabilityDescriptor: buildSyntheticCalibrationCapabilityDescriptor(),
-      syntheticFixtureContract: { expectedRecordCount: 14, expectedStageCounts: { E0: 3, E1: 4, E2: 5, E3: 1, E4: 1 }, expectedStratumCount: 2, fixturesPersistedAsCalibrationEvidence: false, actualEvidenceRecordsPersisted: 0, validlyResignedAttackFamiliesMinimum: 18 },
+      syntheticFixtureContract: CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT,
       contractHashes: calibrationEvidenceContractHashes(),
       roleBoundary: boundary(currentSigners),
       actualEvidenceRecords: [],
@@ -260,7 +281,7 @@ async function readinessFixture(): Promise<ReadinessFixture> {
   });
   const reader = new MemoryReader(bytes);
   const readinessBytes = Buffer.from(`${canonicalize(record as unknown as JsonValue)}\n`, "utf8");
-  const independentVerification = createCalibrationEvidenceIndependentVerification({ readiness: record, readinessBytes, signer: currentSigners.independentVerifier, verifiedAt: "2026-08-03T14:00:01.000Z", verification: { schemaValid: true, signaturesValid: true, sourceBindingsValid: true, assemblyBindingValid: true, contractsClosedAndBodyFree: true, ownershipAndDisclosureMatricesExact: true, oneWayGraphExact: true, syntheticChainVerified: true, roleBoundaryDisjoint: true, capabilityUnissuedAndUnconsumed: true, zeroExecutionBudget: true, actualEvidenceRecordsAbsent: true, finalIdentitiesAbsent: true, oCreationAndActivationAbsent: true, authoritiesGranted: 0 } });
+  const independentVerification = createCalibrationEvidenceIndependentVerification({ readiness: record, readinessBytes, signer: currentSigners.independentVerifier, verifiedAt: "2026-08-03T14:00:01.000Z", verification: { schemaValid: true, signaturesValid: true, sourceBindingsValid: true, assemblyBindingValid: true, priorReviseBindingValid: true, contractsClosedAndBodyFree: true, ownershipAndDisclosureMatricesExact: true, oneWayGraphExact: true, syntheticChainVerified: true, threeTerminalScenariosVerified: true, terminalBranchesMutuallyExclusive: true, e0ToE1CoverageExact: true, e3DispositionBoundToE2: true, e4EligibilityExact: true, roleBoundaryDisjoint: true, capabilityUnissuedAndUnconsumed: true, zeroExecutionBudget: true, actualEvidenceRecordsAbsent: true, finalIdentitiesAbsent: true, oCreationAndActivationAbsent: true, authoritiesGranted: 0 } });
   const receipt = createCalibrationEvidenceReadinessAuditReceipt({
     schemas,
     signer: currentSigners.auditStore,
@@ -272,12 +293,19 @@ async function readinessFixture(): Promise<ReadinessFixture> {
 }
 
 describe("body-free calibration evidence contracts", () => {
-  test("verifies the complete synthetic E0-E4 chain without issuing capability or authority", async () => {
+  test("verifies mutually exclusive success, withdrawal, and failure attempts", async () => {
     const schemas = await SchemaRegistry.load(path.resolve("schemas"));
     const current = signers();
-    const records = buildSyntheticCalibrationEvidenceChain({ signers: current, schemas });
-    const result = verifySyntheticCalibrationEvidenceChain({ records, capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas });
-    assert.deepEqual(result, { recordCount: 14, stageCounts: { E0: 3, E1: 4, E2: 5, E3: 1, E4: 1 }, expectedStratumCount: 2, observedStratumCount: 2, issuedCapabilities: 0, consumedCapabilities: 0, providerModelRequestAttempts: 0, protectedDataAccesses: 0, oProposals: 0, oActivations: 0, authoritiesGranted: 0 });
+    const scenarios = buildSyntheticCalibrationEvidenceScenarios({ signers: current, schemas });
+    const results = Object.fromEntries(Object.entries(scenarios).map(([name, records]) => [name, verifySyntheticCalibrationEvidenceChain({ records, capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas })]));
+    assert.deepEqual(
+      Object.fromEntries(Object.entries(results).map(([name, result]) => [name, { recordCount: result.recordCount, stageCounts: result.stageCounts, terminalDisposition: result.terminalDisposition, verifiedDisposition: result.verifiedDisposition, e4Eligible: result.e4Eligible, e0ExecutionCoverageCount: result.e0ExecutionCoverageCount, e0UsageCoverageCount: result.e0UsageCoverageCount, orphanE0Count: result.orphanE0Count, reusedE0Count: result.reusedE0Count, unmatchedIncidentCount: result.unmatchedIncidentCount }])),
+      {
+        success: { recordCount: 9, stageCounts: { E0: 4, E1: 2, E2: 1, E3: 1, E4: 1 }, terminalDisposition: "aggregate_succeeded", verifiedDisposition: "verified_aggregate", e4Eligible: true, e0ExecutionCoverageCount: 2, e0UsageCoverageCount: 2, orphanE0Count: 0, reusedE0Count: 0, unmatchedIncidentCount: 0 },
+        withdrawal: { recordCount: 12, stageCounts: { E0: 6, E1: 4, E2: 1, E3: 1, E4: 0 }, terminalDisposition: "calibration_withdrawn", verifiedDisposition: "verified_withdrawal", e4Eligible: false, e0ExecutionCoverageCount: 2, e0UsageCoverageCount: 2, orphanE0Count: 0, reusedE0Count: 0, unmatchedIncidentCount: 0 },
+        failure: { recordCount: 9, stageCounts: { E0: 4, E1: 2, E2: 2, E3: 1, E4: 0 }, terminalDisposition: "calibration_failed", verifiedDisposition: "verified_failure", e4Eligible: false, e0ExecutionCoverageCount: 2, e0UsageCoverageCount: 2, orphanE0Count: 0, reusedE0Count: 0, unmatchedIncidentCount: 0 },
+      },
+    );
   });
 
   test("rejects valid signatures from wrong creators and combined or wrapped records", async () => {
@@ -337,16 +365,109 @@ describe("body-free calibration evidence contracts", () => {
     assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(records, aggregate, omitted), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
   });
 
-  test("rejects unreported missingness/incidents and post-result grid substitution", async () => {
+  test("rejects the twelve validly re-signed terminal and E0-accounting attacks", async () => {
+    const schemas = await SchemaRegistry.load(path.resolve("schemas"));
+    const current = signers();
+    const scenarios = buildSyntheticCalibrationEvidenceScenarios({ signers: current, schemas });
+    const capability = buildSyntheticCalibrationCapabilityDescriptor();
+    const verifyRejects = (label: string, records: readonly CalibrationEvidenceRecord[]) => {
+      assert.throws(
+        () => verifySyntheticCalibrationEvidenceChain({ records, capability, roleBoundary: boundary(current), schemas }),
+        label,
+      );
+    };
+
+    const successAggregate = scenarios.success.find((record) => record.recordType === "AggregateCalibrationCommitment")!;
+    const successVerification = scenarios.success.find((record) => record.recordType === "CalibrationVerificationReceipt")!;
+    const successE1 = scenarios.success.filter((record) => record.stage === "E1");
+    const withdrawalBase = scenarios.withdrawal.find((record) => record.recordType === "CalibrationWithdrawalRecord")!;
+    const injectedWithdrawal = cryptographicallyResignRecord({
+      base: withdrawalBase,
+      signer: current.calibrationScorer,
+      mutate: (value) => {
+        value.attemptCommitment = successAggregate.attemptCommitment;
+        value.dependencies = successE1.map((record) => ({ evidenceRecordId: record.evidenceRecordId, evidenceRecordHash: record.evidenceRecordHash, stage: record.stage, recordType: record.recordType }));
+      },
+    });
+    verifyRejects("aggregate+withdrawal", insertBeforeStage(scenarios.success, "E3", injectedWithdrawal));
+
+    const scorerFailureBase = scenarios.failure.find((record) => record.recordType === "CalibrationScorerFailureRecord")!;
+    const injectedFailure = cryptographicallyResignRecord({
+      base: scorerFailureBase,
+      signer: current.calibrationScorer,
+      mutate: (value) => {
+        value.attemptCommitment = successAggregate.attemptCommitment;
+        value.dependencies = [{ evidenceRecordId: successE1[0]!.evidenceRecordId, evidenceRecordHash: successE1[0]!.evidenceRecordHash, stage: successE1[0]!.stage, recordType: successE1[0]!.recordType }];
+      },
+    });
+    verifyRejects("aggregate+scorer failure", insertBeforeStage(scenarios.success, "E3", injectedFailure));
+
+    const successProposal = scenarios.success.find((record) => record.recordType === "ProtocolAuthorDerivedValueProposal")!;
+    const withdrawalVerification = scenarios.withdrawal.find((record) => record.recordType === "CalibrationVerificationReceipt")!;
+    const e4AfterWithdrawal = cryptographicallyResignRecord({ base: successProposal, signer: current.protocolAuthor, mutate: (value) => {
+      value.attemptCommitment = withdrawalVerification.attemptCommitment;
+      value.dependencies = [{ evidenceRecordId: withdrawalVerification.evidenceRecordId, evidenceRecordHash: withdrawalVerification.evidenceRecordHash, stage: withdrawalVerification.stage, recordType: withdrawalVerification.recordType }];
+      value.payload.verificationReceiptId = withdrawalVerification.evidenceRecordId;
+    } });
+    verifyRejects("E4 after verified withdrawal", [...scenarios.withdrawal, e4AfterWithdrawal]);
+
+    const failureVerification = scenarios.failure.find((record) => record.recordType === "CalibrationVerificationReceipt")!;
+    const e4AfterFailure = cryptographicallyResignRecord({ base: successProposal, signer: current.protocolAuthor, mutate: (value) => {
+      value.attemptCommitment = failureVerification.attemptCommitment;
+      value.dependencies = [{ evidenceRecordId: failureVerification.evidenceRecordId, evidenceRecordHash: failureVerification.evidenceRecordHash, stage: failureVerification.stage, recordType: failureVerification.recordType }];
+      value.payload.verificationReceiptId = failureVerification.evidenceRecordId;
+    } });
+    verifyRejects("E4 after verified failure", [...scenarios.failure, e4AfterFailure]);
+
+    const successMeasurements = scenarios.success.filter((record) => record.recordType === "CalibrationMeasurementCommitment");
+    const missingSuccess = cryptographicallyResignRecord({ base: successMeasurements[1]!, signer: current.calibrationEvaluator, mutate: (value) => { value.payload.missingnessState = "missing_declared"; } });
+    verifyRejects("successful aggregate with missing_declared", replaceByOriginalId(scenarios.success, successMeasurements[1]!, missingSuccess));
+
+    const evaluatorFailureBase = scenarios.withdrawal.find((record) => record.recordType === "CalibrationEvaluatorFailureRecord")!;
+    const successExecution = scenarios.success.find((record) => record.recordType === "CalibrationExecutionReceipt")!;
+    const injectedEvaluatorFailure = cryptographicallyResignRecord({ base: evaluatorFailureBase, signer: current.calibrationEvaluator, mutate: (value) => {
+      value.attemptCommitment = successAggregate.attemptCommitment;
+      value.dependencies = [{ evidenceRecordId: successExecution.evidenceRecordId, evidenceRecordHash: successExecution.evidenceRecordHash, stage: successExecution.stage, recordType: successExecution.recordType }];
+      value.payload.stratumCommitment = (successExecution.payload as any).stratumCommitment;
+    } });
+    verifyRejects("success with evaluator failure", insertBeforeStage(scenarios.success, "E2", injectedEvaluatorFailure));
+
+    const orphanExecution = cryptographicallyResignRecord({ base: successExecution, signer: current.calibrationExecutor, mutate: (value) => { value.payload.executionCommitment = `sha256:${"1".repeat(64)}`; } });
+    verifyRejects("orphan E0 execution", insertBeforeStage(scenarios.success, "E1", orphanExecution));
+
+    const successUsage = scenarios.success.find((record) => record.recordType === "CalibrationUsageReceipt")!;
+    const orphanUsage = cryptographicallyResignRecord({ base: successUsage, signer: current.calibrationExecutor, mutate: (value) => { value.payload.usageCommitment = `sha256:${"2".repeat(64)}`; } });
+    verifyRejects("orphan E0 usage", insertBeforeStage(scenarios.success, "E1", orphanUsage));
+
+    const alphaExecution = scenarios.success.find((record) => record.recordType === "CalibrationExecutionReceipt" && (record.payload as any).stratumCommitment === capability.expectedStrataCommitments[0])!;
+    const reusedExecution = cryptographicallyResignRecord({ base: successMeasurements[1]!, signer: current.calibrationEvaluator, mutate: (value) => {
+      value.dependencies[0] = { evidenceRecordId: alphaExecution.evidenceRecordId, evidenceRecordHash: alphaExecution.evidenceRecordHash, stage: alphaExecution.stage, recordType: alphaExecution.recordType };
+      value.payload.executionReceiptId = alphaExecution.evidenceRecordId;
+    } });
+    verifyRejects("one E0 reused by incompatible E1", replaceByOriginalId(scenarios.success, successMeasurements[1]!, reusedExecution));
+
+    const noUsage = cryptographicallyResignRecord({ base: successMeasurements[0]!, signer: current.calibrationEvaluator, mutate: (value) => { value.dependencies = value.dependencies.filter((dependency: any) => dependency.recordType !== "CalibrationUsageReceipt"); } });
+    verifyRejects("E1 measurement execution without usage", replaceByOriginalId(scenarios.success, successMeasurements[0]!, noUsage));
+
+    const stratumMismatch = cryptographicallyResignRecord({ base: successMeasurements[0]!, signer: current.calibrationEvaluator, mutate: (value) => { value.payload.stratumCommitment = `sha256:${"3".repeat(64)}`; } });
+    verifyRejects("E0/E1 stratum mismatch", replaceByOriginalId(scenarios.success, successMeasurements[0]!, stratumMismatch));
+
+    const mismatchedE3 = cryptographicallyResignRecord({ base: withdrawalVerification, signer: current.independentVerifier, mutate: (value) => {
+      value.payload.disposition = "verified_aggregate";
+      value.payload.aggregateRecordId = successAggregate.evidenceRecordId;
+      value.payload.withdrawalRecordId = null;
+      value.payload.aggregateVerified = true;
+      value.payload.e4Eligible = true;
+    } });
+    verifyRejects("E3 success disposition mismatches terminal E2", replaceByOriginalId(scenarios.withdrawal, withdrawalVerification, mismatchedE3));
+  });
+
+  test("rejects post-result grid substitution", async () => {
     const schemas = await SchemaRegistry.load(path.resolve("schemas"));
     const current = signers();
     const records = buildSyntheticCalibrationEvidenceChain({ signers: current, schemas });
     const aggregate = records.find((record) => record.recordType === "AggregateCalibrationCommitment")!;
-    for (const mutate of [
-      (value: any) => { value.payload.evaluatorFailureRecordIds = []; },
-      (value: any) => { value.payload.evaluatorIncidentRecordIds = []; },
-      (value: any) => { value.payload.gridCommitment = `sha256:${"a".repeat(64)}`; },
-    ]) {
+    for (const mutate of [(value: any) => { value.payload.gridCommitment = `sha256:${"a".repeat(64)}`; }]) {
       const changed = cryptographicallyResignRecord({ base: aggregate, signer: current.calibrationScorer, mutate });
       assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(records, aggregate, changed), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
     }
@@ -355,15 +476,15 @@ describe("body-free calibration evidence contracts", () => {
   test("rejects scorer raw/protected access and evaluator direct author release", async () => {
     const schemas = await SchemaRegistry.load(path.resolve("schemas"));
     const current = signers();
-    const records = buildSyntheticCalibrationEvidenceChain({ signers: current, schemas });
-    const scorerFailure = records.find((record) => record.recordType === "CalibrationScorerFailureRecord")!;
+    const scenarios = buildSyntheticCalibrationEvidenceScenarios({ signers: current, schemas });
+    const scorerFailure = scenarios.failure.find((record) => record.recordType === "CalibrationScorerFailureRecord")!;
     for (const key of ["rawEvaluatorInputPresent", "protectedDataAccessed"]) {
       const changed = cryptographicallyResignRecord({ base: scorerFailure, signer: current.calibrationScorer, mutate: (value) => { value.payload[key] = true; } });
-      assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(records, scorerFailure, changed), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
+      assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(scenarios.failure, scorerFailure, changed), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
     }
-    const evaluatorFailure = records.find((record) => record.recordType === "CalibrationEvaluatorFailureRecord")!;
+    const evaluatorFailure = scenarios.withdrawal.find((record) => record.recordType === "CalibrationEvaluatorFailureRecord")!;
     const release = cryptographicallyResignRecord({ base: evaluatorFailure, signer: current.calibrationEvaluator, mutate: (value) => { value.payload.directProtocolAuthorRelease = true; } });
-    assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(records, evaluatorFailure, release), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
+    assert.throws(() => verifySyntheticCalibrationEvidenceChain({ records: replaceByOriginalId(scenarios.withdrawal, evaluatorFailure, release), capability: buildSyntheticCalibrationCapabilityDescriptor(), roleBoundary: boundary(current), schemas }));
   });
 
   test("rejects unverified aggregates, eligibility escalation, nonzero budgets, final IDs, and O", async () => {
@@ -407,7 +528,7 @@ describe("calibration evidence readiness sealing contract", () => {
   test("verifies source bindings, assembly lineage, and reference-only receipt", async () => {
     const current = await readinessFixture();
     const result = await verifyCalibrationEvidenceContractReadinessAgainstArtifacts({ record: current.record, schemas: current.schemas, reader: current.reader });
-    assert.deepEqual(result, { artifactCount: 18, contractRecordTypeCount: 13, evidenceStageCount: 5, syntheticFixtureRecordCount: 14, syntheticExpectedStratumCount: 2, unresolvedObligationCount: 7, actualEvidenceRecords: 0, issuedCapabilities: 0, consumedCapabilities: 0, providerModelRequestAttempts: 0, protectedDataAccesses: 0, finalIdentitiesAllocated: 0, oProposals: 0, oActivations: 0, authoritiesGranted: 0 });
+    assert.deepEqual(result, { artifactCount: 21, contractRecordTypeCount: 13, evidenceStageCount: 5, syntheticScenarioCount: 3, syntheticFixtureRecordCount: 30, syntheticExpectedStratumCount: 2, unresolvedObligationCount: 7, actualEvidenceRecords: 0, issuedCapabilities: 0, consumedCapabilities: 0, providerModelRequestAttempts: 0, protectedDataAccesses: 0, finalIdentitiesAllocated: 0, oProposals: 0, oActivations: 0, authoritiesGranted: 0 });
     verifyCalibrationEvidenceReadinessAuditReceiptIndependent({ receipt: current.receipt, readiness: current.record, readinessBytes: current.readinessBytes, schemas: current.schemas });
   });
 

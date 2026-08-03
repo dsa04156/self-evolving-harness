@@ -1,6 +1,6 @@
 # Body-free calibration evidence contract readiness
 
-Status: public-development, synthetic, offline, zero-execution contract readiness only.
+Status: public-development, synthetic, offline, zero-execution terminal-branch readiness only.
 
 This package defines closed formats for a possible future calibration evidence chain. It does not
 create a calibration plan, issue a dataset capability, execute a model or tool, admit evidence, fill
@@ -37,7 +37,8 @@ key ID, public-key digest, and process identity.
 
 ## Disclosure boundary
 
-Every payload is body-free and commitment-oriented. E0 contains only opaque execution, accounting,
+Every record carries one opaque attempt commitment. Every payload is body-free and
+commitment-oriented. E0 contains only opaque execution, accounting,
 and incident commitments. E1 contains normalized measurement commitments plus explicit missingness,
 failure, and incident state. E2 contains ordered E1 references, expected and observed stratum
 commitments, a precommitted grid identifier, rejected-candidate commitments, rule branch, precision
@@ -54,10 +55,24 @@ The semantic verifier requires every dependency to bind the exact ID, hash, stag
 record in the immediately preceding stage. It rejects missing or reordered stages, `E0->E2`,
 `E1->E4`, evaluator-raw input to E2, and every route to `O`.
 
-The synthetic conformance chain contains two opaque expected-stratum commitments. The aggregate must
-cover each exactly once, preserve the ordered E1 list, disclose evaluator failure and incident
-records, retain the pre-result grid commitment, and be covered by E3 before E4 can reference it.
-These are structural conformance checks, not measurements.
+Three independent synthetic attempts exercise mutually exclusive terminal branches:
+
+- `aggregate_succeeded` -> `verified_aggregate` -> exactly one E4 proposal;
+- `calibration_withdrawn` -> `verified_withdrawal` -> no E4;
+- `calibration_failed` -> `verified_failure` -> no E4.
+
+An attempt cannot contain more than one terminal branch. Aggregate success requires every expected
+stratum to be complete, no evaluator failure, no unresolved incident, exact E1 coverage, and no
+withdrawal or terminal scorer failure. Withdrawal requires declared missingness and exactly one
+withdrawal. Failure requires at least one terminal scorer failure and forbids aggregate, withdrawal,
+and E4 records.
+
+For each expected stratum, E0 contains one execution receipt and one usage receipt. Its E1
+measurement must name both receipts, depend on both exactly once, match the stratum and accounting
+head, and leave no orphan or reused E0 record. Executor incidents are likewise consumed by exactly
+one evaluator failure or incident, and every disclosed evaluator incident is matched to its
+measurement. E2 records partition E1 coverage without orphan or reuse. These are structural
+conformance checks, not measurements.
 
 ## One-time capability descriptor
 
@@ -77,11 +92,13 @@ budgets remain zero. No issuance or consumption receipt exists.
 
 ## Sealing and audit
 
-The protocol author signs one readiness record over the schema inventory, ownership and disclosure
-matrices, graph contract, unissued capability descriptor, source snapshot, and prior assembly
-readiness. A distinct independent verifier signs a byte-level verification statement. A distinct
-audit store signs a reference-only receipt. The two generated files are added only after the clean
-implementation source commit, preventing self-reference.
+The protocol author signs one corrected v2 readiness record over the schema inventory, ownership and
+disclosure matrices, terminal disposition contract, exact E0 accounting contract, unissued capability
+descriptor, source snapshot, prior assembly readiness, superseded readiness, and its `REVISE` ruling.
+A distinct independent verifier binds all three scenarios and E4 eligibility in a byte-level
+statement. A distinct audit store signs a reference-only receipt. The two v2 files are added only
+after the clean implementation source commit, preserving the earlier rejected evidence and preventing
+self-reference.
 
 ## Non-claims
 

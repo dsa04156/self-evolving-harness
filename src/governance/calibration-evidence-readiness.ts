@@ -32,9 +32,9 @@ import {
 export const CALIBRATION_EVIDENCE_READINESS_SCHEMA_ID =
   `${SCHEMA_BASE_URL}calibration-evidence-readiness.schema.json`;
 export const CALIBRATION_EVIDENCE_READINESS_PATH =
-  "governance/gate3/calibration-evidence-contract-readiness.json";
+  "governance/gate3/calibration-evidence-contract-readiness-v2.json";
 export const CALIBRATION_EVIDENCE_READINESS_AUDIT_PATH =
-  "governance/gate3/calibration-evidence-contract-readiness-audit-receipt.json";
+  "governance/gate3/calibration-evidence-contract-readiness-v2-audit-receipt.json";
 
 export type CalibrationEvidenceArtifactMediaType =
   | "application/json"
@@ -51,6 +51,9 @@ export interface CalibrationEvidenceArtifactReference {
 }
 
 export const CALIBRATION_EVIDENCE_READINESS_ARTIFACT_SPECS = [
+  ["prior_evidence_readiness", "governance/gate3/calibration-evidence-contract-readiness.json", "application/json"],
+  ["prior_evidence_readiness_receipt", "governance/gate3/calibration-evidence-contract-readiness-audit-receipt.json", "application/json"],
+  ["prior_evidence_ruling", ".codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrrrrr.md", "text/markdown; charset=utf-8"],
   ["assembly_readiness", "governance/gate3/calibration-plan-assembly-readiness.json", "application/json"],
   ["assembly_readiness_receipt", "governance/gate3/calibration-plan-assembly-readiness-audit-receipt.json", "application/json"],
   ["assembly_evidence_packet", "architect/PACKET_03RRRRRRRRRRRRRRRRRRRRR_CALIBRATION_PLAN_ASSEMBLY_READINESS_EVIDENCE.md", "text/markdown; charset=utf-8"],
@@ -123,6 +126,44 @@ export const CALIBRATION_EVIDENCE_FUTURE_IDENTITY_STATE = {
   oActivationId: null,
 } as const;
 
+export const CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT = {
+  scenarioCount: 3,
+  totalRecordCount: 30,
+  scenarios: [
+    {
+      terminalDisposition: "aggregate_succeeded",
+      verifiedDisposition: "verified_aggregate",
+      expectedRecordCount: 9,
+      expectedStageCounts: { E0: 4, E1: 2, E2: 1, E3: 1, E4: 1 },
+      e4Expected: true,
+    },
+    {
+      terminalDisposition: "calibration_withdrawn",
+      verifiedDisposition: "verified_withdrawal",
+      expectedRecordCount: 12,
+      expectedStageCounts: { E0: 6, E1: 4, E2: 1, E3: 1, E4: 0 },
+      e4Expected: false,
+    },
+    {
+      terminalDisposition: "calibration_failed",
+      verifiedDisposition: "verified_failure",
+      expectedRecordCount: 9,
+      expectedStageCounts: { E0: 4, E1: 2, E2: 2, E3: 1, E4: 0 },
+      e4Expected: false,
+    },
+  ],
+  expectedStratumCount: 2,
+  terminalBranchesMutuallyExclusive: true,
+  e0ExecutionUsageExactlyOnce: true,
+  e0AccountingHeadsMatch: true,
+  e0OrphanOrReuseAllowed: false,
+  e3DispositionBoundToE2: true,
+  e4OnlyAfterVerifiedAggregate: true,
+  fixturesPersistedAsCalibrationEvidence: false,
+  actualEvidenceRecordsPersisted: 0,
+  validlyResignedAttackFamiliesMinimum: 30,
+} as const;
+
 export interface CalibrationEvidenceContractHashes {
   readonly inventory: string;
   readonly ownershipMatrix: string;
@@ -132,6 +173,7 @@ export interface CalibrationEvidenceContractHashes {
   readonly zeroBudget: string;
   readonly authorityState: string;
   readonly eligibilityState: string;
+  readonly syntheticFixtureContract: string;
 }
 
 export function calibrationEvidenceContractHashes(): CalibrationEvidenceContractHashes {
@@ -144,6 +186,7 @@ export function calibrationEvidenceContractHashes(): CalibrationEvidenceContract
     zeroBudget: sha256(CALIBRATION_EVIDENCE_ZERO_BUDGET as unknown as JsonValue),
     authorityState: sha256(CALIBRATION_EVIDENCE_AUTHORITY_STATE as unknown as JsonValue),
     eligibilityState: sha256(CALIBRATION_EVIDENCE_ELIGIBILITY_STATE as unknown as JsonValue),
+    syntheticFixtureContract: sha256(CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT as unknown as JsonValue),
   };
 }
 
@@ -152,7 +195,7 @@ export interface CalibrationEvidenceContractReadiness {
   readonly hashDomain: "CalibrationEvidenceContractReadiness.v1";
   readonly readinessId: string;
   readonly recordType: "calibration_evidence_contract_readiness";
-  readonly status: "offline_body_free_contracts_ready_only";
+  readonly status: "offline_body_free_terminal_branches_ready_only";
   readonly sourceSnapshot: {
     readonly sourceCommit: string;
     readonly sourceTree: string;
@@ -167,6 +210,14 @@ export interface CalibrationEvidenceContractReadiness {
     readonly assemblyAuditReceiptRawSha256: string;
     readonly assemblyEvidenceRulingRawSha256: string;
     readonly assemblyEvidenceDecision: "APPROVE";
+    readonly priorEvidenceReadinessId: string;
+    readonly priorEvidenceReadinessHash: string;
+    readonly priorEvidenceReadinessRawSha256: string;
+    readonly priorEvidenceAuditReceiptId: string;
+    readonly priorEvidenceAuditReceiptHash: string;
+    readonly priorEvidenceAuditReceiptRawSha256: string;
+    readonly priorEvidenceRulingRawSha256: string;
+    readonly priorEvidenceDecision: "REVISE";
   };
   readonly artifacts: readonly CalibrationEvidenceArtifactReference[];
   readonly contractInventory: typeof CALIBRATION_EVIDENCE_CONTRACT_INVENTORY;
@@ -174,20 +225,7 @@ export interface CalibrationEvidenceContractReadiness {
   readonly disclosureMatrix: typeof CALIBRATION_EVIDENCE_DISCLOSURE_MATRIX;
   readonly graphContract: typeof CALIBRATION_EVIDENCE_GRAPH_CONTRACT;
   readonly syntheticCapabilityDescriptor: SyntheticCalibrationCapabilityDescriptor;
-  readonly syntheticFixtureContract: {
-    readonly expectedRecordCount: 14;
-    readonly expectedStageCounts: {
-      readonly E0: 3;
-      readonly E1: 4;
-      readonly E2: 5;
-      readonly E3: 1;
-      readonly E4: 1;
-    };
-    readonly expectedStratumCount: 2;
-    readonly fixturesPersistedAsCalibrationEvidence: false;
-    readonly actualEvidenceRecordsPersisted: 0;
-    readonly validlyResignedAttackFamiliesMinimum: 18;
-  };
+  readonly syntheticFixtureContract: typeof CALIBRATION_EVIDENCE_SYNTHETIC_FIXTURE_CONTRACT;
   readonly contractHashes: CalibrationEvidenceContractHashes;
   readonly roleBoundary: CalibrationEvidenceRoleBoundary;
   readonly actualEvidenceRecords: readonly [];
@@ -333,10 +371,16 @@ export interface CalibrationEvidenceIndependentVerification {
     readonly signaturesValid: true;
     readonly sourceBindingsValid: true;
     readonly assemblyBindingValid: true;
+    readonly priorReviseBindingValid: true;
     readonly contractsClosedAndBodyFree: true;
     readonly ownershipAndDisclosureMatricesExact: true;
     readonly oneWayGraphExact: true;
     readonly syntheticChainVerified: true;
+    readonly threeTerminalScenariosVerified: true;
+    readonly terminalBranchesMutuallyExclusive: true;
+    readonly e0ToE1CoverageExact: true;
+    readonly e3DispositionBoundToE2: true;
+    readonly e4EligibilityExact: true;
     readonly roleBoundaryDisjoint: true;
     readonly capabilityUnissuedAndUnconsumed: true;
     readonly zeroExecutionBudget: true;
