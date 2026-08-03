@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/calibration-plan-assembly-readiness.schema.json",
+  "title": "Offline calibration plan assembly and freeze-admission readiness",
+  "description": "A value-free public-development mapping/firewall record and reference-only audit receipt. It is not a calibration plan, envelope, protocol freeze, budget freeze, or execution authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/readiness" },
+    { "$ref": "#/$defs/auditReceipt" }
+  ],
+  "$defs": {
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "signature"],
+      "properties": {
+        "keyId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "algorithm": { "const": "Ed25519" },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]{80,128}$" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "path", "sourceCommit", "sha256", "sizeBytes", "mediaType"],
+      "properties": {
+        "artifactId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "text/markdown; charset=utf-8",
+            "text/typescript; charset=utf-8",
+            "text/x-python; charset=utf-8"
+          ]
+        }
+      }
+    },
+    "programBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "programId", "sourceSha256"],
+      "properties": {
+        "target": { "type": "string", "enum": ["F", "G", "J", "K", "L", "M"] },
+        "programId": { "type": "string", "pattern": "^cdp-sha256:[a-f0-9]{64}$" },
+        "sourceSha256": { "$ref": "./common.schema.json#/$defs/sha256" }
+      }
+    },
+    "fieldMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fieldPath",
+        "mappingKind",
+        "originalSentinel",
+        "effectiveExpansionCount",
+        "directDerivationClass",
+        "dependencyGraphNode",
+        "requiredFutureRecordType",
+        "requiredProducerRole",
+        "requiredVerifierReceipt",
+        "admissibleSourceClass",
+        "prohibitedSourceClasses",
+        "valueSupplied",
+        "futureEvidenceReferenceSupplied"
+      ],
+      "properties": {
+        "fieldPath": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "mappingKind": { "type": "string", "enum": ["pending_sentinel", "statistical_margin_group"] },
+        "originalSentinel": {
+          "oneOf": [
+            { "type": "string", "enum": ["PILOT_PENDING", "PILOT_PENDING_BY_PRECISION_RULE", "PILOT_PENDING_AFTER_COUNT_FREEZE"] },
+            { "type": "null" }
+          ]
+        },
+        "effectiveExpansionCount": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "directDerivationClass": {
+          "type": "string",
+          "enum": [
+            "normative_contract_value",
+            "environment_identity_dependent",
+            "provider_or_model_identity_dependent",
+            "mine_calibration_required",
+            "dedicated_pilot_required",
+            "withdraw_if_not_estimable"
+          ]
+        },
+        "dependencyGraphNode": { "type": "string", "enum": ["B", "C", "F", "G", "H", "J", "K", "L", "M", "N"] },
+        "requiredFutureRecordType": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "requiredProducerRole": { "const": "protocol_author" },
+        "requiredVerifierReceipt": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "admissibleSourceClass": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "prohibitedSourceClasses": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "valueSupplied": { "const": false },
+        "futureEvidenceReferenceSupplied": { "const": false }
+      }
+    },
+    "goldenVector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vectorId", "operation", "input", "output", "publicDevelopment", "authorizedForResearchEvidence", "admissibleAsNumericFreezeValue"],
+      "properties": {
+        "vectorId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "wilson_upper_probability_micros",
+            "ceil_rational_to_integer",
+            "ceil_to_positive_quantum",
+            "seed_stream_preimage_sha256",
+            "canonical_serialization_sha256"
+          ]
+        },
+        "input": { "type": "object", "minProperties": 1, "maxProperties": 8 },
+        "output": { "type": "object", "minProperties": 1, "maxProperties": 4 },
+        "publicDevelopment": { "const": true },
+        "authorizedForResearchEvidence": { "const": false },
+        "admissibleAsNumericFreezeValue": { "const": false }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "publicPrincipal", "processIdentity", "currentCapabilityHandles", "delegatedCapabilityIds", "roleAliases"],
+      "properties": {
+        "role": { "type": "string", "enum": ["protocol_author", "independent_verifier", "audit_store"] },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "processIdentity": {
+          "type": "string",
+          "pattern": "^process\\.calibration-plan-assembly-readiness\\.(protocol-author|independent-verifier|audit-store)\\.v1$"
+        },
+        "currentCapabilityHandles": { "type": "array", "maxItems": 0 },
+        "delegatedCapabilityIds": { "type": "array", "maxItems": 0 },
+        "roleAliases": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "roleBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolAuthor", "independentVerifier", "auditStore", "requiredInequalities", "aliasingDelegationCosigningProxyingForbidden"],
+      "properties": {
+        "protocolAuthor": { "$ref": "#/$defs/role" },
+        "independentVerifier": { "$ref": "#/$defs/role" },
+        "auditStore": { "$ref": "#/$defs/role" },
+        "requiredInequalities": { "const": ["principalId", "instanceId", "keyId", "publicKeyDigest", "processIdentity"] },
+        "aliasingDelegationCosigningProxyingForbidden": { "const": true }
+      }
+    },
+    "verificationFlags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaValid",
+        "signaturesValid",
+        "sourceBindingsValid",
+        "priorBindingsValid",
+        "programBindingsExact",
+        "fieldEvidenceMapCompleteAndValueFree",
+        "freezeAdmissionFirewallExact",
+        "futureGridSchemasValueFree",
+        "portabilityContractExact",
+        "crossImplementationGoldenVectorsMatch",
+        "rolesDisjoint",
+        "zeroExecutionBudget",
+        "finalIdentitiesAbsent",
+        "oCreationAbsent",
+        "authoritiesGranted"
+      ],
+      "properties": {
+        "schemaValid": { "const": true },
+        "signaturesValid": { "const": true },
+        "sourceBindingsValid": { "const": true },
+        "priorBindingsValid": { "const": true },
+        "programBindingsExact": { "const": true },
+        "fieldEvidenceMapCompleteAndValueFree": { "const": true },
+        "freezeAdmissionFirewallExact": { "const": true },
+        "futureGridSchemasValueFree": { "const": true },
+        "portabilityContractExact": { "const": true },
+        "crossImplementationGoldenVectorsMatch": { "const": true },
+        "rolesDisjoint": { "const": true },
+        "zeroExecutionBudget": { "const": true },
+        "finalIdentitiesAbsent": { "const": true },
+        "oCreationAbsent": { "const": true },
+        "authoritiesGranted": { "const": 0 }
+      }
+    },
+    "independentVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hashDomain", "assemblyReadinessId", "assemblyReadinessHash", "readinessArtifactSha256", "verification", "verifiedAt", "verifier", "publicPrincipal", "attestation"],
+      "properties": {
+        "hashDomain": { "const": "CalibrationPlanAssemblyIndependentVerification.v1" },
+        "assemblyReadinessId": { "type": "string", "pattern": "^cpar-sha256:[a-f0-9]{64}$" },
+        "assemblyReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "readinessArtifactSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "verification": { "$ref": "#/$defs/verificationFlags" },
+        "verifiedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "verifier": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "hashDomain",
+        "assemblyReadinessId",
+        "recordType",
+        "status",
+        "zeroExecution",
+        "calibrationPlanCreated",
+        "sourceSnapshot",
+        "priorBindings",
+        "artifacts",
+        "programBindings",
+        "fieldEvidenceMap",
+        "mappingSummary",
+        "freezeAdmissionFirewall",
+        "futureCandidateGridSchemas",
+        "actualCandidateGridInstances",
+        "arithmeticPortabilityContract",
+        "portabilityGoldenVectors",
+        "assemblyCompletenessRule",
+        "roleBoundary",
+        "researchExecutionBudget",
+        "authorityState",
+        "eligibilityState",
+        "futureIdentityState",
+        "forbiddenRecordTypes",
+        "claimBoundary",
+        "recordedAt",
+        "recordedBy",
+        "assemblyReadinessHash",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationPlanAssemblyReadiness.v1" },
+        "assemblyReadinessId": { "type": "string", "pattern": "^cpar-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_plan_assembly_readiness" },
+        "status": { "const": "offline_mapping_and_firewall_ready_only" },
+        "zeroExecution": { "const": true },
+        "calibrationPlanCreated": { "const": false },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceCommit", "sourceTree", "additionalPushPerformed"],
+          "properties": {
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "additionalPushPerformed": { "const": false }
+          }
+        },
+        "priorBindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numericFreezeEntryId", "numericFreezeEntryRawSha256", "calibrationContractId", "calibrationContractHash", "calibrationContractRawSha256", "derivationReadinessId", "derivationReadinessHash", "derivationReadinessRawSha256", "derivationEvidencePacketRawSha256", "derivationEvidenceRulingRawSha256", "derivationEvidenceDecision"],
+          "properties": {
+            "numericFreezeEntryId": { "type": "string", "pattern": "^nfe-sha256:[a-f0-9]{64}$" },
+            "numericFreezeEntryRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "calibrationContractId": { "type": "string", "pattern": "^cc-sha256:[a-f0-9]{64}$" },
+            "calibrationContractHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "calibrationContractRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "derivationReadinessId": { "type": "string", "pattern": "^cdr-sha256:[a-f0-9]{64}$" },
+            "derivationReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "derivationReadinessRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "derivationEvidencePacketRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "derivationEvidenceRulingRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "derivationEvidenceDecision": { "const": "APPROVE" }
+          }
+        },
+        "artifacts": { "type": "array", "minItems": 24, "maxItems": 24, "items": { "$ref": "#/$defs/artifact" } },
+        "programBindings": { "type": "array", "minItems": 6, "maxItems": 6, "items": { "$ref": "#/$defs/programBinding" } },
+        "fieldEvidenceMap": { "type": "array", "minItems": 26, "maxItems": 26, "items": { "$ref": "#/$defs/fieldMapping" } },
+        "mappingSummary": {
+          "const": {
+            "pendingSentinelPathCount": 25,
+            "statisticalMarginGroupCount": 1,
+            "mappingCount": 26,
+            "effectiveExpandedOutputCount": 136,
+            "valuesSupplied": 0,
+            "futureEvidenceReferencesSupplied": 0
+          }
+        },
+        "freezeAdmissionFirewall": { "type": "object", "minProperties": 10 },
+        "futureCandidateGridSchemas": { "type": "array", "minItems": 4, "maxItems": 4 },
+        "actualCandidateGridInstances": { "type": "array", "maxItems": 0 },
+        "arithmeticPortabilityContract": { "type": "object", "minProperties": 7 },
+        "portabilityGoldenVectors": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "$ref": "#/$defs/goldenVector" } },
+        "assemblyCompletenessRule": { "type": "object", "minProperties": 10 },
+        "roleBoundary": { "$ref": "#/$defs/roleBoundary" },
+        "researchExecutionBudget": { "type": "object", "minProperties": 20 },
+        "authorityState": { "type": "object", "minProperties": 10 },
+        "eligibilityState": { "type": "object", "minProperties": 10 },
+        "futureIdentityState": {
+          "const": {
+            "finalProtocolId": null,
+            "budgetFreezeId": null,
+            "calibrationPlanManifestId": null,
+            "calibrationEnvelopeId": null,
+            "selectedProtocolValueSetId": null
+          }
+        },
+        "forbiddenRecordTypes": { "const": ["CalibrationPlanManifest", "calibration_envelope", "ProtocolManifest", "BudgetFreezeManifest", "O_proposal", "O_activation"] },
+        "claimBoundary": {
+          "const": {
+            "mappingAndFirewallImplemented": true,
+            "arithmeticPortabilityConformanceOnly": true,
+            "calibrationPerformed": false,
+            "calibrationPlanAdmissible": false,
+            "numericValuesFrozen": false,
+            "estimatorAdequacyEstablished": false,
+            "performanceEvidence": false,
+            "fairnessEvidence": false,
+            "attributionEvidence": false,
+            "securityCertification": false,
+            "evolutionClaim": false,
+            "selfImprovementClaim": false
+          }
+        },
+        "recordedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "recordedBy": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "assemblyReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "auditReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "receiptId", "recordType", "readinessReference", "independentVerification", "referenceOnly", "grantsAuthority", "producer", "receiptHash", "publicPrincipal", "attestation"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationPlanAssemblyAuditReceipt.v1" },
+        "receiptId": { "type": "string", "pattern": "^cparar-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_plan_assembly_readiness_audit_receipt" },
+        "readinessReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["assemblyReadinessId", "assemblyReadinessHash", "path", "sourceCommit", "sourceTree", "sha256", "sizeBytes"],
+          "properties": {
+            "assemblyReadinessId": { "type": "string", "pattern": "^cpar-sha256:[a-f0-9]{64}$" },
+            "assemblyReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "path": { "const": "governance/gate3/calibration-plan-assembly-readiness.json" },
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 }
+          }
+        },
+        "independentVerification": { "$ref": "#/$defs/independentVerification" },
+        "referenceOnly": { "const": true },
+        "grantsAuthority": { "const": false },
+        "producer": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "receiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    }
+  }
+}

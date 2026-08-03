@@ -40,6 +40,8 @@
     "verify:calibration-contract": "npx -y node@24.18.1 --import tsx scripts/verify-calibration-contract.ts",
     "create:calibration-derivation-readiness": "npx -y node@24.18.1 --import tsx scripts/create-calibration-derivation-readiness.ts",
     "verify:calibration-derivation-readiness": "npx -y node@24.18.1 --import tsx scripts/verify-calibration-derivation-readiness.ts",
+    "create:calibration-plan-assembly-readiness": "npx -y node@24.18.1 --import tsx scripts/create-calibration-plan-assembly-readiness.ts",
+    "verify:calibration-plan-assembly-readiness": "npx -y node@24.18.1 --import tsx scripts/verify-calibration-plan-assembly-readiness.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },
