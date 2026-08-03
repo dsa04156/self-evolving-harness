@@ -634,3 +634,18 @@ any paid-provider request.
   credentials, benchmark/vault/task/raw measurement, sentinel/margin fill, final IDs/O, B0–B6,
   attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical and
   certification claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRRRRRRRRR evidence-contract decision
+
+- External decision: `REVISE`; the closed record inventory, role separation, body-free disclosure,
+  one-way graph, unissued capability, two-commit seal, and zero-authority boundary are accepted.
+- Sole blocker: one contradictory synthetic attempt mixed aggregate, withdrawal, terminal scorer
+  failure, and E4, while E0 execution/usage receipts lacked exact one-use E1 accounting.
+- Narrow correction: define exactly one of `aggregate_succeeded`, `calibration_withdrawn`, or
+  `calibration_failed`; bind E3 to the matching verified disposition; permit E4 only after a verified
+  aggregate; require complete stratum/accounting/incident coverage without orphan or reuse.
+- Replace the fixture with success, missingness-withdrawal, and scorer-failure scenarios and reject the
+  twelve named cross-branch/accounting attacks with valid signatures. Reseal append-only evidence under
+  the established source/seal pattern and submit one correction packet.
+- No actual calibration, provider, protected data, nonzero budget, final value, research evaluation,
+  evolution, promotion, push/publication, or empirical claim is authorized.

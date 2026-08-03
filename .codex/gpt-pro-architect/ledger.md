@@ -1189,3 +1189,32 @@ response path, interpreted decision, required revisions, and the commit containi
   benchmark/vault/task/raw measurement access; sentinel/margin fill, final IDs, or O; B0–B6/
   attribution/mutation/candidate work; selection/promotion/deployment; push/release/publication; and
   empirical, security, evolution, or self-improvement claims
+
+## Round 3RRRRRRRRRRRRRRRRRRRRRR — 2026-08-03
+
+- sent packet: `architect/PACKET_03RRRRRRRRRRRRRRRRRRRRRR_CALIBRATION_EVIDENCE_CONTRACT_READINESS_EVIDENCE.md`
+- packet commit/tree/hash: `f9a14d56781bef8ba0d30ac3d0bffb4928feaee2` /
+  `ba2d949b6164d65a8c42273e97bcafc40594b7e4` /
+  `6b6fef15530868c4a1c00965db36e5222ba56712a6e4f7b4ff60aa38cce79b7e`
+- source/seal commits: `8b92f1965c0c3b6b515fc486de29f151bcf0d2cc` /
+  `526a2233fe9f58762a69961b25d740abe8ba6f98`
+- readiness/receipt IDs: `cecr-sha256:426f217d824d416fbfe49a472a8f1a7fe5a397d9914c5dcf2f498ec96e211c16` /
+  `cecrar-sha256:1cdee884a76bacd0807117eda24185e554a8d1f7fd09b476f8e681933cb6988f`
+- validation: TypeScript check/build passed; full deterministic suite 198/198; focused suite 13/13;
+  generator replay rejected with `EEXIST`; zero execution, authority, final IDs, secrets, and pushes
+- transport: exact existing target `4BA3B4F29D8FD1597A712A46C80CB67E` at
+  `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`; recovery verified the complete
+  20,979-character composer before exactly one `send-existing 2` submission; no new tab/window or resend
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrrrrr.md`
+- raw-response verification: 12,851 characters / 12,901 bytes; SHA-256
+  `0e73d97bc113da856a2ddbb0a38cf40022cb4de0032dbaa96ae93fafcf36914c`
+- architect decision: `REVISE`
+- accepted: closed 14-way inventory, exclusive role ownership, body-free disclosure, one-way E0–E4
+  graph, unissued capability, source/seal/audit layout, and zero-authority claim discipline
+- blocker: the single fixture combined aggregate, withdrawal, scorer failure, and E4; terminal branches
+  were not mutually exclusive and E0→E1 execution/usage accounting was not exact
+- authorized correction only: three exclusive terminal scenarios, exact E0→E1 coverage, E3 branch
+  disposition, aggregate-only E4 eligibility, twelve validly re-signed attacks, nested verifier/audit
+  bindings, another two-commit seal, and one narrow correction packet
+- still prohibited: actual calibration/plan/capability/execution/provider/data/budget/sentinel/final-ID/O,
+  research/B0–B6/attribution/mutation/candidate work, push/publication, and empirical claims
