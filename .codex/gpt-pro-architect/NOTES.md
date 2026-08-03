@@ -535,3 +535,25 @@ any paid-provider request.
 - All 25 sentinels, eight groups, classifications, numeric rules, failure rules, null final IDs, and false
   authorities remain unchanged. Only a no-execution correction packet is authorized; no implementation,
   provider, calibration, benchmark, research, selection, deployment, publication, or claim action.
+
+## Durable Round 3RRRRRRRRRRRRRRRRRR evaluator/scorer separation decision
+
+- External decision: `APPROVE`; the sole future evaluator/scorer role-collapse defect is closed.
+- `calibration_evaluator` and `calibration_scorer` must differ in principal, instance, key, public-key
+  digest, process identity, and underlying writable mount source. Aliased paths, delegated capabilities,
+  wrappers, proxies, temporary reuse, inheritance, and co-signing count as collapse.
+- Record creation is exclusive by role. The scorer cannot receive task bodies, raw outputs, verifier
+  source, provider capabilities, or evaluator-raw storage; the evaluator cannot create aggregates or
+  send a derived value directly to the protocol author.
+- The required evidence path is one-way: executor receipt `E0` → evaluator measurement commitment
+  `E1` → scorer aggregate/withdrawal commitment `E2` → independent verification receipt `E3` →
+  protocol-author derived-value proposal `E4`.
+- All 25 sentinels, eight pending groups, six derivation classes, 12 phases, seven unresolved
+  obligations, null final IDs, zero budgets, and false authority/eligibility flags remain unchanged.
+- Authorized next scope is one closed zero-execution calibration-contract schema, semantic verifier,
+  exactly one signed preregistered public-development record, one reference-only receipt, validly
+  re-signed adversarial tests, a non-self-referential source/sealing layout, full offline validation,
+  and a narrow evidence packet.
+- No calibration, provider/model, benchmark/vault/task/research execution, nonzero budget, sentinel
+  fill, final IDs, B0–B6, attribution/mutation/candidate, selection/promotion/deployment, push,
+  publication, or empirical/security/evolution/self-improvement claim is authorized.

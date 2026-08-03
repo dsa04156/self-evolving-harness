@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRRRRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRRRRRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,20 +16,20 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRRRRRRRRRRRR direct CDP verified target
+- last reuse preflight: Round 03RRRRRRRRRRRRRRRRRR direct CDP verified target
   `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
-  button, and the prior Round 03RRRRRRRRRRRRRRRR response. The insert operation timed out before send;
-  recovery verified the complete 20,573-character rendered composer and unchanged user count,
+  button, and the prior Round 03RRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
+  recovery verified the complete 12,989-character rendered composer and unchanged user count,
   then submitted it exactly once without opening a new tab or window. The response completed
   normally; no continuation was sent.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-03
-- last packet: `architect/PACKET_03RRRRRRRRRRRRRRRRR_NUMERIC_DERIVATION_PREREGISTRATION.md`
-- last packet sha256: `bffddeb8f9c7614f0ee7be5adb49cfd977b89ee3e607253b6f29e8629af61239`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrr.md`
-- last response sha256: `f002f7808d5377035dee1f5dbb060faf6e79802f86249c59b6a45f2f55e9d3f0`
-- next packet: evaluator/scorer authority-separation correction only
+- last packet: `architect/PACKET_03RRRRRRRRRRRRRRRRRR_EVALUATOR_SCORER_SEPARATION.md`
+- last packet sha256: `d7ae7b647c58ff735dbd676390dd79300d26011ef8db85a8b3b979537c172ac6`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrr.md`
+- last response sha256: `809987398f5abf6045cf62d6e91153332a406d3f671f784c37339f5a6a57e443`
+- next packet: zero-execution calibration-contract implementation evidence only
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -111,10 +111,13 @@
 - Round 03RRRRRRRRRRRRRRRRR decision: `REVISE`. The exact inventory, derivation classes, acyclic DAG,
   numeric rules, atomic freeze, evidence/failure flow, and zero-authority state are accepted. The sole
   defect is the collapsed `calibration evaluator/scorer` future role.
-- current authorization: correct only that no-execution trust contract by separating evaluator and
-  scorer principals, keys, mounts, accepted/emitted records, data classes, capabilities, exclusive
-  record creation, one-way signed release, graph nodes, and anti-collapse schema requirements. Preserve
-  all numeric and zero-authority rules. No contract implementation, push, credential/provider/model
-  selection or call, Codex-CLI provider use, nonzero budget, benchmark/vault/task/research access,
-  calibration/pilot, B0–B6/attribution/candidate work, selection/promotion/deployment,
-  release/publication, or empirical claim is authorized.
+- Round 03RRRRRRRRRRRRRRRRRR decision: `APPROVE`. Distinct evaluator/scorer principals, instances,
+  keys, processes, writable roots, data/capability boundaries, exclusive record creation, the one-way
+  `D → E0 → E1 → E2 → E3 → E4` graph, and anti-collapse attacks close the sole role-collapse defect.
+- current authorization: implement only one closed zero-execution calibration-contract schema,
+  deterministic semantic admission verifier, exactly one protocol-author-signed preregistered public-
+  development contract, one reference-only audit receipt, validly re-signed anti-collapse tests, full
+  offline validation, and a narrow evidence packet using a source/sealing two-commit layout. Preserve
+  all numeric and zero-authority state. No calibration, provider/model, benchmark/vault/task/research,
+  B0–B6, attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical
+  claim action is authorized.

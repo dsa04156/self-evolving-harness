@@ -997,3 +997,39 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: calibration-contract implementation/execution, any nonzero budget, provider/model
   selection/call, credentials, Codex CLI provider use, benchmark/vault/pilot/research access, sentinel
   fill, final IDs, B0–B6/attribution/candidate/selection/promotion/deployment, push/publication, or claim
+
+## Round 3RRRRRRRRRRRRRRRRRR — 2026-08-03
+
+- sent authoritative correction packet:
+  `architect/PACKET_03RRRRRRRRRRRRRRRRRR_EVALUATOR_SCORER_SEPARATION.md`
+- packet hash: `d7ae7b647c58ff735dbd676390dd79300d26011ef8db85a8b3b979537c172ac6`
+- packet size: 12,438 characters / 12,442 bytes
+- correction preserved all 25 sentinels, eight pending groups, six derivation classes, the 12-phase
+  expansion, seven unresolved obligations, null final IDs, zero execution budgets, and false authority
+  flags while separating evaluator/scorer principals, instances, keys, processes, writable roots,
+  inputs, outputs, and exclusive record-creation rights
+- transport: direct CDP reused the exact existing Chrome target and conversation. The long insert
+  timed out before send; recovery verified the complete 12,989-character rendered composer and
+  unchanged user count before one `send-existing` submission. No new tab/window, continuation,
+  upload, screenshot, or packet resend was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 11,015 characters / 11,055 bytes with
+  SHA-256 `809987398f5abf6045cf62d6e91153332a406d3f671f784c37339f5a6a57e443`
+- architect decision: `APPROVE`
+- blocking findings: none for evaluator/scorer separation
+- accepted: identity/key/process/writable-root inequality; mount-source anti-alias semantics; role-owned
+  message and record creation; scorer protected-data denial; one-way `D → E0 → E1 → E2 → E3 → E4`
+  evidence graph; validly re-signed anti-collapse attack contract; unchanged numeric and zero-authority
+  state
+- authorized next: one closed zero-execution calibration-contract schema and semantic verifier; exactly
+  one protocol-author-signed preregistered public-development contract; non-self-referential source and
+  sealing commits; one reference-only audit receipt; validly re-signed authority-collapse, graph,
+  budget, sentinel, final-ID, and escalation attacks; full offline validation; and a narrow evidence
+  packet
+- still prohibited: calibration/pilot/task/provider/model/research execution, credentials, nonzero
+  budgets, benchmark/vault/protected data access, sentinel fill, final IDs, B0–B6, attribution,
+  mutation, candidates, selection, promotion, deployment, push/release/publication, and empirical,
+  security, evolution, or self-improvement claims
