@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.3.0";
+export const PRODUCT_CLI_VERSION = "0.4.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -22,6 +22,7 @@ export type InteractiveInput =
 export interface RuntimeEventViewOptions {
   readonly quiet?: boolean;
   readonly color?: boolean;
+  readonly animated?: boolean;
   readonly write?: (text: string) => void;
   readonly now?: () => number;
 }
@@ -45,6 +46,7 @@ const PRODUCT_COMMANDS: ReadonlySet<string> = new Set([
   "doctor",
   "config",
   "memory",
+  "completion",
   "demo",
   "check-schemas",
 ]);
@@ -175,24 +177,28 @@ export function interactiveBanner(input: {
 
 export function interactiveHelp(): string {
   return [
-    "Interactive commands",
+    "Interactive commands — type / to search, ↑↓ to select, Tab to complete",
     "  /help                     Show this command list",
     "  /new                      Start a fresh conversation thread",
     "  /status                   Show the current or latest durable session",
     "  /sessions                 List recent sessions",
     "  /resume [ID] [guidance]   Pick or load a prior session into this thread",
-    "  /model [name]             Show or temporarily select a model",
+    "  /model [model-id]         Search connected/examples or select by ID",
     "  /permissions              Show the active permission profile",
     "  /read-only                Use read-only tools for following turns",
     "  /write                    Use workspace-write tools for following turns",
     "  /verify                   Show external verification commands",
     "  /diff [--staged]          Show a sandboxed Git diff",
+    "  /review [focus]           Review current changes with read-only authority",
+    "  /tools                    Show currently available tools",
+    "  /skills                   Inspect the active workflow skill",
+    "  /context                  Show bounded thread and model context",
     "  /memory                   Show persistent project memory",
-    "  /paste                    Enter a multiline task; finish with a single .",
-    "  /clear                    Clear the terminal",
+    "  /paste                    Show the direct paste and multiline shortcut",
+    "  /clear, /home             Clear and redraw the workspace home",
     "  /exit                     Close the shell",
     "",
-    "Prefix a literal slash task with // (for example: //route).",
+    "Paste directly; Shift+Enter inserts a newline. Prefix a literal slash task with // (for example: //route).",
     "Each task is a new auditable child session. /new and /resume do not evolve the harness.",
   ].join("\n");
 }
@@ -200,13 +206,17 @@ export function interactiveHelp(): string {
 export class RuntimeEventView {
   readonly #quiet: boolean;
   readonly #color: boolean;
+  readonly #animated: boolean;
   readonly #write: (text: string) => void;
   readonly #now: () => number;
   #modelStartedAt: number | null = null;
+  #spinner: NodeJS.Timeout | null = null;
+  #spinnerFrame = 0;
 
   public constructor(options: RuntimeEventViewOptions = {}) {
     this.#quiet = options.quiet === true;
     this.#color = options.color === true;
+    this.#animated = options.animated === true;
     this.#write = options.write ?? ((text) => process.stderr.write(text));
     this.#now = options.now ?? (() => Date.now());
   }
@@ -215,10 +225,12 @@ export class RuntimeEventView {
     if (this.#quiet) return;
     if (event.eventType === "model_request_started") {
       this.#modelStartedAt = this.#now();
-      this.#line("●", "36", "thinking");
+      if (this.#animated) this.#startSpinner();
+      else this.#line("●", "36", "thinking");
       return;
     }
     if (event.eventType === "model_response_received") {
+      this.#stopSpinner();
       const elapsed =
         this.#modelStartedAt === null
           ? ""
@@ -228,6 +240,7 @@ export class RuntimeEventView {
       return;
     }
     if (event.eventType === "tool_call_requested") {
+      this.#stopSpinner();
       const tool = event.payload["toolName"];
       this.#line("→", "33", `tool ${typeof tool === "string" ? tool : "unknown"}`);
       return;
@@ -244,10 +257,35 @@ export class RuntimeEventView {
       return;
     }
     if (event.eventType === "verification_completed") {
+      this.#stopSpinner();
       const passed = event.payload["passed"] === true;
       this.#line(passed ? "✓" : "✗", passed ? "32" : "31", "verification");
     }
   };
+
+  public close(): void {
+    this.#stopSpinner();
+  }
+
+  #startSpinner(): void {
+    this.#stopSpinner();
+    const frames = ["◐", "◓", "◑", "◒"] as const;
+    const render = (): void => {
+      const frame = frames[this.#spinnerFrame % frames.length] ?? "◐";
+      this.#spinnerFrame += 1;
+      this.#write(`\r\u001B[2K  ${paint(this.#color, "36", frame)} thinking…`);
+    };
+    render();
+    this.#spinner = setInterval(render, 90);
+    this.#spinner.unref();
+  }
+
+  #stopSpinner(): void {
+    if (this.#spinner === null) return;
+    clearInterval(this.#spinner);
+    this.#spinner = null;
+    this.#write("\r\u001B[2K");
+  }
 
   #line(symbol: string, code: string, label: string): void {
     this.#write(`  ${paint(this.#color, code, symbol)} ${label}\n`);

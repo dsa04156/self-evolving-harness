@@ -2,6 +2,7 @@
 
 import { access, mkdir, mkdtemp, readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   DeterministicClock,
@@ -56,6 +57,27 @@ async function assertPathDoesNotExist(candidate: string): Promise<void> {
   );
 }
 
+async function bundledSchemasPath(): Promise<string> {
+  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(moduleDirectory, "../schemas"),
+    path.resolve(moduleDirectory, "../../schemas"),
+    path.resolve("schemas"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      await access(path.join(candidate, "common.schema.json"));
+      return candidate;
+    } catch {
+      // Continue through source, packaged, and checkout layouts.
+    }
+  }
+  throw new HarnessError(
+    "ARTIFACT_UNAVAILABLE",
+    "Cannot locate bundled schemas; reinstall the seh package",
+  );
+}
+
 async function demo(explicitRoot: string | undefined): Promise<void> {
   const localState = path.resolve(".seh");
   await mkdir(localState, { recursive: true, mode: 0o700 });
@@ -67,7 +89,7 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
     await assertPathDoesNotExist(root);
     await mkdir(root, { recursive: false, mode: 0o700 });
   }
-  const schemas = await SchemaRegistry.load(path.resolve("schemas"));
+  const schemas = await SchemaRegistry.load(await bundledSchemasPath());
   const clock = new DeterministicClock();
   const ids = new DeterministicIdFactory();
   const runtimeSigner = PrincipalSigner.generate({
@@ -302,7 +324,7 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "check-schemas") {
-    const schemas = await SchemaRegistry.load(path.resolve("schemas"));
+    const schemas = await SchemaRegistry.load(await bundledSchemasPath());
     schemas.assertAllCompiled();
     process.stdout.write(
       `${JSON.stringify({ compiledSchemas: schemas.schemaIds.length })}\n`,

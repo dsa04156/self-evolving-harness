@@ -3,6 +3,7 @@
     "target": "ES2024",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
     "lib": [
       "ES2024"
     ],
@@ -27,6 +28,7 @@
   },
   "include": [
     "src/**/*.ts",
+    "src/**/*.tsx",
     "scripts/**/*.ts",
     "test/**/*.ts"
   ],

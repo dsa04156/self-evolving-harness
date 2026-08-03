@@ -1,9 +1,9 @@
 import { access } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import * as readline from "node:readline/promises";
 
 import { RandomIdFactory, SystemClock } from "../core/determinism.js";
 import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
+import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import { listOllamaModels } from "../providers/ollama-provider.js";
 import { FilesystemMemory, type MemoryNamespace } from "../runtime/memory.js";
 import { BubblewrapProcessRunner } from "../runtime/sandbox-process.js";
@@ -21,10 +21,12 @@ import {
   type ProductStatePaths,
 } from "./config.js";
 import { runCodingAgentTask } from "./coding-agent.js";
+import { codingSkill, codingToolDescriptions } from "./defaults.js";
 import {
+  INTERACTIVE_CONTEXT_LIMIT_BYTES,
   RuntimeEventView,
+  PRODUCT_CLI_VERSION,
   buildConversationalTask,
-  interactiveBanner,
   interactiveHelp,
   parseInteractiveInput,
   permissionLabel,
@@ -34,6 +36,20 @@ import {
   ProductSessionStore,
   type ProductSessionRecord,
 } from "./session-store.js";
+import { renderShellCompletion } from "./shell-completion.js";
+import {
+  CUSTOM_MODEL_CHOICE_ID,
+  buildProductModelChoices,
+  type ProductModelChoice,
+} from "./model-catalog.js";
+import {
+  renderResponsePanel,
+} from "./terminal-ui.js";
+import {
+  startFullscreenTui,
+  type FullscreenTuiController,
+  type FullscreenTuiStatus,
+} from "./fullscreen-tui.js";
 
 interface CommonCommandOptions {
   readonly workspace: string | undefined;
@@ -134,7 +150,11 @@ interface InteractiveShellStartup {
 }
 
 function terminalColorEnabled(): boolean {
-  return process.env["NO_COLOR"] === undefined && process.stderr.isTTY === true;
+  return (
+    process.env["NO_COLOR"] === undefined &&
+    process.stdout.isTTY === true &&
+    process.stderr.isTTY === true
+  );
 }
 
 function printSession(record: ProductSessionRecord, json: boolean): void {
@@ -142,24 +162,23 @@ function printSession(record: ProductSessionRecord, json: boolean): void {
     out(`${JSON.stringify(record, null, 2)}\n`);
     return;
   }
-  out(`\n${record.result?.finalText ?? "No final answer was produced."}\n`);
-  out(`\nSession: ${record.sessionId}\n`);
-  out(`State: ${record.state}\n`);
+  out(renderResponsePanel({
+    text: record.result?.finalText ?? "No final answer was produced.",
+    state: record.state,
+    sessionId: record.sessionId,
+    modelCalls: record.result?.usage.modelCalls ?? null,
+    toolCalls: record.result?.usage.toolCalls ?? null,
+    totalTokens: record.result?.modelUsage.totalTokens ?? null,
+    verificationPassed: record.result?.verification?.passed ?? null,
+    verificationSummary: record.result?.verification?.summary ?? null,
+    color: terminalColorEnabled(),
+    columns: process.stdout.columns,
+  }));
   if ((record.contextSessionIds?.length ?? 0) > 0) {
-    out(`Thread context: ${record.contextSessionIds?.length ?? 0} prior session(s)\n`);
-  }
-  if (record.result?.verification !== null && record.result?.verification !== undefined) {
-    out(
-      `Verification: ${record.result.verification.passed ? "passed" : "failed"} — ${record.result.verification.summary}\n`,
-    );
+    out(`  thread context · ${record.contextSessionIds?.length ?? 0} prior session(s)\n`);
   }
   if (record.failure !== null) {
-    out(`Failure: ${record.failure.code}: ${record.failure.detail}\n`);
-  }
-  if (record.result !== null) {
-    out(
-      `Usage: ${record.result.usage.modelCalls} model / ${record.result.usage.toolCalls} tool / ${record.result.modelUsage.totalTokens} tokens\n`,
-    );
+    out(`  failure · ${record.failure.code}: ${record.failure.detail}\n`);
   }
 }
 
@@ -179,6 +198,8 @@ async function executeTask(input: {
   readonly json: boolean;
   readonly quiet: boolean;
   readonly showProjectHeader?: boolean;
+  readonly onRuntimeEvent?: (event: RuntimeEvent) => void | Promise<void>;
+  readonly abortSignal?: AbortSignal;
 }): Promise<ProductSessionRecord> {
   if (input.project.initialized && !input.json && input.showProjectHeader !== false) {
     err(`Initialized project config at ${input.project.paths.configFile}\n`);
@@ -190,12 +211,14 @@ async function executeTask(input: {
     );
     err(`Permissions: ${input.project.config.permissionMode} (shell network: denied)\n`);
   }
-  const controller = new AbortController();
-  const onSignal = (): void => controller.abort();
-  process.once("SIGINT", onSignal);
+  const ownedController = input.abortSignal === undefined ? new AbortController() : null;
+  const abortSignal = input.abortSignal ?? ownedController?.signal;
+  const onSignal = (): void => ownedController?.abort();
+  if (ownedController !== null) process.once("SIGINT", onSignal);
   const events = new RuntimeEventView({
-    quiet: input.quiet || input.json,
+    quiet: input.quiet || input.json || input.onRuntimeEvent !== undefined,
     color: terminalColorEnabled(),
+    animated: process.stderr.isTTY === true && !input.quiet && !input.json,
   });
   try {
     return await runCodingAgentTask({
@@ -212,11 +235,15 @@ async function executeTask(input: {
       ...(input.parentSessionId === undefined
         ? {}
         : { parentSessionId: input.parentSessionId }),
-      onEvent: events.render,
-      abortSignal: controller.signal,
+      onEvent: async (event) => {
+        events.render(event);
+        await input.onRuntimeEvent?.(event);
+      },
+      ...(abortSignal === undefined ? {} : { abortSignal }),
     });
   } finally {
-    process.removeListener("SIGINT", onSignal);
+    events.close();
+    if (ownedController !== null) process.removeListener("SIGINT", onSignal);
   }
 }
 
@@ -572,7 +599,7 @@ async function memoryCommand(args: readonly string[]): Promise<number> {
   return 0;
 }
 
-async function printInteractiveMemory(paths: ProductStatePaths): Promise<void> {
+async function interactiveMemoryText(paths: ProductStatePaths): Promise<string> {
   const records = (
     await new FilesystemMemory(
       paths.memoryRoot,
@@ -581,18 +608,17 @@ async function printInteractiveMemory(paths: ProductStatePaths): Promise<void> {
     ).list([...USER_MEMORY_NAMESPACES, "session_summaries"])
   ).slice(-20);
   if (records.length === 0) {
-    out("No memory records.\n");
-    return;
+    return "No memory records.";
   }
-  for (const record of records) {
-    out(`${record.namespace} · ${record.authority}\n${record.content}\n\n`);
-  }
+  return records
+    .map((record) => `${record.namespace} · ${record.authority}\n${record.content}`)
+    .join("\n\n");
 }
 
-async function printInteractiveDiff(
+async function interactiveDiffText(
   project: ConfiguredProject,
   staged: boolean,
-): Promise<void> {
+): Promise<string> {
   const runner = new BubblewrapProcessRunner(project.workspaceRoot, {
     timeoutMillis: Math.min(project.config.process.timeoutMillis, 30_000),
     maxOutputBytes: Math.min(project.config.process.maxOutputBytes, 512 * 1024),
@@ -619,19 +645,19 @@ async function printInteractiveDiff(
       result.stderr.trim() || "Git diff failed inside the sandbox",
     );
   }
-  out(result.stdout.length === 0 ? "No diff.\n" : result.stdout);
+  return result.stdout.length === 0 ? "No diff." : result.stdout;
 }
 
-function printRecentSessions(records: readonly ProductSessionRecord[]): void {
+function recentSessionsText(records: readonly ProductSessionRecord[]): string {
   if (records.length === 0) {
-    out("No sessions.\n");
-    return;
+    return "No sessions.";
   }
-  for (const record of records) {
-    out(
-      `${record.sessionId}  ${record.state.padEnd(10)}  ${record.task.replace(/\s+/gu, " ").slice(0, 64)}\n`,
-    );
-  }
+  return records
+    .map(
+      (record) =>
+        `${record.sessionId}  ${record.state.padEnd(10)}  ${record.task.replace(/\s+/gu, " ").slice(0, 80)}`,
+    )
+    .join("\n");
 }
 
 function splitFirstArgument(value: string): { readonly first: string; readonly rest: string } {
@@ -642,42 +668,53 @@ function splitFirstArgument(value: string): { readonly first: string; readonly r
     : { first: trimmed.slice(0, separator), rest: trimmed.slice(separator).trim() };
 }
 
-async function readPastedTask(
-  terminal: readline.Interface,
-  color: boolean,
-): Promise<string> {
-  out("Paste the task below. Finish with a line containing only `.`.\n");
-  const lines: string[] = [];
-  const continuationPrompt = color ? "\u001B[2m… \u001B[0m" : "… ";
-  while (true) {
-    const line = await terminal.question(continuationPrompt);
-    if (line === ".") break;
-    lines.push(line);
-  }
-  return lines.join("\n").trim();
-}
-
-async function selectInteractiveSession(
-  terminal: readline.Interface,
+async function selectFullscreenSession(
+  terminal: FullscreenTuiController,
   store: ProductSessionStore,
 ): Promise<ProductSessionRecord | null> {
   const records = (await store.list()).slice(0, 20);
   assertCondition(records.length > 0, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
-  out("Resume a session\n");
-  records.forEach((record, index) => {
-    const task = record.task.replace(/\s+/gu, " ").slice(0, 68);
-    out(`  ${String(index + 1).padStart(2)}. ${record.state.padEnd(10)} ${task}\n`);
-  });
-  const answer = (await terminal.question("Select [1], session ID, or q: ")).trim();
-  if (answer.toLowerCase() === "q") return null;
-  if (answer === "") return records[0] ?? null;
-  const numeric = Number(answer);
-  if (Number.isSafeInteger(numeric) && numeric >= 1 && numeric <= records.length) {
-    return records[numeric - 1] ?? null;
+  const selected = await terminal.select(
+    "Resume a durable session",
+    records.map((record) => ({
+      id: record.sessionId,
+      label: record.task.replace(/\s+/gu, " ").slice(0, 72),
+      description: `${record.state} · ${record.sessionId.slice(-12)}`,
+    })),
+  );
+  return selected === null ? null : await store.get(selected);
+}
+
+async function selectableModels(
+  project: ConfiguredProject,
+): Promise<{
+  readonly choices: readonly ProductModelChoice[];
+  readonly discoveryWarning: string | null;
+}> {
+  if (project.config.provider.kind !== "ollama") {
+    return {
+      choices: buildProductModelChoices({ provider: project.config.provider }),
+      discoveryWarning: null,
+    };
   }
-  const matches = records.filter((record) => record.sessionId.startsWith(answer));
-  assertCondition(matches.length === 1, "SCHEMA_INVALID", "Session selection is invalid or ambiguous");
-  return matches[0] ?? null;
+  try {
+    const discoveredModels = await listOllamaModels(project.config.provider.endpoint, {
+      timeoutMillis: 1_500,
+    });
+    return {
+      choices: buildProductModelChoices({
+        provider: project.config.provider,
+        discoveredModels,
+      }),
+      discoveryWarning: null,
+    };
+  } catch (error) {
+    const failure = asHarnessError(error);
+    return {
+      choices: buildProductModelChoices({ provider: project.config.provider }),
+      discoveryWarning: failure.safeDetail,
+    };
+  }
 }
 
 async function runInteractiveShell(
@@ -686,20 +723,32 @@ async function runInteractiveShell(
   startup: InteractiveShellStartup = {},
 ): Promise<number> {
   let activeProject = project;
-  const color = terminalColorEnabled();
-  if (activeProject.initialized) {
-    err(`Initialized project config at ${activeProject.paths.configFile}\n`);
-  }
-  out(interactiveBanner({
-    workspaceRoot: activeProject.workspaceRoot,
-    config: activeProject.config,
-    color,
-  }));
-  const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
   let latest: ProductSessionRecord | null = null;
   let turns: ConversationTurn[] = [];
   let threadNumber = 1;
   const store = new ProductSessionStore(activeProject.paths);
+  const tuiStatus = async (): Promise<FullscreenTuiStatus> => {
+    const recentSessions = (await store.list()).slice(0, 5).map((record) => ({
+      sessionId: record.sessionId,
+      state: record.state,
+      task: record.task,
+    }));
+    return {
+      version: PRODUCT_CLI_VERSION,
+      workspaceRoot: activeProject.workspaceRoot,
+      provider: activeProject.config.provider.kind,
+      model: activeProject.config.provider.model,
+      permissionMode: activeProject.config.permissionMode,
+      verificationCount: activeProject.config.verification.commands.length,
+      threadNumber,
+      recentSessions,
+    };
+  };
+  const terminal = startFullscreenTui(await tuiStatus());
+  const refreshStatus = async (): Promise<void> => terminal.updateStatus(await tuiStatus());
+  if (activeProject.initialized) {
+    terminal.setNotice(`Initialized project policy · ${activeProject.paths.configFile}`);
+  }
   const loadPrior = (prior: ProductSessionRecord): void => {
     latest = prior;
     turns = [{
@@ -707,36 +756,115 @@ async function runInteractiveShell(
       user: prior.task,
       assistant: prior.result?.finalText ?? "No final answer was produced.",
     }];
-    out(`Loaded ${prior.sessionId} into thread ${threadNumber}. This is context, not evolution.\n`);
+    terminal.appendMessage(
+      "system",
+      `Loaded ${prior.sessionId}. The prior answer is bounded thread context, not a retry or HarnessVersion evolution.`,
+      { title: "SESSION" },
+    );
+  };
+  const renderRuntimeEvent = (event: RuntimeEvent): void => {
+    if (event.eventType === "model_request_started") {
+      terminal.setActivity({ kind: "thinking", label: "Thinking…" });
+      return;
+    }
+    if (event.eventType === "model_response_received") {
+      terminal.setActivity({ kind: "thinking", label: "Processing model response…" });
+      return;
+    }
+    if (event.eventType === "tool_call_requested") {
+      const tool = event.payload["toolName"];
+      terminal.setActivity({
+        kind: "tool",
+        label: `Running ${typeof tool === "string" ? tool : "tool"}…`,
+      });
+      return;
+    }
+    if (event.eventType === "tool_call_completed") {
+      const tool = event.payload["toolName"];
+      const ok = event.payload["ok"] === true;
+      const duration = event.payload["durationMillis"];
+      terminal.appendMessage(
+        "tool",
+        `${ok ? "✓" : "✗"} ${typeof tool === "string" ? tool : "tool"}`,
+        {
+          title: "TOOL",
+          ...(typeof duration === "number" ? { meta: `${duration}ms` } : {}),
+        },
+      );
+      terminal.setActivity({ kind: "thinking", label: "Continuing…" });
+      return;
+    }
+    if (event.eventType === "verification_completed") {
+      const passed = event.payload["passed"] === true;
+      terminal.appendMessage("tool", `${passed ? "✓" : "✗"} verification`, {
+        title: "VERIFY",
+        meta: passed ? "passed" : "failed",
+      });
+      terminal.setActivity(null);
+      return;
+    }
+    if (event.eventType === "session_blocked") {
+      terminal.setActivity({ kind: "recovering", label: "Session blocked" });
+    }
   };
   const runTurn = async (task: string): Promise<void> => {
-    const record = await executeTask({
-      project: activeProject,
-      task,
-      executionTask: buildConversationalTask(task, turns),
-      contextSessionIds: turns.map((turn) => turn.sessionId),
-      parentSessionId: latest?.sessionId ?? null,
-      json: false,
-      quiet,
-      showProjectHeader: false,
-    });
-    latest = record;
-    turns = [
-      ...turns,
-      {
-        sessionId: record.sessionId,
-        user: task,
-        assistant: record.result?.finalText ?? "No final answer was produced.",
-      },
-    ].slice(-8);
-    printSession(record, false);
+    terminal.appendMessage("user", task);
+    const abortController = new AbortController();
+    terminal.setInterruptHandler(() => abortController.abort());
+    terminal.setActivity({ kind: "thinking", label: "Building context…" });
+    try {
+      const record = await executeTask({
+        project: activeProject,
+        task,
+        executionTask: buildConversationalTask(task, turns),
+        contextSessionIds: turns.map((turn) => turn.sessionId),
+        parentSessionId: latest?.sessionId ?? null,
+        json: false,
+        quiet,
+        showProjectHeader: false,
+        onRuntimeEvent: renderRuntimeEvent,
+        abortSignal: abortController.signal,
+      });
+      latest = record;
+      turns = [
+        ...turns,
+        {
+          sessionId: record.sessionId,
+          user: task,
+          assistant: record.result?.finalText ?? "No final answer was produced.",
+        },
+      ].slice(-8);
+      const usage = record.result;
+      const verification = usage?.verification;
+      const meta = usage === null
+        ? `${record.state} · ${record.sessionId.slice(-12)}`
+        : [
+            record.state,
+            verification == null ? "verify advisory" : `verify ${verification.passed ? "passed" : "failed"}`,
+            `${usage.usage.modelCalls} model`,
+            `${usage.usage.toolCalls} tools`,
+            `${usage.modelUsage.totalTokens.toLocaleString("en-US")} tokens`,
+          ].join(" · ");
+      terminal.appendMessage(
+        record.failure === null ? "assistant" : "error",
+        record.result?.finalText ?? record.failure?.detail ?? "No final answer was produced.",
+        { meta },
+      );
+      await refreshStatus();
+    } finally {
+      terminal.setInterruptHandler(null);
+      terminal.setActivity(null);
+    }
   };
   const safelyRunTurn = async (task: string): Promise<void> => {
     try {
       await runTurn(task);
     } catch (error) {
       const failure = asHarnessError(error);
-      err(`${failure.code}: ${failure.safeDetail}\n`);
+      terminal.appendMessage("error", failure.safeDetail, {
+        title: failure.code,
+      });
+      terminal.setActivity(null);
     }
   };
   try {
@@ -747,10 +875,9 @@ async function runInteractiveShell(
       startupPrior = await store.latest();
       assertCondition(startupPrior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
     } else if (startup.resumePicker === true) {
-      startupPrior = await selectInteractiveSession(terminal, store);
+      startupPrior = await selectFullscreenSession(terminal, store);
       if (startupPrior === null) {
-        out("Resume cancelled.\n");
-        return 0;
+        terminal.setNotice("Resume cancelled");
       }
     }
     if (startupPrior !== null) loadPrior(startupPrior);
@@ -759,10 +886,9 @@ async function runInteractiveShell(
     }
 
     while (true) {
-      const prompt = color
-        ? `\u001B[1;36mseh:${threadNumber} ›\u001B[0m `
-        : `seh:${threadNumber} > `;
-      const parsedInput = parseInteractiveInput(await terminal.question(prompt));
+      const response = await terminal.question();
+      if (response === null) break;
+      const parsedInput = parseInteractiveInput(response);
       if (parsedInput.kind === "empty") continue;
       if (parsedInput.kind === "task") {
         await safelyRunTurn(parsedInput.text);
@@ -773,22 +899,30 @@ async function runInteractiveShell(
       try {
         if (name === "exit" || name === "quit" || name === "q") break;
         if (name === "help" || name === "?") {
-          out(`${interactiveHelp()}\n`);
+          terminal.appendMessage("system", interactiveHelp(), { title: "COMMANDS" });
         } else if (name === "new") {
           turns = [];
           latest = null;
           threadNumber += 1;
-          out(`Started thread ${threadNumber}. Workspace memory is unchanged.\n`);
+          terminal.clearMessages();
+          await refreshStatus();
+          terminal.setNotice(`Started thread ${threadNumber} · workspace memory unchanged`);
         } else if (name === "status") {
           const record = latest ?? (await store.latest());
-          out(record === null ? "No sessions.\n" : statusText(record));
+          terminal.appendMessage("system", record === null ? "No sessions." : statusText(record), {
+            title: "STATUS",
+          });
         } else if (name === "sessions") {
-          printRecentSessions((await store.list()).slice(0, 10));
+          terminal.appendMessage(
+            "system",
+            recentSessionsText((await store.list()).slice(0, 10)),
+            { title: "SESSIONS" },
+          );
         } else if (name === "resume") {
           let prior: ProductSessionRecord | null;
           let guidance = "";
           if (argument === "") {
-            prior = await selectInteractiveSession(terminal, store);
+            prior = await selectFullscreenSession(terminal, store);
           } else if (argument === "--last") {
             prior = await store.latest();
             assertCondition(prior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
@@ -801,31 +935,83 @@ async function runInteractiveShell(
             loadPrior(prior);
             if (guidance.length > 0) await safelyRunTurn(guidance);
           }
-        } else if (name === "model") {
+        } else if (name === "model" || name === "models") {
           if (argument.length === 0) {
-            out(`${activeProject.config.provider.kind}/${activeProject.config.provider.model}\n`);
+            terminal.setActivity({ kind: "thinking", label: "Discovering available models…" });
+            const catalog = await selectableModels(activeProject);
+            terminal.setActivity(null);
+            const selectedId = await terminal.select(
+              `Select model · ${activeProject.config.provider.kind.toUpperCase()}`,
+              catalog.choices.map((choice) => ({
+                id: choice.id,
+                label: choice.label,
+                description: choice.description,
+              })),
+              "type to filter · ↑↓ select · Enter apply · Esc cancel · provider fixed",
+            );
+            if (selectedId === null) {
+              terminal.setNotice("Model selection cancelled");
+              continue;
+            }
+            const selectedChoice = catalog.choices.find((choice) => choice.id === selectedId);
+            let modelId = selectedChoice?.modelId ?? null;
+            if (selectedId === CUSTOM_MODEL_CHOICE_ID) {
+              terminal.setNotice("Enter an exact model ID · Enter apply · Ctrl-D cancel");
+              modelId = (await terminal.question())?.trim() ?? null;
+              if (modelId === null || modelId.length === 0) {
+                terminal.setNotice("Model selection cancelled");
+                continue;
+              }
+            }
+            assertCondition(modelId !== null, "SCHEMA_INVALID", "Selected model has no model ID");
+            activeProject = {
+              ...activeProject,
+              config: applyProductConfigOverrides(activeProject.config, { model: modelId }),
+            };
+            await refreshStatus();
+            const availability = selectedChoice?.source === "example"
+              ? " · example; provider access or installation is still required"
+              : "";
+            const discovery = catalog.discoveryWarning === null
+              ? ""
+              : ` · discovery unavailable: ${catalog.discoveryWarning}`;
+            terminal.setNotice(
+              `Model: ${activeProject.config.provider.kind}/${modelId} · session only${availability}${discovery}`,
+            );
           } else {
             activeProject = {
               ...activeProject,
               config: applyProductConfigOverrides(activeProject.config, { model: argument }),
             };
-            out(`Model for following turns: ${activeProject.config.provider.kind}/${argument} (not persisted)\n`);
+            await refreshStatus();
+            terminal.setNotice(`Model: ${activeProject.config.provider.kind}/${argument} · session only`);
           }
         } else if (name === "permissions") {
-          out(`${permissionLabel(activeProject.config.permissionMode)}\n`);
+          terminal.appendMessage("system", permissionLabel(activeProject.config.permissionMode), {
+            title: "PERMISSIONS",
+          });
         } else if (name === "read-only" || name === "write") {
           const mode: PermissionMode = name === "read-only" ? "read-only" : "workspace-write";
           activeProject = {
             ...activeProject,
             config: applyProductConfigOverrides(activeProject.config, { permissionMode: mode }),
           };
-          out(`Permissions for following turns: ${permissionLabel(mode)} (not persisted)\n`);
+          await refreshStatus();
+          terminal.setNotice(`Permissions: ${permissionLabel(mode)} · ephemeral`);
         } else if (name === "verify") {
           if (activeProject.config.verification.commands.length === 0) {
-            out("Verification is advisory; no external command is configured.\n");
+            terminal.appendMessage(
+              "system",
+              "Verification is advisory; no external command is configured.",
+              { title: "VERIFY" },
+            );
           } else {
-            activeProject.config.verification.commands.forEach((command, index) =>
-              out(`${index + 1}. ${command}\n`),
+            terminal.appendMessage(
+              "system",
+              activeProject.config.verification.commands
+                .map((command, index) => `${index + 1}. ${command}`)
+                .join("\n"),
+              { title: "VERIFY" },
             );
           }
         } else if (name === "diff") {
@@ -834,24 +1020,77 @@ async function runInteractiveShell(
             "SCHEMA_INVALID",
             "/diff accepts only --staged",
           );
-          await printInteractiveDiff(activeProject, argument === "--staged");
+          terminal.appendMessage(
+            "system",
+            await interactiveDiffText(activeProject, argument === "--staged"),
+            { title: argument === "--staged" ? "STAGED DIFF" : "DIFF" },
+          );
+        } else if (name === "review") {
+          const priorProject = activeProject;
+          activeProject = {
+            ...activeProject,
+            config: applyProductConfigOverrides(activeProject.config, {
+              permissionMode: "read-only",
+            }),
+          };
+          try {
+            const focus = argument.length === 0 ? "correctness, regressions, security, and missing tests" : argument;
+            await safelyRunTurn(
+              `Review the current workspace changes for ${focus}. Do not modify files. Lead with concrete findings, then summarize residual risk.`,
+            );
+          } finally {
+            activeProject = priorProject;
+          }
+        } else if (name === "tools") {
+          terminal.appendMessage(
+            "system",
+            codingToolDescriptions(activeProject.config.permissionMode)
+              .map((tool) => `${tool.name.padEnd(12)} ${tool.description}`)
+              .join("\n"),
+            { title: "TOOLS" },
+          );
+        } else if (name === "skills") {
+          const skill = codingSkill(activeProject.config.permissionMode);
+          terminal.appendMessage(
+            "system",
+            [
+              `${skill.skillId}\n${skill.summary}`,
+              ...skill.steps.map((step) => `${step.stepId.padEnd(10)} ${step.instruction}`),
+            ].join("\n"),
+            { title: "SKILLS" },
+          );
+        } else if (name === "context") {
+          terminal.appendMessage(
+            "system",
+            [
+              `Thread turns: ${turns.length}/8`,
+              `Conversation context: ${INTERACTIVE_CONTEXT_LIMIT_BYTES.toLocaleString("en-US")} bytes maximum`,
+              `Model context policy: ${activeProject.config.contextTokenLimit.toLocaleString("en-US")} tokens`,
+              "Prior turns are untrusted context and cannot widen authority.",
+            ].join("\n"),
+            { title: "CONTEXT" },
+          );
         } else if (name === "memory") {
-          await printInteractiveMemory(activeProject.paths);
+          terminal.appendMessage("system", await interactiveMemoryText(activeProject.paths), {
+            title: "MEMORY",
+          });
         } else if (name === "paste") {
-          const task = await readPastedTask(terminal, color);
-          if (task.length > 0) await safelyRunTurn(task);
-        } else if (name === "clear") {
-          out("\u001Bc");
+          terminal.setNotice("Paste directly into the composer · Shift+Enter inserts a newline");
+        } else if (name === "clear" || name === "home") {
+          terminal.clearMessages();
+          await refreshStatus();
         } else {
-          err(`Unknown command /${name}. Type /help.\n`);
+          terminal.appendMessage("error", `Unknown command /${name}. Type / to browse commands.`, {
+            title: "COMMAND",
+          });
         }
       } catch (error) {
         const failure = asHarnessError(error);
-        err(`${failure.code}: ${failure.safeDetail}\n`);
+        terminal.appendMessage("error", failure.safeDetail, { title: failure.code });
       }
     }
   } finally {
-    terminal.close();
+    await terminal.close();
   }
   return 0;
 }
@@ -902,6 +1141,12 @@ async function continueCommand(args: readonly string[]): Promise<number> {
   return chatCommand(args, { resumeLatest: true });
 }
 
+async function completionCommand(args: readonly string[]): Promise<number> {
+  assertCondition(args.length === 1, "SCHEMA_INVALID", "completion requires bash, zsh, or fish");
+  out(renderShellCompletion(args[0] ?? ""));
+  return 0;
+}
+
 export function productUsage(): string {
   return [
     "Self-Evolving Harness (seh)",
@@ -922,6 +1167,7 @@ export function productUsage(): string {
     "  seh config",
     "  seh memory add [-n NAMESPACE] \"fact\"",
     "  seh memory list",
+    "  seh completion bash|zsh|fish",
     "",
     "Common options:",
     "  --workspace PATH     Workspace to inspect or modify (default: current directory)",
@@ -954,5 +1200,6 @@ export async function runProductCommand(
   if (command === "doctor") return doctorCommand(args);
   if (command === "config") return configCommand(args);
   if (command === "memory") return memoryCommand(args);
+  if (command === "completion") return completionCommand(args);
   throw new HarnessError("SCHEMA_INVALID", `Unknown command ${command}`);
 }

@@ -50,10 +50,18 @@ Observed execution path:
 6. [`input-controller.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/6e65fa94b46b878e13f35cca076332c2fc5de84c/packages/coding-agent/src/modes/controllers/input-controller.ts)
    dispatches slash commands,
    interactive shell input, queued input, and normal agent messages through distinct paths.
+7. [`builtin-registry.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/6e65fa94b46b878e13f35cca076332c2fc5de84c/packages/coding-agent/src/slash-commands/builtin-registry.ts)
+   routes `/model` to a dedicated selector rather than requiring users to remember an identifier.
+8. [`model-selector.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/6e65fa94b46b878e13f35cca076332c2fc5de84c/packages/coding-agent/src/modes/components/model-selector.ts)
+   combines provider grouping, fuzzy search, current/default ordering, recent use, discovery, and
+   authentication state in the model-selection surface.
+9. [`models.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/6e65fa94b46b878e13f35cca076332c2fc5de84c/packages/coding-agent/src/sdk/models.ts)
+   projects internal model data into a safer SDK-facing representation.
 
 SEH adoption: root-to-interactive routing, initial prompt, `-p`, continue/resume, a read-only picker,
-and a compact command reference. Gajae-Code's implementation and dependencies remain external prior
-art and are not runtime dependencies of SEH.
+full-screen command discovery, and a provider-scoped model picker that separates discovered models
+from unverified examples. Gajae-Code's implementation and dependencies remain external prior art and
+are not runtime dependencies of SEH.
 
 ## Deliberate differences
 
@@ -62,4 +70,5 @@ art and are not runtime dependencies of SEH.
   parent. Bounded prior turns are recorded by session ID and runtime-task hash.
 - Task continuation never creates a `HarnessVersion`. Harness evolution remains a separately gated
   lifecycle with candidate isolation, evaluation, promotion, rejection, and rollback evidence.
-- SEH currently uses an inline terminal shell rather than copying either project's full-screen TUI.
+- SEH's Ink-based alternate-screen application, Evolution Core, transcript renderer, composer,
+  command palette, and model catalog are original implementations with deterministic UI tests.

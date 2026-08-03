@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
+import { PassThrough } from "node:stream";
 import test from "node:test";
+import type { ReadStream, WriteStream } from "node:tty";
 
 import {
   RuntimeEventView,
+  TerminalLineEditor,
   buildConversationalTask,
   interactiveBanner,
   parseInteractiveInput,
+  renderHomeScreen,
+  renderResponsePanel,
   resolveProductCliInvocation,
+  slashCommandSuggestions,
+  terminalCellWidth,
   defaultProductConfig,
   type ConversationTurn,
   type RuntimeEvent,
@@ -86,7 +93,7 @@ test("interactive banner reports runtime authority without requiring color", () 
     verificationCommands: ["npm test"],
   });
   const banner = interactiveBanner({ workspaceRoot: "/workspace", config, color: false });
-  assert.match(banner, /SEH 0\.3\.0/u);
+  assert.match(banner, /SEH 0\.4\.0/u);
   assert.match(banner, /read-only · shell network denied/u);
   assert.match(banner, /verification 1 command/u);
   assert.doesNotMatch(banner, /\u001B/u);
@@ -115,4 +122,80 @@ test("runtime event view renders model, tool, and verification progress", () => 
     output.join(""),
     "  ● thinking\n  ✓ model response · 1.25s\n  → tool read\n  ✓ tool read · 12ms\n  ✓ verification\n",
   );
+});
+
+test("slash command palette opens on slash and narrows by name or alias", () => {
+  const all = slashCommandSuggestions("/");
+  assert.ok(all.length >= 12);
+  assert.equal(all[0]?.name, "help");
+  assert.equal(slashCommandSuggestions("/res")[0]?.name, "resume");
+  assert.equal(slashCommandSuggestions("/q")[0]?.name, "exit");
+  assert.deepEqual(slashCommandSuggestions("/resume session"), []);
+});
+
+test("home screen makes workspace state and slash discovery visible", () => {
+  const config = defaultProductConfig("/workspace", {
+    model: "test-model",
+    permissionMode: "workspace-write",
+    verificationCommands: ["npm test"],
+  });
+  const screen = renderHomeScreen({
+    version: "0.4.0",
+    workspaceRoot: "/workspace",
+    config,
+    recentSessions: [{ sessionId: "session.123456", state: "completed", task: "Fix login" }],
+    color: false,
+    columns: 100,
+  });
+  assert.match(screen, /SELF-EVOLVING CODING AGENT/u);
+  assert.match(screen, /WORKSPACE\s+\/workspace/u);
+  assert.match(screen, /WORKSPACE WRITE · shell network denied/u);
+  assert.match(screen, /Fix login/u);
+  assert.match(screen, /type \/ to open the command palette/iu);
+});
+
+test("terminal width accounts for Korean and ANSI styling", () => {
+  assert.equal(terminalCellWidth("abc"), 3);
+  assert.equal(terminalCellWidth("한글"), 4);
+  assert.equal(terminalCellWidth("\u001B[36mSEH\u001B[0m"), 3);
+});
+
+test("response panel keeps the answer readable and summarizes durable evidence", () => {
+  const panel = renderResponsePanel({
+    text: "Implemented the fix.",
+    state: "completed",
+    sessionId: "session.1234567890",
+    modelCalls: 2,
+    toolCalls: 4,
+    totalTokens: 1234,
+    verificationPassed: true,
+    verificationSummary: "npm test passed",
+    color: false,
+    columns: 100,
+  });
+  assert.match(panel, /SEH RESPONSE/u);
+  assert.match(panel, /Implemented the fix\./u);
+  assert.match(panel, /✓ completed · verify passed · 2 model · 4 tools · 1,234 tokens/u);
+});
+
+test("terminal editor exposes slash choices and accepts tab completion", async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let rendered = "";
+  output.on("data", (chunk: Buffer) => {
+    rendered += chunk.toString("utf8");
+  });
+  const editor = new TerminalLineEditor({
+    input: input as unknown as ReadStream,
+    output: output as unknown as WriteStream,
+    color: false,
+  });
+  const answer = editor.question("seh > ");
+  input.write("/");
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.match(rendered, /\/help\s+Show every interactive command/u);
+  input.write("\t");
+  input.write("\r");
+  assert.equal(await answer, "/help");
+  editor.close();
 });

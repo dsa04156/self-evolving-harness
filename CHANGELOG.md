@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.4.0 — full-screen terminal UX release
+
+### New features
+
+- **Alternate-screen application**: `seh` now owns a full terminal screen with a fixed header,
+  scrollable transcript, activity line, command overlays, multiline composer, and clean restoration
+  of the original terminal on exit.
+- **Workspace home screen**: The structured dashboard shows the workspace,
+  model, authority profile, verifier state, recent threads, and an animated dual-loop Evolution Core
+  over the immutable-trust boundary.
+- **Live slash-command palette**: Typing `/` immediately opens searchable command discovery with
+  descriptions and argument hints. Use arrow keys to navigate, `Tab` to complete, and `Enter` to
+  choose.
+- **Real multiline editing**: Added bracketed paste, `Shift+Enter` newlines, prompt history,
+  Unicode-wide cursor positioning, Home/End, deletion, `Ctrl-A/E/U/K/L`, clear-on-`Ctrl-C`,
+  exit-on-`Ctrl-D`, transcript paging, and palette dismissal with Escape.
+- **Native shell completion**: `seh completion bash|zsh|fish` generates completion for commands,
+  common flags, providers, memory actions, and workspace paths.
+- **Response evidence panel**: Final answers now end with a compact lifecycle, verification, token,
+  tool-call, and session summary.
+- **Searchable model picker**: `/model` now orders the current model, provider-discovered models,
+  curated provider examples, and an exact-ID entry in one keyboard-searchable overlay. Example
+  entries never claim installation or account entitlement.
+- **Line-level transcript paging**: Long answers wrap into terminal-width rows, so paging no longer
+  skips an entire response card or hides its tail.
+
+### Improvements
+
+- **Product-first presentation**: Added a distinct visual identity, an accurate terminal UX preview,
+  one-line GitHub installation, a CI workflow, and a rewritten product-oriented README.
+- **Installable Git dependency**: The package now builds during Git-based npm installation, so the
+  tracked `seh` launcher works without a manual checkout build.
+- **Consistent command discovery**: Unknown slash commands point back to the live palette, and the
+  interactive guide documents the same keyboard behavior as the runtime.
+
 ## 0.3.0 — interactive coding-agent shell
 
 ### New features

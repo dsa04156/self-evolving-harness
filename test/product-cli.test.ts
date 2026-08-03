@@ -74,7 +74,17 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.3.0\n");
+  assert.equal(version.stdout, "0.4.0\n");
+});
+
+test("product CLI generates native shell completion scripts", async () => {
+  const stateRoot = path.join(os.tmpdir(), "seh-product-cli-completion-state");
+  const bash = await cli(["completion", "bash"], stateRoot);
+  assert.match(bash.stdout, /complete -F _seh_completion seh/u);
+  const zsh = await cli(["completion", "zsh"], stateRoot);
+  assert.match(zsh.stdout, /#compdef seh/u);
+  const fish = await cli(["completion", "fish"], stateRoot);
+  assert.match(fish.stdout, /complete -c seh/u);
 });
 
 test("product CLI rejects authority state inside the writable workspace", async (t) => {
