@@ -34,6 +34,8 @@
     "verify:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-historical-publication-governance.ts",
     "create:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/create-trust-plane-conformance.ts --write",
     "verify:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/verify-trust-plane-conformance.ts",
+    "create:numeric-freeze-entry": "npx -y node@24.18.1 --import tsx scripts/create-research-protocol-numeric-freeze-entry.ts",
+    "verify:numeric-freeze-entry": "npx -y node@24.18.1 --import tsx scripts/verify-research-protocol-numeric-freeze-entry.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },

@@ -1,0 +1,625 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/research-protocol-numeric-freeze-entry.schema.json",
+  "title": "Research Protocol Numeric-freeze Entry Records",
+  "description": "Closed public-development contracts for a zero-execution numeric-freeze entry and its reference-only audit receipt. Neither record is a ProtocolManifest or BudgetFreezeManifest.",
+  "oneOf": [
+    { "$ref": "#/$defs/entry" },
+    { "$ref": "#/$defs/auditReceipt" }
+  ],
+  "$defs": {
+    "gitArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactId",
+        "path",
+        "sourceCommit",
+        "sha256",
+        "sizeBytes",
+        "mediaType"
+      ],
+      "properties": {
+        "artifactId": {
+          "$ref": "./common.schema.json#/$defs/entityId"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sourceCommit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "sha256": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "text/markdown; charset=utf-8",
+            "text/typescript; charset=utf-8",
+            "text/yaml; charset=utf-8"
+          ]
+        }
+      }
+    },
+    "authorityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerExecutionAuthorized",
+        "researchEvidenceAuthorized",
+        "candidateSelectionAuthorized",
+        "promotionAuthorized",
+        "deploymentAuthorized",
+        "claimAuthorityGranted"
+      ],
+      "properties": {
+        "providerExecutionAuthorized": { "const": false },
+        "researchEvidenceAuthorized": { "const": false },
+        "candidateSelectionAuthorized": { "const": false },
+        "promotionAuthorized": { "const": false },
+        "deploymentAuthorized": { "const": false },
+        "claimAuthorityGranted": { "const": false }
+      }
+    },
+    "eligibilityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publicDevelopment",
+        "authorizedForResearchEvidence",
+        "confirmatory",
+        "eligibleForGate",
+        "eligibleForFinal",
+        "eligibleForHeldOut",
+        "eligibleForSealed",
+        "eligibleForTemporalHoldout",
+        "authorizedForPromotion"
+      ],
+      "properties": {
+        "publicDevelopment": { "const": true },
+        "authorizedForResearchEvidence": { "const": false },
+        "confirmatory": { "const": false },
+        "eligibleForGate": { "const": false },
+        "eligibleForFinal": { "const": false },
+        "eligibleForHeldOut": { "const": false },
+        "eligibleForSealed": { "const": false },
+        "eligibleForTemporalHoldout": { "const": false },
+        "authorizedForPromotion": { "const": false }
+      }
+    },
+    "zeroBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerModelRequestAttempts",
+        "providerTokens",
+        "providerCostMicros",
+        "runtimeToolAttempts",
+        "benchmarkVaultUnlocks",
+        "protectedDataAccesses",
+        "feedbackReleases",
+        "researchSchedulerProcesses",
+        "taskExecutions",
+        "mutationProposals",
+        "candidateManifests",
+        "evaluationResults",
+        "selectionPromotionDeploymentActions",
+        "gitPushes"
+      ],
+      "properties": {
+        "providerModelRequestAttempts": { "const": 0 },
+        "providerTokens": { "const": 0 },
+        "providerCostMicros": { "const": 0 },
+        "runtimeToolAttempts": { "const": 0 },
+        "benchmarkVaultUnlocks": { "const": 0 },
+        "protectedDataAccesses": { "const": 0 },
+        "feedbackReleases": { "const": 0 },
+        "researchSchedulerProcesses": { "const": 0 },
+        "taskExecutions": { "const": 0 },
+        "mutationProposals": { "const": 0 },
+        "candidateManifests": { "const": 0 },
+        "evaluationResults": { "const": 0 },
+        "selectionPromotionDeploymentActions": { "const": 0 },
+        "gitPushes": { "const": 0 }
+      }
+    },
+    "sentinel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sentinel", "effectiveExpansionCount"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "sentinel": {
+          "type": "string",
+          "enum": [
+            "PILOT_PENDING",
+            "PILOT_PENDING_BY_PRECISION_RULE",
+            "PILOT_PENDING_AFTER_COUNT_FREEZE"
+          ]
+        },
+        "effectiveExpansionCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "hashDomain",
+        "entryId",
+        "recordType",
+        "selectedObligation",
+        "obligationState",
+        "sourceSnapshot",
+        "artifacts",
+        "artifactRoles",
+        "conformanceBinding",
+        "outstandingObligationsBinding",
+        "pilotPendingFields",
+        "unresolvedSentinels",
+        "zeroBudget",
+        "dataClasses",
+        "authorityState",
+        "eligibilityState",
+        "futureIdentityState",
+        "syntheticProviderFixtureExclusion",
+        "lineage",
+        "architectDecision",
+        "claimBoundary",
+        "recordedAt",
+        "recordedBy",
+        "entryHash",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": {
+          "const": "ResearchProtocolNumericFreezeEntry.v1"
+        },
+        "entryId": {
+          "type": "string",
+          "pattern": "^nfe-sha256:[a-f0-9]{64}$"
+        },
+        "recordType": {
+          "const": "research_protocol_numeric_freeze_entry"
+        },
+        "selectedObligation": {
+          "const": "research_protocol_numeric_freeze"
+        },
+        "obligationState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "evidencePresent"],
+          "properties": {
+            "status": { "const": "unresolved" },
+            "evidencePresent": { "const": false }
+          }
+        },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sourceCommit",
+            "sourceTree",
+            "additionalPushPerformed"
+          ],
+          "properties": {
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "sourceTree": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "additionalPushPerformed": { "const": false }
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 24,
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/gitArtifact" }
+        },
+        "artifactRoles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "governanceArtifactIds",
+            "draftPolicyAndSchemaArtifactIds",
+            "implementationArtifactIds"
+          ],
+          "properties": {
+            "governanceArtifactIds": {
+              "type": "array",
+              "minItems": 4,
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+            },
+            "draftPolicyAndSchemaArtifactIds": {
+              "type": "array",
+              "minItems": 12,
+              "maxItems": 12,
+              "uniqueItems": true,
+              "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+            },
+            "implementationArtifactIds": {
+              "type": "array",
+              "minItems": 7,
+              "maxItems": 7,
+              "uniqueItems": true,
+              "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+            }
+          }
+        },
+        "conformanceBinding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifactId", "manifestHash"],
+          "properties": {
+            "artifactId": { "const": "conformance_manifest" },
+            "manifestHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            }
+          }
+        },
+        "outstandingObligationsBinding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifactId", "matrixId"],
+          "properties": {
+            "artifactId": { "const": "outstanding_obligations" },
+            "matrixId": {
+              "$ref": "./common.schema.json#/$defs/entityId"
+            }
+          }
+        },
+        "pilotPendingFields": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "unresolvedSentinels": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": { "$ref": "#/$defs/sentinel" }
+        },
+        "zeroBudget": { "$ref": "#/$defs/zeroBudget" },
+        "dataClasses": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["permitted", "prohibited"],
+          "properties": {
+            "permitted": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "prohibited": {
+              "type": "array",
+              "minItems": 8,
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          }
+        },
+        "authorityState": { "$ref": "#/$defs/authorityState" },
+        "eligibilityState": { "$ref": "#/$defs/eligibilityState" },
+        "futureIdentityState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "finalProtocolId",
+            "budgetFreezeId",
+            "providerIdentity",
+            "modelIdentity",
+            "serviceTier",
+            "researchBudgetReservation"
+          ],
+          "properties": {
+            "finalProtocolId": { "type": "null" },
+            "budgetFreezeId": { "type": "null" },
+            "providerIdentity": { "type": "null" },
+            "modelIdentity": { "type": "null" },
+            "serviceTier": { "type": "null" },
+            "researchBudgetReservation": { "type": "null" }
+          }
+        },
+        "syntheticProviderFixtureExclusion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifactId",
+            "forbiddenBudgetFreezeId",
+            "eligibleForEntry",
+            "eligibleForResearchEvidence",
+            "allowedAsDependency",
+            "allowedAsProvenance",
+            "allowedAsValueSource",
+            "allowedAsSupersessionTarget",
+            "forbiddenReferenceForms"
+          ],
+          "properties": {
+            "artifactId": { "const": "synthetic_provider_fixture" },
+            "forbiddenBudgetFreezeId": {
+              "type": "string",
+              "pattern": "^bf-sha256:[a-f0-9]{64}$"
+            },
+            "eligibleForEntry": { "const": false },
+            "eligibleForResearchEvidence": { "const": false },
+            "allowedAsDependency": { "const": false },
+            "allowedAsProvenance": { "const": false },
+            "allowedAsValueSource": { "const": false },
+            "allowedAsSupersessionTarget": { "const": false },
+            "forbiddenReferenceForms": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "alias",
+                  "dependency",
+                  "direct",
+                  "provenance",
+                  "value_copy",
+                  "wrapper"
+                ]
+              }
+            }
+          }
+        },
+        "lineage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supersedesEntryIds",
+            "pooledProtocolIds",
+            "inheritedArtifactIds",
+            "provenanceArtifactIds",
+            "wrappedArtifactIds",
+            "copiedValueSourceArtifactIds"
+          ],
+          "properties": {
+            "supersedesEntryIds": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "pooledProtocolIds": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "inheritedArtifactIds": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "provenanceArtifactIds": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "wrappedArtifactIds": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "copiedValueSourceArtifactIds": {
+              "type": "array",
+              "maxItems": 0
+            }
+          }
+        },
+        "architectDecision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["packetArtifactId", "rulingArtifactId", "decision"],
+          "properties": {
+            "packetArtifactId": { "const": "architect_packet" },
+            "rulingArtifactId": { "const": "architect_ruling" },
+            "decision": { "const": "APPROVE" }
+          }
+        },
+        "claimBoundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entryBoundarySpecified",
+            "numericFreezeComplete",
+            "researchProtocolFrozen",
+            "pilotEvidence",
+            "performanceEvidence",
+            "attributionEvidence",
+            "securityClaim",
+            "evolutionClaim",
+            "selfImprovementClaim"
+          ],
+          "properties": {
+            "entryBoundarySpecified": { "const": true },
+            "numericFreezeComplete": { "const": false },
+            "researchProtocolFrozen": { "const": false },
+            "pilotEvidence": { "const": false },
+            "performanceEvidence": { "const": false },
+            "attributionEvidence": { "const": false },
+            "securityClaim": { "const": false },
+            "evolutionClaim": { "const": false },
+            "selfImprovementClaim": { "const": false }
+          }
+        },
+        "recordedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "recordedBy": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "entryHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "publicPrincipal": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "attestation": {
+          "$ref": "./common.schema.json#/$defs/attestation"
+        }
+      }
+    },
+    "auditReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "hashDomain",
+        "receiptId",
+        "recordType",
+        "entryReference",
+        "sourceSnapshot",
+        "verifierArtifactId",
+        "verification",
+        "verifiedAt",
+        "producer",
+        "receiptHash",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": {
+          "const": "ResearchProtocolNumericFreezeEntryAuditReceipt.v1"
+        },
+        "receiptId": {
+          "type": "string",
+          "pattern": "^nfer-sha256:[a-f0-9]{64}$"
+        },
+        "recordType": {
+          "const": "research_protocol_numeric_freeze_entry_audit_receipt"
+        },
+        "entryReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entryId", "entryHash", "path", "sha256", "sizeBytes"],
+          "properties": {
+            "entryId": {
+              "type": "string",
+              "pattern": "^nfe-sha256:[a-f0-9]{64}$"
+            },
+            "entryHash": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "path": {
+              "const": "governance/gate3/research-protocol-numeric-freeze-entry.json"
+            },
+            "sha256": {
+              "$ref": "./common.schema.json#/$defs/sha256"
+            },
+            "sizeBytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16777216
+            }
+          }
+        },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceCommit", "sourceTree"],
+          "properties": {
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "sourceTree": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            }
+          }
+        },
+        "verifierArtifactId": {
+          "const": "entry_verifier_source"
+        },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaValid",
+            "signatureValid",
+            "sourceBindingsValid",
+            "obligationStillUnresolved",
+            "zeroBudgetValid",
+            "authorityAndEligibilityValid",
+            "pendingSentinelsComplete",
+            "protectedDataReferencesAbsent",
+            "syntheticFixtureExcluded",
+            "finalIdentitiesAbsent",
+            "crossProtocolPoolingAbsent",
+            "authoritiesGranted"
+          ],
+          "properties": {
+            "schemaValid": { "const": true },
+            "signatureValid": { "const": true },
+            "sourceBindingsValid": { "const": true },
+            "obligationStillUnresolved": { "const": true },
+            "zeroBudgetValid": { "const": true },
+            "authorityAndEligibilityValid": { "const": true },
+            "pendingSentinelsComplete": { "const": true },
+            "protectedDataReferencesAbsent": { "const": true },
+            "syntheticFixtureExcluded": { "const": true },
+            "finalIdentitiesAbsent": { "const": true },
+            "crossProtocolPoolingAbsent": { "const": true },
+            "authoritiesGranted": { "const": 0 }
+          }
+        },
+        "verifiedAt": {
+          "$ref": "./common.schema.json#/$defs/timestamp"
+        },
+        "producer": {
+          "$ref": "./common.schema.json#/$defs/principalIdentity"
+        },
+        "receiptHash": {
+          "$ref": "./common.schema.json#/$defs/sha256"
+        },
+        "publicPrincipal": {
+          "$ref": "./common.schema.json#/$defs/publicPrincipal"
+        },
+        "attestation": {
+          "$ref": "./common.schema.json#/$defs/attestation"
+        }
+      }
+    }
+  }
+}
