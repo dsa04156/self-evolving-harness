@@ -472,3 +472,25 @@ any paid-provider request.
 - No push, credential/provider call, benchmark or research data/execution, selection/promotion/
   deployment, publication, or empirical/security/performance/generalization/evolution/
   self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRR numeric-freeze entry decision
+
+- External decision: `APPROVE`; no blocker remains for the zero-execution Gate 3 entry contract.
+- Exactly `research_protocol_numeric_freeze` is selected, but it remains `unresolved` with
+  `evidencePresent=false`. Entry preregistration, entry record, completed numeric freeze, frozen
+  protocol, and research authority are distinct states.
+- Current source/tree, conformance and obligation hashes, draft budget/feedback/component/statistical/
+  data/schema identities, zero resource vector, role boundary, prohibited data, success/failure/abort,
+  contamination, eligibility, and abandonment are accepted.
+- The old provider-smoke budget fixture is development-only and may not feed the entry directly,
+  indirectly, through provenance, or by copied values.
+- Authorized next: one closed schema and protocol-author-signed public-development entry record under a
+  two-commit source/sealing layout; one independent verifier; the named validly re-signed attacks; one
+  reference-only audit-store verification receipt; directly relevant documentation; and a narrow next
+  packet.
+- The record must keep final protocol/budget IDs null, retain the complete unresolved-sentinel list,
+  grant zero authorities, remain ineligible for every protected/research use, and leave the signed
+  outstanding-obligations matrix unchanged.
+- No push, credential/provider/model call or selection, calibration/pilot, benchmark/vault/task/research
+  access or execution, B0–B6/attribution/candidate work, selection/promotion/deployment, publication, or
+  empirical claim is authorized.
