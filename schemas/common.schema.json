@@ -407,7 +407,8 @@
         "withheld_public_test",
         "temporal_holdout",
         "deterministic",
-        "pilot"
+        "pilot",
+        "user_workspace"
       ]
     }
   }

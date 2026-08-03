@@ -20,6 +20,16 @@ npm run cli -- demo
 npm run verify:release
 ```
 
+The user-facing binary is built and linked locally with:
+
+```bash
+npm run link:cli
+seh help
+```
+
+`seh demo` remains the deterministic no-provider path. `seh run` uses Ollama by default (or the
+explicitly configured OpenAI adapter), so its model output is outside the deterministic result.
+
 `verify:release` type-checks, builds, runs the complete deterministic test suite, compiles every JSON
 Schema, runs the managed no-key CLI path, and verifies the development, publication,
 historical-publication, and aggregate trust-plane evidence. The aggregate manifest includes exact

@@ -5,7 +5,15 @@ demonstrate general harness self-improvement.
 
 - No sealed held-out or temporal-holdout evaluation has run.
 - No B0–B6 matched-budget experiment has run.
-- No real-provider execution is included in the current result.
+- The user CLI includes native Ollama and OpenAI adapters. A local Ollama operational smoke was run,
+  but no real-model rollout is admitted to deterministic release or research evidence; protocol
+  behavior is covered there with a deterministic mocked HTTP transport.
+- Local coding quality depends on the selected Ollama model and available CPU/GPU memory; the default
+  `qwen2.5-coder:7b` is an accessible baseline, not a validated performance recommendation.
+- When no `--verify` command is configured, completion uses advisory verification based on a Git
+  workspace observation. This proves neither task correctness nor test success.
+- `workspace-write` grants the sandboxed shell broad write authority inside the selected workspace.
+  Network and host paths are isolated, but destructive changes inside that workspace remain possible.
 - The process boundary depends on a trusted Linux host, kernel, root, namespace/bootstrap code, and
   protocol author.
 - The eight-principal prototype is local and development-only; it is not a production deployment

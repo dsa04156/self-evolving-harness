@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased — deterministic MVP completion
+## 0.2.0 — user coding agent CLI and deterministic MVP completion
+
+- Added the installable `seh` coding-agent CLI with `init`, `run`, `chat`, `sessions`, `status`,
+  `resume`, `doctor`, `config`, and persistent-memory commands.
+- Added a native Ollama `/api/chat` provider with model discovery and tool-call history, making local
+  no-key execution the default user path.
+- Bound the runtime to an existing repository while keeping configuration, sessions, evidence, and
+  memory in a permission-restricted state directory outside that repository.
+- Added read-only and workspace-write profiles, no-network Bubblewrap shell execution, configurable
+  external verification commands, live event rendering, and interrupt handling.
+- Added deterministic fake-provider product tests and mocked Ollama transport/CLI tests.
+- Retained the optional environment-only OpenAI adapter; no secret is stored in product config.
 
 - Added a managed runtime that joins the independent kernel to the operations and evidence planes.
 - Completed operations endpoints for resume, validation, retirement, event projection, and artifact

@@ -1,11 +1,14 @@
 {
   "name": "self-evolving-harness",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Standalone coding-agent runtime with a separately governed harness-evolution lifecycle.",
+  "description": "Standalone user-facing coding agent with a separately governed harness-evolution lifecycle.",
+  "bin": {
+    "seh": "bin/seh.js"
+  },
   "engines": {
-    "node": "24.18.1"
+    "node": ">=22.0.0"
   },
   "packageManager": "npm@11.18.0",
   "scripts": {
@@ -46,6 +49,7 @@
     "create:calibration-evidence-readiness": "npx -y node@24.18.1 --import tsx scripts/create-calibration-evidence-readiness.ts",
     "verify:calibration-evidence-readiness": "npx -y node@24.18.1 --import tsx scripts/verify-calibration-evidence-readiness.ts",
     "cli": "npx -y node@24.18.1 --import tsx src/cli.ts",
+    "link:cli": "npm run build && npm link",
     "smoke:real": "npx -y node@24.18.1 --import tsx scripts/run-real-provider-smoke.ts"
   },
   "dependencies": {

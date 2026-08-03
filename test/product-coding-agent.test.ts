@@ -1,0 +1,131 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+
+import {
+  FakeModelProvider,
+  FakeTaskVerifier,
+  FilesystemMemory,
+  HarnessError,
+  ProductSessionStore,
+  RandomIdFactory,
+  SystemClock,
+  defaultProductConfig,
+  passingVerification,
+  runCodingAgentTask,
+  sha256,
+  type ModelResponse,
+  type ProductStatePaths,
+} from "../src/index.js";
+
+function response(
+  responseId: string,
+  output: ModelResponse["output"],
+): ModelResponse {
+  return {
+    responseId,
+    modelIdentity: "ollama:test-coder",
+    output,
+    usage: {
+      inputTokens: 12,
+      outputTokens: 6,
+      reasoningTokens: 0,
+      cachedInputTokens: 0,
+      totalTokens: 18,
+    },
+    providerMetadata: { deterministic: true },
+  };
+}
+
+function paths(stateRoot: string): ProductStatePaths {
+  const projectRoot = path.join(stateRoot, "project");
+  const sessionsRoot = path.join(projectRoot, "sessions");
+  return {
+    stateRoot,
+    projectId: "test-project",
+    projectRoot,
+    configFile: path.join(projectRoot, "config.json"),
+    memoryRoot: path.join(projectRoot, "memory"),
+    sessionsRoot,
+    skillsRoot: path.join(projectRoot, "skills"),
+    sessionDirectory(sessionId) {
+      return path.join(sessionsRoot, sessionId);
+    },
+    sessionRuntimeRoot(sessionId) {
+      return path.join(sessionsRoot, sessionId, "runtime");
+    },
+  };
+}
+
+test("product coding agent edits the bound repository and persists session memory outside it", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-agent-"));
+  const workspace = path.join(root, "workspace");
+  const stateRoot = path.join(root, "state");
+  await mkdir(workspace, { recursive: true });
+  await writeFile(path.join(workspace, "input.txt"), "before\n", "utf8");
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const config = defaultProductConfig(workspace, {
+    providerKind: "ollama",
+    model: "test-coder",
+  });
+  const provider = new FakeModelProvider([
+    response("response.product.write", [
+      {
+        kind: "tool_call",
+        callId: "call.product.write",
+        toolName: "write",
+        arguments: { path: "result.txt", content: "usable-agent\n", overwrite: false },
+        rawArguments:
+          '{"path":"result.txt","content":"usable-agent\\n","overwrite":false}',
+      },
+    ]),
+    response("response.product.done", [
+      {
+        kind: "assistant_message",
+        text: "Created result.txt and reviewed the requested change.",
+      },
+    ]),
+  ]);
+  const observedEvents: string[] = [];
+  const statePaths = paths(stateRoot);
+  const record = await runCodingAgentTask({
+    workspaceRoot: workspace,
+    paths: statePaths,
+    config,
+    task: "Create result.txt containing usable-agent.",
+    providerOverride: provider,
+    verifierOverride: new FakeTaskVerifier(sha256({ verifier: "product-test" }), () =>
+      passingVerification("product verifier passed"),
+    ),
+    onEvent(event) {
+      observedEvents.push(event.eventType);
+    },
+    now: new Date("2026-08-03T00:00:00.000Z"),
+  });
+
+  assert.equal(await readFile(path.join(workspace, "result.txt"), "utf8"), "usable-agent\n");
+  assert.equal(record.state, "completed");
+  assert.equal(record.result?.lifecycleState, "retired");
+  assert.equal(record.result?.verification?.passed, true);
+  assert.ok(observedEvents.includes("tool_call_requested"));
+  assert.ok(observedEvents.includes("verification_completed"));
+  assert.equal(provider.requests[0]?.modelIdentity, "ollama:test-coder");
+  assert.equal(provider.requests[0]?.tools.some((tool) => tool.name === "write"), true);
+
+  const stored = await new ProductSessionStore(statePaths).get(record.sessionId);
+  assert.equal(stored.metadataHash, record.metadataHash);
+  const summaries = await new FilesystemMemory(
+    statePaths.memoryRoot,
+    new SystemClock(),
+    new RandomIdFactory(),
+  ).list(["session_summaries"]);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0]?.authority, "untrusted_context");
+  await assert.rejects(
+    () => new ProductSessionStore(statePaths).get("a/../../outside"),
+    (error: unknown) => error instanceof HarnessError && error.code === "SCHEMA_INVALID",
+  );
+  await assert.rejects(() => readFile(path.join(workspace, ".seh", "session.json"), "utf8"));
+});

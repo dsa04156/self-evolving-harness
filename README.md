@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
+  <a href="docs/user-guide.md">CLI guide</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#harness-evolution">Evolution</a> ·
   <a href="#verification">Verification</a> ·
@@ -63,49 +64,66 @@ or rollback decision.
 
 ## Quick start
 
-Requirements are pinned to Node.js 24.18.1 and npm 11.18.0.
+The default path is a local coding model through Ollama. It uses no API key and does not invoke
+Codex, Gajae-Code, OpenCode, or any other coding-agent runtime.
+
+Requirements:
+
+- Linux with `/usr/bin/bwrap` (`bubblewrap`) for workspace process isolation
+- Node.js 22 or newer; deterministic release verification is pinned to Node.js 24.18.1 and npm 11.18.0
+- [Ollama](https://docs.ollama.com/quickstart) for the default no-key model path
 
 ```bash
 git clone https://github.com/dsa04156/self-evolving-harness.git
 cd self-evolving-harness
 npm ci
-npm run cli -- demo
+npm run link:cli
+
+# In another terminal if Ollama is not already running:
+ollama serve
+ollama pull qwen2.5-coder:7b
 ```
 
-The demo needs no network, API key, or external agent. It executes the complete managed path with a
-deterministic fake model and verifier:
-
-```text
-session start
-  → context assembly
-  → FakeProvider model response
-  → sandboxed filesystem tool
-  → external-style verifier
-  → signed evidence
-  → completed
-  → retired
-```
-
-Its output includes the terminal session state, verification result, model/tool usage, event-chain
-head, and evidence-receipt count. Temporary state is written only beneath the ignored `.seh/`
-directory.
-
-The current command surface is intentionally small:
+Run the agent in any repository:
 
 ```bash
-npm run cli -- help
-npm run cli -- demo
-npm run cli -- check-schemas
+cd /path/to/your/project
+seh init --verify "npm test"
+seh doctor
+seh run "Add input validation and tests for the signup handler"
 ```
 
-The runtime library contains the general agent, tool, session, evidence, and evolution machinery. A
-consumer-facing TUI, IDE extension, and unrestricted arbitrary-task CLI are outside the MVP.
+`seh run` can initialize a project automatically, but explicit `init` is recommended because it
+makes the model, permission mode, and verification command visible first. The default mode may edit
+the selected workspace. Start an inspection-only task with `seh run --read-only "review this repo"`.
+
+Useful commands:
+
+```bash
+seh chat                                      # interactive prompts
+seh sessions                                  # recent durable sessions
+seh status                                    # latest session evidence and usage
+seh resume SESSION_ID "finish the failed test" # new child session, not evolution
+seh memory add -n project_facts "Use npm test"
+seh config
+```
+
+Project configuration, session evidence, and memory are stored outside the target repository under
+`~/.local/state/self-evolving-harness/`. No provider secret is written there. See the
+[CLI user guide](docs/user-guide.md) for permissions, OpenAI opt-in, verification behavior, state
+layout, and troubleshooting.
+
+For a deterministic runtime check that needs neither Ollama nor an API key, run:
+
+```bash
+seh demo
+```
 
 ## Core capabilities
 
 | Capability | What the runtime owns |
 | --- | --- |
-| Model providers | Provider interface, deterministic fake provider, canonical request table, and one real OpenAI adapter |
+| Model providers | Native local Ollama adapter, opt-in OpenAI adapter, deterministic fake provider, and canonical request contracts |
 | Agent execution | Append-oriented model/tool/verifier loop with hard model, token, tool, retry, descendant, and time budgets |
 | Context | Ordered prompt, task, memory, skill, tool, and history selection with explicit overflow behavior |
 | Tools | `read`, `write`, exact `edit`, `bash`, `git status`, and `git diff` behind path and permission guards |
@@ -278,14 +296,16 @@ and systems artifact claim only.
 Deterministic development and release verification require no credential. The repository contains no
 API key, provider token, private-key PEM, or committed `.env` file.
 
-The real-provider adapter is an opt-in smoke path, not part of the default release gate. Credentials
-must enter through the local environment or provider proxy, remain outside events and artifacts, and
-never be committed. Running that smoke does not by itself establish harness evolution.
+The default user CLI connects to a local Ollama server and needs no credential. The optional OpenAI
+path reads `OPENAI_API_KEY` only from the process environment; the config, session store, events, and
+memory never persist it. Real-provider output is nondeterministic and is not part of the deterministic
+release gate. Running a coding task does not by itself establish harness evolution.
 
 ## Repository map
 
 ```text
 src/runtime/       agent kernel, context, tools, memory, skills, workflow
+src/product/       user CLI configuration, sessions, defaults, and coding-agent assembly
 src/harness/       component graph and version registry
 src/operations/    session lifecycle and control-plane operations
 src/evidence/      runtime events, receipts, and audit records
@@ -302,6 +322,7 @@ governance/        signed manifests, journals, and outstanding obligations
 
 ## Documentation
 
+- [CLI user guide](docs/user-guide.md)
 - [Architecture](ARCHITECTURE.md)
 - [Deterministic completion matrix](docs/completion/acceptance-matrix.md)
 - [Research contract](RESEARCH_CONTRACT.md) and [claims](CLAIMS.md)

@@ -9,7 +9,11 @@ import type {
   BudgetLimits,
   SessionPins,
 } from "../domain/runtime.js";
-import { RuntimeEventStream, SecretRedactor } from "../evidence/runtime-events.js";
+import {
+  RuntimeEventStream,
+  SecretRedactor,
+  type RuntimeEvent,
+} from "../evidence/runtime-events.js";
 import type { ModelProvider } from "../domain/model.js";
 import type { PrincipalSigner } from "../trust/identity.js";
 import { ArtifactStore } from "../storage/artifact-store.js";
@@ -36,12 +40,17 @@ import type { TaskVerifier } from "./verifier.js";
 
 export interface StandaloneRuntimeOptions {
   readonly root: string;
+  /** Defaults to `<root>/workspace`; product callers may bind an existing repository. */
+  readonly workspaceRoot?: string;
+  /** Defaults to `<root>/memory`; product callers may share memory across sessions. */
+  readonly memoryRoot?: string;
   readonly schemas: SchemaRegistry;
   readonly provider: ModelProvider;
   readonly verifier: TaskVerifier;
   readonly sessionId: string;
   readonly pins: SessionPins;
   readonly modelIdentity: string;
+  readonly reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
   readonly runtimeSigner: PrincipalSigner;
   readonly budgetLimits: BudgetLimits;
   readonly clock: Clock;
@@ -59,6 +68,7 @@ export interface StandaloneRuntimeOptions {
     readonly sourceEventIds?: readonly string[];
   }[];
   readonly secrets?: Readonly<Record<string, string>>;
+  readonly onEvent?: (event: RuntimeEvent) => void | Promise<void>;
   readonly processLimits?: {
     readonly timeoutMillis: number;
     readonly maxOutputBytes: number;
@@ -97,7 +107,7 @@ export async function createStandaloneRuntime(
     "Standalone runtime pins are malformed",
   );
   const root = path.resolve(input.root);
-  const workspaceRoot = path.join(root, "workspace");
+  const workspaceRoot = path.resolve(input.workspaceRoot ?? path.join(root, "workspace"));
   const workspace = new WorkspacePathGuard(workspaceRoot);
   await workspace.initialize();
   const processRunner = new BubblewrapProcessRunner(workspaceRoot, {
@@ -150,7 +160,7 @@ export async function createStandaloneRuntime(
     clock: input.clock,
   });
   const memory = new FilesystemMemory(
-    path.join(root, "memory"),
+    path.resolve(input.memoryRoot ?? path.join(root, "memory")),
     input.clock,
     input.ids,
   );
@@ -175,6 +185,7 @@ export async function createStandaloneRuntime(
     ids: input.ids,
     schemas: input.schemas,
     redactor: new SecretRedactor(input.secrets ?? {}),
+    ...(input.onEvent === undefined ? {} : { onEvent: input.onEvent }),
   });
   const descendants = new DescendantManager({
     root,
@@ -196,6 +207,9 @@ export async function createStandaloneRuntime(
       sessionId: input.sessionId,
       pins: input.pins,
       modelIdentity: input.modelIdentity,
+      ...(input.reasoningEffort === undefined
+        ? {}
+        : { reasoningEffort: input.reasoningEffort }),
       maxOutputTokensPerCall: Math.min(
         input.budgetLimits.maxOutputTokens,
         4096,

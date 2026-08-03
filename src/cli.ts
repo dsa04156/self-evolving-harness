@@ -13,6 +13,8 @@ import {
   SchemaRegistry,
   createManagedStandaloneRuntime,
   passingVerification,
+  productUsage,
+  runProductCommand,
   sha256,
   type ModelResponse,
 } from "./index.js";
@@ -276,22 +278,20 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
 }
 
 function usage(): void {
-  process.stdout.write(
-    [
-      "self-evolving-harness",
-      "",
-      "Commands:",
-      "  demo [--root PATH]   Run the no-network FakeProvider agent loop.",
-      "  check-schemas        Compile every frozen JSON Schema.",
-      "  help                 Show this help.",
-      "",
-    ].join("\n"),
-  );
+  process.stdout.write(productUsage());
 }
 
 async function main(): Promise<void> {
   const [command = "help", ...arguments_] = process.argv.slice(2);
+  if (command === "version" || command === "--version" || command === "-V") {
+    process.stdout.write("0.2.0\n");
+    return;
+  }
   if (command === "help" || command === "--help" || command === "-h") {
+    usage();
+    return;
+  }
+  if (arguments_.includes("--help") || arguments_.includes("-h")) {
     usage();
     return;
   }
@@ -313,7 +313,7 @@ async function main(): Promise<void> {
     await demo(explicitRoot);
     return;
   }
-  throw new HarnessError("SCHEMA_INVALID", `Unknown command ${command}`);
+  process.exitCode = await runProductCommand(command, arguments_);
 }
 
 main().catch((error: unknown) => {

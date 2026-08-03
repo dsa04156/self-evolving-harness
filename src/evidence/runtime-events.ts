@@ -123,6 +123,7 @@ export class RuntimeEventStream {
   readonly #schemas: SchemaRegistry;
   readonly #redactor: SecretRedactor;
   readonly #log: AppendOnlyLog<JsonValue>;
+  readonly #onEvent: ((event: RuntimeEvent) => void | Promise<void>) | null;
 
   public constructor(input: {
     root: string;
@@ -133,6 +134,7 @@ export class RuntimeEventStream {
     ids: IdFactory;
     schemas: SchemaRegistry;
     redactor: SecretRedactor;
+    onEvent?: (event: RuntimeEvent) => void | Promise<void>;
   }) {
     this.#sessionId = input.sessionId;
     this.#pins = input.pins;
@@ -142,6 +144,7 @@ export class RuntimeEventStream {
     this.#schemas = input.schemas;
     this.#redactor = input.redactor;
     this.#log = new AppendOnlyLog<JsonValue>(input.root, `events.${input.sessionId}`);
+    this.#onEvent = input.onEvent ?? null;
   }
 
   public async emit(input: {
@@ -205,6 +208,10 @@ export class RuntimeEventStream {
     };
     this.#schemas.validate(RUNTIME_EVENT_SCHEMA_ID, event as unknown as JsonValue);
     await this.#log.append(event as unknown as JsonValue);
+    if (this.#onEvent !== null) {
+      // Presentation must never influence the authoritative runtime or event chain.
+      await Promise.resolve(this.#onEvent(event)).catch(() => undefined);
+    }
     return event;
   }
 
