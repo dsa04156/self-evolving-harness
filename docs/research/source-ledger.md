@@ -1,7 +1,7 @@
 # Source Ledger
 
 Status: Gate 1 evidence draft  
-Research cut-off: 2026-07-31 (Asia/Seoul)
+Research cut-off: 2026-08-03 (Asia/Seoul)
 Method: public sources were cloned or opened read-only. README claims are recorded as claims unless a
 corresponding execution path was found in source. `Observed fact` and `Inference` are intentionally
 separate.
@@ -235,6 +235,36 @@ Permanent code references:
 [prompt optimization route](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/oxygent/routes.py),
 [OxyBank annotation dispatcher](https://github.com/jd-opensource/OxyGent/blob/cd96268de5814dfb4e0444cfd687f97508cf996a/applications/oxybank/app/services/annotation_service.py).
 
+## S11 — TencentDB-Agent-Memory
+
+- Repository: <https://github.com/TencentCloud/TencentDB-Agent-Memory>
+- Branch / commit: `feat/server_team` / `f3df79326dfd763f45199c441e2129d780467949`
+- Commit date: 2026-07-29T15:59:41Z
+- Inspected: 2026-08-03
+- Source license: MIT
+- Reuse decision: comparison and internal interface guidance only; no source copied and no runtime
+  dependency added.
+
+| File / section | Observed fact | Inference | Status |
+|---|---|---|---|
+| `README.md:197,222-231`; `MemoryCore/README.md:5-9,168-170` | The system stores L0 conversations, L1 atomic memories, L2 scenarios, and L3 profiles; completed turns are written to L0 and bounded, labelled L1/L2/L3 results are recalled before the next prompt. Both READMEs explicitly state that MemoryCore does not run, host, schedule, or execute the Agent loop. | This is directly relevant prior art for `MemoryPolicy` and context construction, but it is an external memory substrate rather than a standalone coding-agent kernel. | implemented memory path; agent execution explicitly out of scope |
+| `MemoryCore/src/core/tdai-core.ts`; `core/hooks/auto-recall.ts` | `handleBeforeRecall` reaches `performAutoRecall`; recall supports keyword, embedding, and hybrid/RRF search, composes stable L3/L2 and dynamic L1 material, and applies result and context budgets. | Retrieval strategy, stable-versus-dynamic placement, and explicit context limits should inform the internal memory adapter without turning this project into a MemoryCore wrapper. | implemented |
+| `MemoryCore/src/core/hooks/auto-capture.ts:101-160` | `CheckpointManager.captureAtomically` holds the cursor-to-L0-to-cursor sequence together; SQLite-style stores may defer embeddings while remote/vector backends can embed synchronously. | Crash-safe capture checkpoints and projection work separated from authoritative writes are useful memory-plane patterns. | implemented |
+| `MemoryCore/src/core/skill/skill-versioning.ts`; `skill/skill-permission.ts` | Skill updates append versions, treat equal content hashes as a no-op, copy or patch resources, and clean up on failure. Permission checks scope ownership by team and agent and support optimistic expected-version checks. | Versioned skills and scoped ownership overlap one component type in the proposed graph, but they do not create a whole-harness candidate or evaluation lineage. | implemented |
+| `MemoryCore/src/core/storage/adapter.ts`; `storage/local-backend.ts` | Scoped storage rejects traversal and provides append/write operations; the local backend documents atomic and non-atomic boundaries. | Memory persistence needs explicit path and atomicity contracts; the storage layer is not an evaluator or promotion boundary. | implemented |
+| `MemoryProxy/src/handler.ts`; `MemoryProxy/src/injection/pipeline.ts` | An OpenAI-compatible proxy authenticates and gates model routes, parses requests into an agent context, executes system/tool/user injection hooks, forwards to the upstream model, records usage, and triggers capture/skill extraction. | The proxy is a valid integration mode for other agents, but adopting it as this project’s core would violate the independent-runtime requirement. | implemented |
+| inspected MemoryCore and MemoryProxy paths | No owned model/tool execution loop, typed whole-`HarnessVersion` lifecycle, component-failure attribution, isolated held-in/held-out candidate evaluation, matched-budget B0–B6 comparison, or proposer/evaluator/promoter authority chain was found. | The overlap is memory, context injection, skill versioning, and ACL/storage mechanics—not first-class harness evolution or its immutable trust plane. | absent in inspected paths; unknown for uninspected branches or services |
+
+Permanent code references:
+[repository at exact SHA](https://github.com/TencentCloud/TencentDB-Agent-Memory/tree/f3df79326dfd763f45199c441e2129d780467949),
+[MemoryCore boundary](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryCore/README.md),
+[core dispatch](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryCore/src/core/tdai-core.ts),
+[auto capture](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryCore/src/core/hooks/auto-capture.ts),
+[auto recall](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryCore/src/core/hooks/auto-recall.ts),
+[skill versioning](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryCore/src/core/skill/skill-versioning.ts),
+[proxy handler](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryProxy/src/handler.ts),
+[injection pipeline](https://github.com/TencentCloud/TencentDB-Agent-Memory/blob/f3df79326dfd763f45199c441e2129d780467949/MemoryProxy/src/injection/pipeline.ts).
+
 ## Evidence gaps
 
 1. Self-Harness has no inspected public implementation, so process isolation and exact data-flow claims
@@ -248,3 +278,6 @@ Permanent code references:
 5. OxyGent’s paper uses “evolution” for OxyBank-driven data feedback and joint evolution. The ledger
    records what is executable at the pinned SHA and does not infer unavailable training, deployment, or
    promotion machinery from that term.
+6. TencentDB-Agent-Memory has a large server branch and external service integrations. The negative
+   harness-evolution finding is limited to the inspected MemoryCore/MemoryProxy execution paths and the
+   repository’s explicit statement that it does not run the Agent loop.

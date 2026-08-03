@@ -25,6 +25,14 @@ prompt revert, or continuous data feedback. Its narrower systems question begins
 versioned harness components form one immutable candidate, candidate activation is mediated by disjoint
 evaluation and promotion authorities, and search/test budgets and data access are externally enforced.
 
+TencentDB-Agent-Memory further narrows the memory claim. Layered L0–L3 persistence, atomic capture
+checkpoints, bounded hybrid recall, stable-versus-dynamic context placement, skill versions, and
+team/agent ACLs are existing implementation patterns. They are useful inputs to this project’s internal
+`MemoryPolicy` and `Skill` components, not a novelty claim. Its explicit non-ownership of the Agent loop
+also sharpens the architectural distinction: the proposed system must implement those memory behaviors
+inside an independently owned runtime while keeping memory updates separate from harness-version
+mutation and promotion.
+
 ## Genuine unresolved systems question
 
 Can one standalone coding-agent runtime make harness evolution a first-class lifecycle while preserving
@@ -82,6 +90,9 @@ The project is not sufficiently distinct if any of these occur:
 7. **Terminology risk:** OxyGent legitimately calls its data-feedback and prompt-management facilities
    evolution. The project must state its stricter operational definition instead of implying that the
    prior usage is wrong.
+8. **Memory-boundary risk:** memory retrieval or skill updates can silently change task behavior without
+   a new harness version. Runtime memory records may evolve within `MemoryPolicy`, but policy/skill
+   definition changes must still traverse the typed candidate and promotion lifecycle.
 
 ## Gate 1 recommendation
 

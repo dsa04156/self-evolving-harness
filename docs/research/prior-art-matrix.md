@@ -10,6 +10,7 @@ judgment, and “not found” is limited to the inspected artifacts in
 | OpenAI Codex | yes | yes, product runtime | rollout/items | not found | not found | not found | no | permissions/sandbox exist, no evolution boundary |
 | Oh My OpenAgent | host-owned | host-specific hooks | host-dependent | no | no | no | no | host-dependent |
 | OxyGent | yes, MAS/ReAct | request replay, retry, background tasks; no separate inspected session state machine | call-tree nodes, ES history, ratings | per-prompt versions/history/revert; no whole-harness lineage | prompt-only LLM rewrite with structural checks | no candidate held-out gate found | parallel/reflexion runtime components, not a matched-budget experiment contract | permission lists and factory deny-list; no independent proposer/evaluator/promoter plane |
+| TencentDB-Agent-Memory | no; caller/sidecar/proxy | memory capture checkpoints and proxy retry; Agent session lifecycle is host-owned | L0–L3 memory, capture cursors, usage, skill versions | per-skill history; no whole-harness lineage | skill resource patches, not harness mutation | no candidate held-out gate found | no | team/agent ACL and scoped storage; no independent evolution trust plane |
 | AHE | NexAU-owned | experiment resume/rollback | layered traces/reports | Git iterations/worktrees | prompt-constrained file edits | same-loop evaluation; transfer reported | incomplete in original release | filesystem/read-only contract, not a demonstrated hostile-principal boundary |
 | Meta-Harness | domain/host-specific | experiment resume | filesystem logs/frontier | candidate files/frontier | one-mechanism prompt; free-form code | validation/test separation in text-classification example | no unified matched-budget suite | no first-class trust plane |
 | Self-Harness | DeepAgent-based in paper | not a product ops plane | structured failure records | explicit `h_t → h_t+1` | yes, minimal proposals | held-in + held-out regression | no parallel/sequential matched-budget comparison in method | fixed evaluator concept; implementation isolation unknown |
@@ -23,6 +24,8 @@ The following cannot be claimed as new:
 
 - a model/tool loop, session persistence, sandbox controls, or streamed item events;
 - filesystem memory, skills, hooks, subagents, or background jobs;
+- layered L0–L3 memory, checkpointed capture, bounded recall/context injection, skill versions, or
+  team/agent-scoped memory permissions;
 - unified agent/tool/LLM/flow abstractions, permission-gated component calls, live prompt versions, hot
   reload, or prompt revert;
 - evaluate → analyze → improve;

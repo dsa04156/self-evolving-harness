@@ -98,6 +98,48 @@ matched-budget comparison, or external promotion authority between rewrite and a
 status-triggered annotation path similarly versions training/retrieval samples rather than executable
 harnesses.
 
+## TencentDB-Agent-Memory: memory sidecar and proxy injection
+
+Direct MemoryCore integration:
+
+```text
+host Agent completes a turn
+  → TDAICore.handleTurnCommitted
+  → performAutoCapture
+    → CheckpointManager.captureAtomically
+      → read per-session cursor
+      → record authoritative L0 conversation
+      → advance cursor
+    → update search projection / embedding (optionally deferred)
+
+host Agent prepares its next prompt
+  → TDAICore.handleBeforeRecall
+  → performAutoRecall
+    → keyword, embedding, or hybrid/RRF L1 search
+    → load stable L3 persona + L2 scenario context
+    → enforce item/character/timeout budgets
+    → return labelled stable system context and dynamic user-prefix context
+  → host Agent constructs and executes the prompt
+```
+
+Proxy integration:
+
+```text
+OpenAI-compatible client request
+  → MemoryProxy handler
+    → authentication + model route gate
+    → parse request into AgentContext
+    → injection pipeline runs system/tools/user hooks
+    → serialize modified request
+    → forward to upstream model (with bounded route retry)
+    → parse response usage
+    → record capture / usage / optional skill extraction
+```
+
+Both paths are operationally useful memory integration patterns. They deliberately leave the Agent’s
+model/tool loop to the caller or upstream service, and neither inspected path creates, evaluates, or
+promotes a `HarnessVersion`.
+
 ## OpenAI Codex: thread/turn execution
 
 ```text
