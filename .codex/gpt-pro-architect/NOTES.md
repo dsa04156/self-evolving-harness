@@ -581,3 +581,29 @@ any paid-provider request.
   sentinel or margin fill, final IDs, B0–B6, attribution/mutation/candidate, selection/promotion/
   deployment, push/publication, and empirical/security/evolution/self-improvement claims remain
   prohibited.
+
+## Durable Round 3RRRRRRRRRRRRRRRRRRRR derivation-readiness evidence decision
+
+- External decision: `APPROVE`; no blocker remains for the synthetic-only deterministic
+  calibration-derivation readiness implementation.
+- Clean source `83ac355...` and later seal `41534f6...` form the accepted non-self-referential layout;
+  all 19 behavior-bearing references point to the earlier source snapshot, and the seal adds exactly
+  one readiness record and one reference-only audit receipt.
+- Pure programs F/G/J/K/L/M preserve the approved finite grids, one-sided Wilson bound, fail-closed
+  missingness/incident handling, upward rounding, exact `{2,3,5,8}` rollout grid, domain-separated seed
+  stream, and strictest-feasible margin semantics without choosing any protocol value.
+- Eleven manually authored public-development vectors remain non-evidentiary, non-confirmatory, and
+  inadmissible as numeric-freeze inputs. Thirty-five validly re-signed semantic mutations plus receipt
+  byte substitution are rejected; the complete deterministic suite is 179/179.
+- Protocol author, independent verifier, and audit store remain pairwise distinct; all seven trust
+  obligations remain unresolved, all execution budgets and authorities remain zero, and every final
+  identity remains null.
+- Authorized next scope is one offline `calibration_plan_assembly_readiness` contract: complete
+  field-to-evidence mapping for all 25 sentinel paths plus statistical margins, a freeze-admission
+  firewall, schemas for future candidate grids without values, exact arithmetic/portability rules and
+  synthetic cross-implementation golden vectors, validly re-signed attacks, one signed readiness
+  record, one reference-only receipt, and a narrow evidence packet under a two-commit layout.
+- No actual plan/envelope, execution or nonzero budget, identity/price selection, credentials,
+  provider/Codex backend, benchmark/vault/protected data, sentinel/margin fill, final IDs, B0–B6,
+  attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical and
+  certification claim is authorized.
