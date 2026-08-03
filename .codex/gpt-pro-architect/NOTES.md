@@ -494,3 +494,27 @@ any paid-provider request.
 - No push, credential/provider/model call or selection, calibration/pilot, benchmark/vault/task/research
   access or execution, B0–B6/attribution/candidate work, selection/promotion/deployment, publication, or
   empirical claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRRR numeric-freeze entry evidence decision
+
+- External decision: `APPROVE`; no blocker remains for the authorized offline numeric-freeze entry
+  artifact.
+- The closed schema, `nfe-sha256`/`nfer-sha256` identity separation, signed entry, reference-only audit
+  receipt, and clean implementation/sealing commits are accepted. All 24 references point to the clean
+  implementation commit, so neither record names itself as source evidence.
+- The independent verifier reads declared Git bytes, duplicates expected constants, checks signatures,
+  roles, hashes, seven unresolved obligations, 25 sentinels, exact zero budgets, false authority and
+  eligibility states, null final identities, and synthetic-fixture exclusion.
+- Validly re-signed drift, nonzero-budget, escalation, fixture-laundering, sentinel, protected-data,
+  premature-ID, partial-completion, wrong-role, pooling, and receipt-byte-substitution attacks pass.
+  Full validation is 147/147 with zero provider/research activity and zero granted authorities.
+- `research_protocol_numeric_freeze` remains wholly `unresolved` with `evidencePresent=false`; the
+  artifact proves only a local public-development entry boundary.
+- Authorized next scope is one no-execution derivation/calibration-contract preregistration packet:
+  exact sentinel/pending inventory, one derivation class per field, acyclic dependency graph,
+  deterministic future empirical rules, atomic-freeze semantics, future role/data boundaries, proposed
+  receipts and review gates, null final IDs, and every authority false.
+- No schema implementation for that future contract, provider/model selection or call, credential use,
+  Codex-CLI provider wrapping, nonzero budget, benchmark/vault access, calibration/pilot/research,
+  B0–B6, attribution, candidate/selection/promotion/deployment, publication, or empirical claim is
+  authorized.
