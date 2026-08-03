@@ -1,8 +1,7 @@
 # Implementation Inventory
 
-Last audited runtime source commit: `88e39cdebf1df4db7688fff592363f5f867533ce`
-
-Audited runtime source tree: `ccb20381cc3308cb71954789614144575870eb83`
+Status date: 2026-08-03. Run `git rev-parse HEAD HEAD^{tree}` for the current source identity; signed
+historical evidence below retains its original exact commit/tree bindings.
 
 Resource profile: `NP-1`
 
@@ -15,7 +14,7 @@ callable services is not marked complete when the required end-to-end control pa
 |---|---|---|
 | Agent Runtime Kernel | provider interface, `FakeProvider`, context, memory, skills, tools, verifier, budget, descendants, standalone agent loop | implemented |
 | Harness Component Model | frozen type registry, content-addressed components and harness manifests, dependency/closure validation, bounded diff | implemented |
-| Operations Control Plane | signed session definition, lifecycle, start/observe/interrupt/recover/validate/finalize responses, descendant termination | implemented |
+| Operations Control Plane | signed session definition, lifecycle, start/submit/observe/interrupt/resume/recover/validate/finalize/retire, event/artifact projections, descendant termination | implemented |
 | Evidence Plane | epistemic event classes, signed receipts, append-only logs, artifact store, audit chain, Unix audit transport | implemented |
 | Evolution Control Plane | weakness mining, attribution, bounded mutation, lineage, static admission, signed evolution-run journal, canonical candidate bundle, deterministic Git commit/snapshot, external evaluation, qualification, deployment/rollback primitives, development-only prediction seal and anti-laundering graph | implemented for deterministic orchestration and the bounded local OS-principal model |
 | Immutable Trust Plane | principal identities, signed wire protocol, evaluator/promoter/audit separation, budget freeze, five-principal candidate path, eight-principal development-evolution path, OS-boundary adversarial tests | implemented for the bounded local threat model |
@@ -25,7 +24,7 @@ callable services is not marked complete when the required end-to-end control pa
 | Deliverable | Status | Evidence or gap |
 |---|---|---|
 | Architecture and loop diagrams | implemented | `docs/architecture/`, `docs/diagrams/` |
-| Component, event, evidence, lifecycle schemas | implemented | 64 JSON Schemas compile |
+| Component, event, evidence, lifecycle schemas | implemented | all schemas compile through `npm run cli -- check-schemas` |
 | Session and harness state machines | implemented | separate stores and transition tests |
 | Threat model | implemented, bounded | no broad containment claim |
 | Minimum working runtime | implemented | deterministic CLI demo and runtime-loop tests |
@@ -40,8 +39,8 @@ callable services is not marked complete when the required end-to-end control pa
 | Promote/reject/rollback trail | implemented and coordinator-integrated | qualification and deployment decisions remain separate |
 | Matched B0–B6 budget machinery | implemented deterministically | no empirical research task has run |
 | HarnessFaultBench structural-oracle plumbing | implemented, superseded and quarantined | 28 content-addressed good/fault harness pairs validate structure and scorer plumbing only; semantic replacement and development-only process run exist; gate/final bodies absent |
-| Development attribution process boundary | implemented, pending narrow Architect review | eight subordinate UIDs, prediction-before-label release, only-scorer oracle mount, actual standalone synthetic execution, recursive anti-laundering quarantine, self-verifying evidence bundle |
-| Root shipping documentation | partial | root `README.md`, `ARCHITECTURE.md`, `SECURITY.md`, and final research reports remain |
+| Development attribution process boundary | implemented and historically reviewed | eight subordinate UIDs, prediction-before-label release, only-scorer oracle mount, actual standalone synthetic execution, recursive anti-laundering quarantine, self-verifying evidence bundle |
+| Root shipping documentation | implemented | README, architecture, security, reproducibility, completion matrix, related work, final report, and paper draft |
 
 ## Completed integration slice
 
@@ -98,12 +97,11 @@ Approval, rejection, and evaluator-failure paths pass. The integration exposed a
 promotion reason-code bug where gate IDs containing hyphens could not be represented by the frozen
 schema.
 
-## Next integration gaps
+## Remaining empirical obligations
 
-1. Obtain the narrow Architect decision on the durable body-free evaluator-vault correction:
-   authoritative CAS state, owner/epoch lease, commit-before-release, and recovery evidence.
-2. After explicit authorization, exercise the frozen full role mount table under distinct OS
-   identities before any real benchmark body is admitted.
-3. Add root shipping documentation and reproducibility commands.
+1. Provision a provider/model identity and complete the separately authorized live-adapter smoke.
+2. Freeze numeric pilot budgets, admit independently governed task bodies, and run B0–B6.
+3. Run the sealed and temporal held-out phases exactly once, then apply the preregistered statistical
+   and claim gates.
 4. Preserve the local-only security wording: malicious host root/kernel, distributed deployment, and
-   public-provider behavior remain outside this evidence.
+   public-provider behavior remain outside current evidence.

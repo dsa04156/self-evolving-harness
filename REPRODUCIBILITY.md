@@ -9,24 +9,26 @@ The public artifacts are `publicDevelopment=true` and `authorizedForResearchEvid
 - npm: 11.18.0
 - dependencies: locked by `package-lock.json`
 - provider: deterministic fake provider; no API key
-- source snapshot covered by publication governance:
-  `a5d82564cece5ecb776a27c86512c3ec56f32787`
-- source tree:
-  `1bbc1a7623460cf52907758e7ee93149e18a0aec`
+- source identity: the checked-out Git commit and tree reported by `git rev-parse HEAD HEAD^{tree}`;
+  persisted governance artifacts independently pin and verify their historical source commits/trees
 
 ## Clean verification
 
 ```bash
 npm ci
-npm run check
-npm run build
-npm test
-npm run verify:development-process-boundary
-npm run verify:publication-governance
-npm run verify:historical-publication-governance
+npm run cli -- demo
+npm run verify:release
+```
+
+`verify:release` type-checks, builds, runs the complete deterministic test suite, compiles every JSON
+Schema, runs the managed no-key CLI path, and verifies the development, publication,
+historical-publication, and aggregate trust-plane evidence. The aggregate manifest includes exact
+references to the already reviewed vault and synthetic-custody evidence. Those subordinate verifiers
+can also be run directly:
+
+```bash
 npm run verify:evaluator-vault-os-boundary
 npm run verify:synthetic-custody-os-boundary
-npm run verify:trust-plane-conformance
 ```
 
 `verify:development-process-boundary` checks the persisted OS-boundary evidence against its source

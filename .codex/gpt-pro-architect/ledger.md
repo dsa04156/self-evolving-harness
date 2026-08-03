@@ -1258,3 +1258,33 @@ response path, interpreted decision, required revisions, and the commit containi
 - still prohibited: actual manifest/schema/signed plan/envelope/capability/execution, nonzero budget,
   provider/model/price/credentials/calls, protected or benchmark data, values/final IDs/O, B0–B6,
   attribution/mutation/candidates, selection/promotion/deployment, push/release/publication, and claims
+
+## Round 04 — 2026-08-03
+
+- sent packet: `architect/PACKET_04_FINAL_EVIDENCE.md`
+- transmitted packet SHA-256/size:
+  `6c800db86c637b2513504154d70d15cb8f3240b09bf12b21694456ef08bf96ec` / 8,401 bytes
+- tracked packet SHA-256/size after removing one trailing blank line for `git diff --check`:
+  `047fc6d8bc8e0d914faa7a550a1d4fe100f6e4c5c2263176ba7d394889f0dab1` / 8,400 bytes
+- transport: Oracle CLI 0.16.1 positive exact-tab reuse dry-run; live Oracle attach failed before
+  transmission because the pre-existing Chrome lacked Oracle profile metadata. Direct CDP reused exact
+  target `4BA3B4F29D8FD1597A712A46C80CB67E` and conversation
+  `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`.
+- submission recovery: insertion outlived the command yield; a read-only check found the complete
+  8,802-character rendered composer and unchanged conversation. The send click returned a false
+  count-based failure after ChatGPT virtualized the DOM; recovery proved the last user message was the
+  8,467-character Packet 04 submission, composer empty, and one response active. No resend, new tab,
+  new window, upload, screenshot, cookie, or local-storage access occurred.
+- oracle session: `self-evolving-harness-final-evidence` (failed before transmission)
+- archive policy: never
+- model evidence: requested `gpt-5-pro`; dry run resolved browser mode and exact target reuse. Direct
+  CDP retained the prior Pro-selected tab; server-side generation remains vendor-opaque.
+- raw response: `.codex/gpt-pro-architect/responses/response-04-final-evidence.md`
+- raw-response SHA-256: `f2bafaabf8a4a6cb654cf3b5e74e53ab80d0ab264f261c4aa9f342e016462a6c`
+- architect decision: `REVISE`
+- accepted: deterministic standalone MVP, no external harness backend, qualification/deployment
+  separation, full operations surface, signed descendant authority and shared accounting, local-TCB
+  claim boundary, and empirical `REVISE/NOT TESTED` discipline
+- sole blocker: uncommitted candidate bytes were not bound to an exact commit/tree/path/patch identity
+- next: commit the exact candidate, rerun `npm run verify:release` from a clean tree, record the
+  candidate identity and remote pre-push ref, then submit one narrow release-sealing packet

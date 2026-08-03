@@ -17,6 +17,7 @@ import { registerBuiltinTools } from "../tools/builtins.js";
 import { AgentExecutionLoop } from "./agent-loop.js";
 import { BudgetAccount } from "./budget.js";
 import { ContextBuilder, type ContextPolicy, type PromptPayload } from "./context.js";
+import { DescendantManager } from "./descendants.js";
 import {
   FilesystemMemory,
   type MemoryAuthority,
@@ -63,6 +64,8 @@ export interface StandaloneRuntimeOptions {
     readonly maxOutputBytes: number;
     readonly maxCommandBytes: number;
   };
+  /** Internal delegation hook: child usage is charged to both accounts. */
+  readonly parentBudgetAccount?: BudgetAccount;
 }
 
 export interface StandaloneRuntime {
@@ -73,6 +76,8 @@ export interface StandaloneRuntime {
   readonly memory: FilesystemMemory;
   readonly artifacts: ArtifactStore;
   readonly tools: ToolRegistry;
+  readonly budget: BudgetAccount;
+  readonly descendants: DescendantManager;
   run(task: string, abortSignal?: AbortSignal): Promise<AgentRunResult>;
 }
 
@@ -104,7 +109,11 @@ export async function createStandaloneRuntime(
   await processRunner.initialize();
   const artifacts = new ArtifactStore(path.join(root, "artifacts"));
   await artifacts.initialize();
-  const budget = new BudgetAccount(input.budgetLimits, input.clock);
+  const budget = new BudgetAccount(
+    input.budgetLimits,
+    input.clock,
+    input.parentBudgetAccount ?? null,
+  );
   const tools = new ToolRegistry();
   const implementations = registerBuiltinTools((tool) => tools.register(tool));
   tools.seal();
@@ -167,6 +176,21 @@ export async function createStandaloneRuntime(
     schemas: input.schemas,
     redactor: new SecretRedactor(input.secrets ?? {}),
   });
+  const descendants = new DescendantManager({
+    root,
+    parentSessionId: input.sessionId,
+    pins: input.pins,
+    parentLimits: input.budgetLimits,
+    permissionCeiling: allowedToolIds,
+    parentBudget: budget,
+    runner: processRunner,
+    artifacts,
+    clock: input.clock,
+    ids: input.ids,
+    schemas: input.schemas,
+    recordSigner: input.runtimeSigner,
+  });
+  await descendants.recoverOrphans();
   const loop = new AgentExecutionLoop({
     configuration: {
       sessionId: input.sessionId,
@@ -203,6 +227,8 @@ export async function createStandaloneRuntime(
     memory,
     artifacts,
     tools,
+    budget,
+    descendants,
     run(task, abortSignal) {
       return loop.run(task, abortSignal);
     },

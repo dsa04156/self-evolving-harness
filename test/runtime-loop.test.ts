@@ -243,6 +243,7 @@ test("bash tool runs in a no-network filesystem sandbox", async (t) => {
 
 test("descendants inherit pins and cannot widen budget or permissions", async (t) => {
   const root = await temporaryDirectory(t);
+  const schemas = await SchemaRegistry.load(path.resolve("schemas"));
   const workspace = new WorkspacePathGuard(root);
   await workspace.initialize();
   const runner = new BubblewrapProcessRunner(root, {
@@ -278,6 +279,13 @@ test("descendants inherit pins and cannot widen budget or permissions", async (t
     artifacts,
     clock,
     ids: new DeterministicIdFactory(),
+    schemas,
+    recordSigner: PrincipalSigner.generate({
+      principalId: "runtime.descendants",
+      role: "runtime",
+      implementationDigest: hash("9"),
+      instanceId: "runtime.descendants.instance",
+    }),
   });
   await assert.rejects(
     manager.startBackendJob({
@@ -314,4 +322,36 @@ test("descendants inherit pins and cannot widen budget or permissions", async (t
   const records = await manager.records(job.descendantId);
   assert.deepEqual(records.at(-1)?.pins, pins);
   assert.equal(records.at(-1)?.artifactHash?.startsWith("sha256:"), true);
+  assert.equal(records.at(-1)?.delegatedBy.role, "runtime");
+});
+
+test("delegated budgets enforce the local slice and charge the shared parent", () => {
+  const clock = new DeterministicClock();
+  const parent = new BudgetAccount({ ...LIMITS, maxDescendants: 2 }, clock);
+  const child = new BudgetAccount(
+    {
+      ...LIMITS,
+      maxModelCalls: 1,
+      maxInputTokens: 20,
+      maxOutputTokens: 10,
+      maxToolCalls: 1,
+      maxRetries: 0,
+      maxDescendants: 0,
+    },
+    clock,
+    parent,
+  );
+  child.reserveModelCall();
+  child.chargeModelUsage({
+    inputTokens: 10,
+    outputTokens: 5,
+    reasoningTokens: 0,
+    cachedInputTokens: 0,
+    totalTokens: 15,
+  });
+  child.reserveToolCall();
+  assert.equal(parent.snapshot().modelCalls, 1);
+  assert.equal(parent.snapshot().inputTokens, 10);
+  assert.equal(parent.snapshot().toolCalls, 1);
+  assert.throws(() => child.reserveModelCall(), /budget exhausted/iu);
 });

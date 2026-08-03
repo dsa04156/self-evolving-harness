@@ -447,7 +447,9 @@ function semanticPins(input: {
       harnessVersionId: input.harnessVersionId,
       environment: input.environment,
     }).slice("sha256:".length, 30)}`,
-    datasetPermissions: ["deterministic_development"],
+    // SessionPins use the closed dataset-role vocabulary. Development-only
+    // eligibility is enforced by the separate governance/quarantine records.
+    datasetPermissions: ["deterministic"],
   };
 }
 
@@ -738,6 +740,8 @@ export async function executeSemanticHarness(
       artifacts,
       clock: input.clock,
       ids: input.ids,
+      schemas: input.schemas,
+      recordSigner: input.runtimeSigner,
     });
     const handle = await descendants.spawnSubagent({
       task: taskForModel,

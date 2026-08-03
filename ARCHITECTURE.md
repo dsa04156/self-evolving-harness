@@ -49,16 +49,22 @@ blocked → recovering → running
 running → validating → completed → retired
 ```
 
-Harness version:
+Harness qualification:
 
 ```text
-draft → candidate → statically_validated → evaluating → canary → active → retired
-                         └──────────────→ rejected
-active/canary ─────────────────────────→ rolled_back
+draft → candidate → statically_validated → evaluating → canary → approved → retired
+  └──────────────→ rejected ←───────────────┘          └──────→ retired
 ```
 
-The state machines have separate records and transition guards. Session restart cannot modify a
-harness-version lifecycle.
+Deployment is a separate compare-and-swap projection:
+
+```text
+null → active production pointer A → deploy B → rollback to A → decommission
+```
+
+`active` is a deployment-pointer property and `rolled_back` is a signed deployment operation, not a
+mutable field in the harness manifest. The state machines and deployment journal have separate records
+and transition guards. Session restart cannot modify either harness qualification or deployment.
 
 ## Component mutation boundary
 

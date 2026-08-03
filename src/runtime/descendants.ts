@@ -1,8 +1,9 @@
 import path from "node:path";
 
-import { type JsonValue } from "../core/canonical.js";
+import { sha256, type JsonValue } from "../core/canonical.js";
 import type { Clock, IdFactory } from "../core/determinism.js";
 import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
+import { SCHEMA_BASE_URL, type SchemaRegistry } from "../contracts/schema-registry.js";
 import type { AgentRunResult, BudgetLimits, SessionPins } from "../domain/runtime.js";
 import { AppendOnlyLog } from "../storage/append-only-log.js";
 import type { ArtifactStore } from "../storage/artifact-store.js";
@@ -12,7 +13,15 @@ import type {
   SandboxProcessResult,
 } from "./sandbox-process.js";
 import type { HarnessReferenceLedger } from "../evolution/reference-ledger.js";
-import type { PrincipalSigner } from "../trust/identity.js";
+import {
+  PrincipalRegistry,
+  type Attestation,
+  type PrincipalIdentity,
+  type PrincipalSigner,
+} from "../trust/identity.js";
+
+export const DESCENDANT_RECORD_SCHEMA_ID =
+  `${SCHEMA_BASE_URL}descendant-record.schema.json`;
 
 export type DescendantKind = "subagent" | "backend_job";
 export type DescendantState =
@@ -23,8 +32,8 @@ export type DescendantState =
   | "cancelled"
   | "orphan_reaped";
 
-interface DescendantRecord {
-  readonly schemaVersion: 1;
+export interface DescendantRecord {
+  readonly schemaVersion: 2;
   readonly recordId: string;
   readonly descendantId: string;
   readonly parentSessionId: string;
@@ -33,9 +42,12 @@ interface DescendantRecord {
   readonly pins: SessionPins;
   readonly budgetSlice: BudgetLimits;
   readonly permissionToolIds: readonly string[];
+  readonly taskHash: string;
   readonly createdAt: string;
   readonly artifactHash: string | null;
   readonly failureCode: string | null;
+  readonly delegatedBy: PrincipalIdentity;
+  readonly attestation: Attestation;
 }
 
 export interface DescendantHandle {
@@ -79,6 +91,9 @@ export class DescendantManager {
   readonly #artifacts: ArtifactStore;
   readonly #clock: Clock;
   readonly #ids: IdFactory;
+  readonly #schemas: SchemaRegistry;
+  readonly #recordSigner: PrincipalSigner;
+  readonly #principals = new PrincipalRegistry();
   readonly #log: AppendOnlyLog<JsonValue>;
   readonly #references: HarnessReferenceLedger | null;
   readonly #referenceSigner: PrincipalSigner | null;
@@ -96,6 +111,8 @@ export class DescendantManager {
     artifacts: ArtifactStore;
     clock: Clock;
     ids: IdFactory;
+    schemas: SchemaRegistry;
+    recordSigner: PrincipalSigner;
     references?: HarnessReferenceLedger;
     referenceSigner?: PrincipalSigner;
   }) {
@@ -108,6 +125,14 @@ export class DescendantManager {
     this.#artifacts = input.artifacts;
     this.#clock = input.clock;
     this.#ids = input.ids;
+    this.#schemas = input.schemas;
+    this.#recordSigner = input.recordSigner;
+    assertCondition(
+      input.recordSigner.identity.role === "runtime",
+      "AUTHORIZATION_DENIED",
+      "Descendant records require a runtime principal",
+    );
+    this.#principals.register(input.recordSigner.exportPublic());
     assertCondition(
       (input.references === undefined) === (input.referenceSigner === undefined),
       "SCHEMA_INVALID",
@@ -130,6 +155,7 @@ export class DescendantManager {
     this.#assertDelegation(input.budgetSlice, input.permissionToolIds);
     this.#parentBudget.reserveDescendant();
     const descendantId = this.#ids.next("subagent");
+    const taskHash = sha256({ task: input.task });
     const controller = new AbortController();
     this.#controllers.set(descendantId, controller);
     await this.#acquireHold(descendantId);
@@ -139,6 +165,7 @@ export class DescendantManager {
       state: "created",
       budgetSlice: input.budgetSlice,
       permissionToolIds: input.permissionToolIds,
+      taskHash,
       artifactHash: null,
       failureCode: null,
     });
@@ -148,6 +175,7 @@ export class DescendantManager {
       state: "running",
       budgetSlice: input.budgetSlice,
       permissionToolIds: input.permissionToolIds,
+      taskHash,
       artifactHash: null,
       failureCode: null,
     });
@@ -170,6 +198,7 @@ export class DescendantManager {
           state: result.state === "completed" ? "completed" : "failed",
           budgetSlice: input.budgetSlice,
           permissionToolIds: input.permissionToolIds,
+          taskHash,
           artifactHash: artifact.contentHash,
           failureCode: result.state === "completed" ? null : result.terminationReason ?? result.state,
         });
@@ -184,6 +213,7 @@ export class DescendantManager {
           state: controller.signal.aborted ? "cancelled" : "failed",
           budgetSlice: input.budgetSlice,
           permissionToolIds: input.permissionToolIds,
+          taskHash,
           artifactHash: null,
           failureCode: failure.code,
         });
@@ -212,6 +242,7 @@ export class DescendantManager {
     );
     this.#parentBudget.reserveDescendant();
     const descendantId = this.#ids.next("backend-job");
+    const taskHash = sha256({ command: input.command });
     const controller = new AbortController();
     this.#controllers.set(descendantId, controller);
     await this.#acquireHold(descendantId);
@@ -221,6 +252,7 @@ export class DescendantManager {
       state: "created",
       budgetSlice: input.budgetSlice,
       permissionToolIds: permissions,
+      taskHash,
       artifactHash: null,
       failureCode: null,
     });
@@ -230,6 +262,7 @@ export class DescendantManager {
       state: "running",
       budgetSlice: input.budgetSlice,
       permissionToolIds: permissions,
+      taskHash,
       artifactHash: null,
       failureCode: null,
     });
@@ -243,6 +276,7 @@ export class DescendantManager {
           state: result.exitCode === 0 && !result.timedOut ? "completed" : "failed",
           budgetSlice: input.budgetSlice,
           permissionToolIds: permissions,
+          taskHash,
           artifactHash: artifact.contentHash,
           failureCode:
             result.exitCode === 0 && !result.timedOut
@@ -262,6 +296,7 @@ export class DescendantManager {
           state: controller.signal.aborted ? "cancelled" : "failed",
           budgetSlice: input.budgetSlice,
           permissionToolIds: permissions,
+          taskHash,
           artifactHash: null,
           failureCode: failure.code,
         });
@@ -315,6 +350,7 @@ export class DescendantManager {
           state: "orphan_reaped",
           budgetSlice: record.budgetSlice,
           permissionToolIds: record.permissionToolIds,
+          taskHash: record.taskHash,
           artifactHash: null,
           failureCode: "PEER_CRASHED",
         });
@@ -331,6 +367,56 @@ export class DescendantManager {
 
   public async records(descendantId?: string): Promise<DescendantRecord[]> {
     const records = (await this.#log.readAll()).map((record) => asRecord(record.payload));
+    const latest = new Map<string, DescendantRecord>();
+    const recordIds = new Set<string>();
+    for (const record of records) {
+      this.#schemas.validate(
+        DESCENDANT_RECORD_SCHEMA_ID,
+        record as unknown as JsonValue,
+      );
+      assertCondition(!recordIds.has(record.recordId), "CONFLICT", "Duplicate descendant record ID");
+      recordIds.add(record.recordId);
+      assertCondition(
+        record.parentSessionId === this.#parentSessionId &&
+          sha256(record.pins as unknown as JsonValue) ===
+            sha256(this.#pins as unknown as JsonValue),
+        "PROTOCOL_MISMATCH",
+        "Descendant record changed its parent or inherited pins",
+      );
+      const { attestation: _attestation, ...signedBody } = record;
+      this.#principals.verify(
+        record.delegatedBy,
+        signedBody as unknown as JsonValue,
+        record.attestation,
+      );
+      const previous = latest.get(record.descendantId);
+      if (previous === undefined) {
+        assertCondition(record.state === "created", "INVALID_STATE_TRANSITION", "Descendant must start in created");
+      } else {
+        assertCondition(
+          previous.kind === record.kind &&
+            previous.taskHash === record.taskHash &&
+            sha256(previous.budgetSlice as unknown as JsonValue) ===
+              sha256(record.budgetSlice as unknown as JsonValue) &&
+            sha256(previous.permissionToolIds as unknown as JsonValue) ===
+              sha256(record.permissionToolIds as unknown as JsonValue),
+          "PROTOCOL_MISMATCH",
+          "Descendant delegation changed after creation",
+        );
+        const allowed =
+          previous.state === "created"
+            ? ["running", "failed", "cancelled", "orphan_reaped"]
+            : previous.state === "running"
+              ? ["completed", "failed", "cancelled", "orphan_reaped"]
+              : [];
+        assertCondition(
+          allowed.includes(record.state),
+          "INVALID_STATE_TRANSITION",
+          `Descendant cannot transition ${previous.state} → ${record.state}`,
+        );
+      }
+      latest.set(record.descendantId, record);
+    }
     return descendantId === undefined
       ? records
       : records.filter((record) => record.descendantId === descendantId);
@@ -351,11 +437,12 @@ export class DescendantManager {
     state: DescendantState;
     budgetSlice: BudgetLimits;
     permissionToolIds: readonly string[];
+    taskHash: string;
     artifactHash: string | null;
     failureCode: string | null;
   }): Promise<DescendantRecord> {
-    const record: DescendantRecord = {
-      schemaVersion: 1,
+    const signedBody = {
+      schemaVersion: 2 as const,
       recordId: this.#ids.next("descendant-record"),
       descendantId: input.descendantId,
       parentSessionId: this.#parentSessionId,
@@ -364,10 +451,20 @@ export class DescendantManager {
       pins: this.#pins,
       budgetSlice: input.budgetSlice,
       permissionToolIds: [...input.permissionToolIds].sort(),
+      taskHash: input.taskHash,
       createdAt: this.#clock.now().toISOString(),
       artifactHash: input.artifactHash,
       failureCode: input.failureCode,
+      delegatedBy: this.#recordSigner.identity,
     };
+    const record: DescendantRecord = {
+      ...signedBody,
+      attestation: this.#recordSigner.attest(signedBody as unknown as JsonValue),
+    };
+    this.#schemas.validate(
+      DESCENDANT_RECORD_SCHEMA_ID,
+      record as unknown as JsonValue,
+    );
     await this.#log.append(record as unknown as JsonValue);
     return record;
   }

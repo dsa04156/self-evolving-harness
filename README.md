@@ -1,78 +1,113 @@
 # Self-Evolving Harness
 
-This repository is an early, standalone coding-agent harness. It owns its model-provider interface,
-agent loop, context construction, tools, filesystem memory, skills, sessions, permissions, evidence,
-verification, and a separately governed harness-evolution lifecycle. Codex, Gajae-Code, and OpenCode
-are prior art and comparison targets, not execution backends.
+A standalone coding-agent harness with two independently governed lifecycles: task execution and
+harness evolution. The runtime owns provider calls, context, tools, memory, skills, workflow/routing,
+subagents, backend jobs, sessions, sandboxing, evidence, verification, recovery, component versions,
+candidate evaluation, and deployment history. It does not execute Codex, Gajae-Code, OpenCode, or any
+other coding-agent harness as its backend.
 
-The project separates two lifecycles:
+## Status
 
-```text
-Task Execution Loop
-context → model → tool → result → verification → complete or retry
+| Scope | Verdict | Meaning |
+|---|---|---|
+| Deterministic MVP implementation | **PASS** | The managed runtime, six planes, schemas, fake-provider tests, provider adapter, bounded evolution path, external evaluator, worktree isolation, and audit trails are implemented. |
+| Architectural claims C-A1–C-A3 | **SUPPORTED within the documented local TCB** | Source, process-boundary, deterministic, and adversarial tests cover the stated implementation boundary. |
+| Empirical self-evolution claims C-H1–C-H4 | **REVISE / UNEXECUTED** | No paid-provider rollout, sealed held-out run, or matched B0–B6 experiment has occurred. The repository makes no performance claim. |
 
-Harness Evolution Loop
-many traces → weakness mining → attribution → bounded mutation
-→ new HarnessVersion → held-in/held-out evaluation → promote, reject, or rollback
-```
+The implementation is complete as a deterministic research harness. The preregistered empirical
+study remains deliberately unexecuted because no Platform API credential or private evaluator corpus
+was supplied. Codex CLI was used to develop this repository and is not a runtime provider.
 
-A task retry never creates a `HarnessVersion` and is not called evolution.
+## Quick start
 
-## Current status
-
-The deterministic no-provider runtime and a development-only evolution-boundary prototype exist.
-The prototype uses eight separate Linux principals for attribution, commitment, scoring, proposing,
-quarantine, runtime execution, evaluation, and audit. It proves development plumbing only.
-
-The local trust path now includes the body-free evaluator-vault contract, durable globally serialized
-vault state, an eight-principal OS integration, and a fixed-inert-payload synthetic custody rehearsal.
-The custody path records first-seen denials, makes exact retries idempotent, and recovers seven actual
-SIGKILL boundaries without duplicate materialization. These controls have received narrow Architect
-approval as deterministic development plumbing; no real task body or benchmark evaluator is involved.
-
-All artifacts published through commit
-`8b5f14400a7723c821bc54420e55da58dfa7601b` are permanently classified as
-`publicDevelopment=true`. For all of them and every copied or transitive derivative,
-`authorizedForResearchEvidence=false`, held-out/sealed/gate/final eligibility is false, and promotion
-is unauthorized. They are diagnostic development artifacts, not independent evaluation evidence.
-
-No API key is stored in this repository. No real provider call, B0–B6 experiment, sealed-test access,
-promotion, deployment, or self-improvement claim is represented by the current public evidence.
-The exact unresolved set is maintained in
-[`docs/evaluation/outstanding-obligations.md`](docs/evaluation/outstanding-obligations.md).
-
-## Verify locally
-
-Requirements are pinned in `package.json` (Node 24.18.1 and npm 11.18.0).
+Requirements are pinned to Node.js 24.18.1 and npm 11.18.0.
 
 ```bash
 npm ci
-npm run check
-npm run build
-npm test
-npm run verify:development-process-boundary
-npm run verify:publication-governance
-npm run verify:historical-publication-governance
-npm run verify:trust-plane-conformance
+npm run cli -- demo
 ```
 
-The trust-plane verifier independently checks the signed local conformance manifest, every referenced
-Git commit/tree/file hash, Architect ruling anchor, evidence and contract identity, append-only
-governance relation, permanent public-development eligibility, and unresolved-authority state.
+The demo runs without a network or API key and exercises the complete managed path:
 
-## Repository map
+```text
+session start → context → FakeProvider → filesystem tool → verifier
+→ signed evidence → completed → retired
+```
 
-- `src/runtime/`: independent task runtime and tools
-- `src/evolution/`: candidate construction and evaluation mechanics
-- `src/governance/`: immutable boundaries, taint and public-exposure policy
-- `src/evidence/`: signed receipts and append-only evidence
-- `schemas/`: closed JSON Schema contracts
-- `test/`: deterministic fake-provider and fake-tool tests
-- `docs/architecture/`: detailed architecture and lifecycle definitions
-- `docs/research/`: exact-SHA prior-art ledger and gap analysis
-- `governance/`: signed deviation, exposure, and remediation records
-- `architect/`: external Architect review packets and development-only evidence
+It writes only under ignored `.seh/` state and reports the workspace, terminal session state, model and
+tool usage, event-chain head, and evidence-receipt count.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [SECURITY.md](SECURITY.md),
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md), [LIMITATIONS.md](LIMITATIONS.md), and
-[NEGATIVE_RESULTS.md](NEGATIVE_RESULTS.md).
+Run the complete release gate with:
+
+```bash
+npm run verify:release
+```
+
+That command type-checks, builds, runs every deterministic test, compiles all JSON Schemas, executes the
+managed CLI demo, and verifies the development, publication, historical-publication, and aggregate
+trust-plane evidence.
+
+## Two first-class loops
+
+```text
+Task Execution Loop
+context → model → tool call → tool result → verification → complete or bounded retry
+
+Harness Evolution Loop
+many traces → weakness mining → component attribution → bounded mutation
+→ new content-addressed HarnessVersion → isolated evaluation
+→ approve/reject qualification → independent deploy/rollback decision
+```
+
+A retry, recovery, reflection, memory write, or prompt reinjection never creates a harness version and
+is never reported as evolution.
+
+## Implemented surface
+
+- provider abstraction, deterministic fake provider, canonical request-table provider, and OpenAI
+  Responses/Connect adapters;
+- append-oriented model/tool/verifier loop and managed operations facade;
+- read, write, exact edit, bash, `git status`, and `git diff` tools;
+- workspace path guards, no-network bubblewrap process execution, permissions, and hard budgets;
+- filesystem memory, declarative skills, closed workflow and routing runtimes;
+- signed, schema-validated subagent/backend-job records with inherited pins, reduced permissions,
+  hierarchical budget charging, cancellation, orphan recovery, and artifacts;
+- separate signed session and harness-qualification lifecycles;
+- content-addressed component DAG and harness registry with mutable-class enforcement;
+- runtime events, evidence receipts, facts/inferences separation, artifacts, and audit chains;
+- weakness attribution, bounded proposals, rejected-edit memory, candidate bundles, Git worktree
+  isolation, external evaluator process, qualification decisions, deployment CAS, and rollback;
+- deterministic HarnessFaultBench plumbing and matched-budget B0–B6 scheduling contracts.
+
+Qualification ends at `approved`; production activity is represented by a separate signed channel
+pointer. Consequently, `active` is a deployment projection and `rolled_back` is a deployment event,
+not mutable state embedded in a `HarnessVersion` manifest. This split prevents approval from silently
+changing production and preserves exact rollback targets.
+
+## Public-development evidence boundary
+
+Every artifact in the governed public development snapshot and every copy, alias, dependency, wrapper,
+or provenance-derived descendant remains `publicDevelopment=true` and
+`authorizedForResearchEvidence=false`. Renaming it, changing the protocol ID, rewriting Git history, or
+deleting the repository cannot make it sealed, held-out, promotable, or confirmatory evidence.
+
+## Credentials and external actions
+
+No API key, private key PEM, provider token, `.env` file, or live credential is stored in the
+repository. Real-provider smoke support is opt-in and fail-closed; deterministic verification needs no
+credential. See [SECURITY.md](SECURITY.md).
+
+## Documentation
+
+- [Architecture](ARCHITECTURE.md)
+- [Completion matrix](docs/completion/acceptance-matrix.md)
+- [Reproducibility](REPRODUCIBILITY.md)
+- [Security and threat boundary](SECURITY.md)
+- [Research contract and claims](RESEARCH_CONTRACT.md), [CLAIMS.md](CLAIMS.md)
+- [Evaluation final report](docs/evaluation/final-report.md)
+- [Related work](docs/research/related-work.md)
+- [Paper draft](paper/draft.md)
+- [Limitations](LIMITATIONS.md) and [negative results](NEGATIVE_RESULTS.md)
+
+Detailed schemas live in `schemas/`, executable code in `src/`, deterministic tests in `test/`, and
+external evaluator processes in `evaluator/`.

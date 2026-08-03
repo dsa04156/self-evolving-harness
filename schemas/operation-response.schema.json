@@ -90,6 +90,9 @@
           "artifacts"
         ]
       }
+    },
+    "data": {
+      "description": "Operation-specific, non-authoritative projection. Evidence receipts remain authoritative."
     }
   }
 }

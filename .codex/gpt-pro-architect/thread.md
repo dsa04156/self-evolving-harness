@@ -8,28 +8,29 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 3R23 used the required direct-CDP continuation
-- oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
+- oracle latest session id: `self-evolving-harness-final-evidence` failed before transmission because
+  Oracle attach metadata did not recognize the pinned browser; the approved direct-CDP fallback then
+  continued the exact tab
+- oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet, self-evolving-harness-final-evidence
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
 - browser owner: pre-existing local architect Chrome
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 3R23 direct CDP verified target
-  `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
-  button, and the prior Round 03RRRRRRRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
-  recovery verified the complete 14,390-character rendered composer and unchanged user count,
-  then submitted it exactly once without opening a new tab or window. The response completed
-  normally; no continuation was sent.
+- last reuse preflight: Round 04 Oracle 0.16.1 dry-run positively reported attach/reuse of target
+  `4BA3B4F29D8FD1597A712A46C80CB67E` without a new process or tab. Live Oracle attach failed before
+  transmission. Direct CDP then verified the exact URL, empty composer, no stop button, prior assistant
+  response, and complete 8,802-character rendered packet. One click submitted it; recovery confirmed
+  the last user message contained Packet 04, the composer was empty, and one Pro response completed.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-03
-- last packet: `architect/PACKET_03R23_CALIBRATION_TERMINAL_EVIDENCE_CORRECTION.md`
-- last packet sha256: `3cc9f52a0ce104e4f71fb84d45c8905797b34346f12031ef3a3896e48fbab292`
-- last response: `.codex/gpt-pro-architect/responses/response-3r23.md`
-- last response sha256: `4590823bc79d29edf83e931b26bf78c7263dd4119d5ad059bcc837f025c3b0ee`
-- next packet: no-execution CalibrationPlanManifest construction preregistration only
+- last packet: `architect/PACKET_04_FINAL_EVIDENCE.md`
+- last packet sha256: `047fc6d8bc8e0d914faa7a550a1d4fe100f6e4c5c2263176ba7d394889f0dab1`
+- last response: `.codex/gpt-pro-architect/responses/response-04-final-evidence.md`
+- last response sha256: `f2bafaabf8a4a6cb654cf3b5e74e53ab80d0ab264f261c4aa9f342e016462a6c`
+- next packet: narrow clean-commit release-sealing evidence only
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -39,6 +40,18 @@
 - model evidence: Oracle 0.16.1; the same topic originally requested `gpt-5-pro` and resolved the existing
   target. Manual fallback reused the same prior Pro-selected project tab, but did not independently
   expose the picker label; server-side generation identity remains vendor-opaque.
+- Round 04 decision: `REVISE`. The transmitted packet hash was
+  `6c800db86c637b2513504154d70d15cb8f3240b09bf12b21694456ef08bf96ec`; the tracked copy removed one
+  trailing blank line for `git diff --check` and has the current hash above. The deterministic
+  standalone runtime, existing-harness independence,
+  qualification/deployment split, operations closure, signed descendants/shared accounting, and claim
+  discipline were accepted. The sole blocker is release identity: commit and tree the reviewed bytes,
+  rerun `npm run verify:release` from a clean worktree, bind the changed-path/patch identity, and
+  resubmit without architecture, provider, benchmark, or claim expansion.
+- current authorization: create one exact local candidate commit, run the deterministic release gate
+  from its clean tree, record commit/tree/parent/changed paths/diffstat/patch hash/status/remote ref,
+  and submit one narrow sealing packet. No provider call, protected data, empirical experiment,
+  promotion, deployment, or claim expansion is included.
 - Round 03RRRR decision: `REVISE`. The technical eight-principal process boundary, prediction seal,
   proposer authority, actual runtime evaluation, taint/non-promotability, evidence reconstruction,
   and bounded claims were accepted. Closure is blocked only on publication governance.

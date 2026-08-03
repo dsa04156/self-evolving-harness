@@ -667,3 +667,16 @@ any paid-provider request.
 - Only a no-execution `CalibrationPlanManifest` construction preregistration packet is authorized next.
   Implementation, a signed plan, capability, execution, provider identity, protected data, nonzero
   values, research evaluation, promotion, push/publication, and empirical claims remain prohibited.
+
+## Durable Round 04 deterministic-MVP final-evidence decision
+
+- External decision: `REVISE` on release sealing only.
+- The deterministic standalone runtime, independence from other coding harnesses, qualification versus
+  deployment split, completed operations API, signed descendant lifecycle, hierarchical accounting,
+  local-TCB boundary, and empirical `NOT TESTED/REVISE` wording are accepted.
+- No architecture or implementation defect was identified. The exact bytes tested were still an
+  uncommitted worktree, so they lacked a commit/tree/changed-path/patch identity.
+- Required closure is one exact local commit, one clean-worktree `npm run verify:release`, recorded
+  commit/tree/parent/path/diffstat/patch hash/status/remote ref, and one narrow resubmission.
+- Provider calls, protected data, B0–B6, promotion/deployment, empirical execution, and claim expansion
+  are neither required nor authorized by this correction.

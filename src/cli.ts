@@ -11,7 +11,7 @@ import {
   HarnessError,
   PrincipalSigner,
   SchemaRegistry,
-  createStandaloneRuntime,
+  createManagedStandaloneRuntime,
   passingVerification,
   sha256,
   type ModelResponse,
@@ -72,6 +72,18 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
     implementationDigest: digest("runtime.cli-demo"),
     instanceId: "runtime.cli-demo.instance",
   });
+  const operationsSigner = PrincipalSigner.generate({
+    principalId: "operations.cli-demo",
+    role: "operations_owner",
+    implementationDigest: digest("operations.cli-demo"),
+    instanceId: "operations.cli-demo.instance",
+  });
+  const auditSigner = PrincipalSigner.generate({
+    principalId: "audit.cli-demo",
+    role: "audit_store",
+    implementationDigest: digest("audit.cli-demo"),
+    instanceId: "audit.cli-demo.instance",
+  });
   const provider = new FakeModelProvider([
     response("response-demo-write", [
       {
@@ -112,7 +124,7 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
       return passingVerification("demo artifact matches the deterministic contract");
     },
   );
-  const runtime = await createStandaloneRuntime({
+  const runtime = await createManagedStandaloneRuntime({
     root,
     schemas,
     provider,
@@ -131,6 +143,8 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
     },
     modelIdentity: "fake:deterministic-demo-v1",
     runtimeSigner,
+    operationsSigner,
+    auditSigner,
     budgetLimits: {
       maxModelCalls: 4,
       maxInputTokens: 4096,
@@ -227,26 +241,36 @@ async function demo(explicitRoot: string | undefined): Promise<void> {
       },
     ],
   });
-  const result = await runtime.run(
+  const execution = await runtime.execute(
     "Create demo-output.txt containing exactly harness-ok followed by a newline.",
   );
+  await runtime.verify();
+  const result = execution.result;
   process.stdout.write(
     `${JSON.stringify(
       {
         root,
-        workspaceRoot: runtime.workspaceRoot,
+        workspaceRoot: runtime.kernel.workspaceRoot,
         state: result.state,
+        sessionState: execution.finalize?.state ?? execution.submit.state,
         verificationPassed: result.verification?.passed ?? false,
         modelCalls: result.usage.modelCalls,
         toolCalls: result.usage.toolCalls,
         eventCount: result.eventCount,
         eventHeadHash: result.eventHeadHash,
+        evidenceReceipts: execution.start.evidence.length +
+          execution.submit.evidence.length +
+          (execution.finalize?.evidence.length ?? 0),
       },
       null,
       2,
     )}\n`,
   );
-  if (result.state !== "completed" || result.verification?.passed !== true) {
+  if (
+    result.state !== "completed" ||
+    result.verification?.passed !== true ||
+    execution.finalize?.state !== "retired"
+  ) {
     process.exitCode = 1;
   }
 }

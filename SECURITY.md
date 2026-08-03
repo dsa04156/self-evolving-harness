@@ -10,6 +10,8 @@ sealed data, budgets, model identity, audit history, or promotion policy.
 - Ed25519 principal identities and signed records
 - append-only receipts and remediation records
 - versioned component and harness identities
+- signed, schema-validated descendant records with exact parent/session/harness pins
+- hierarchical budget charging so delegated model/tool/retry/job use also debits the parent account
 - isolated candidate worktrees
 - distinct development-process UIDs, keys, mounts, sockets, and zero network/token/tool budgets
 - prediction commitment and durable seal before scorer oracle release
@@ -51,6 +53,7 @@ credential placeholders are not credentials.
 | denial leaks handle/body/result | fixed zero-field denial projection and unchanged state |
 | exact retry or obsolete transition after restart | exact committed disposition reuse plus reconstruction of sequence, nonce, capability, task, evaluation, and score state |
 | concurrent/stale vault writer | durable lease epoch, expected-head CAS, stale-handle rejection, and commit-before-release |
+| child job escapes delegated authority or budget | permission ceiling, inherited immutable pins, signed transitions, and shared parent/child accounting |
 
 ## Trusted computing base and non-claims
 

@@ -1,11 +1,12 @@
 # Outstanding Obligations
 
-Status date: 2026-07-31  
-Scope: local runtime-and-trust readiness only
+Status date: 2026-08-03
+Scope: empirical research and external-provider obligations after deterministic MVP completion
 
 The authoritative machine-readable matrix is
 [`governance/trust-plane/outstanding-obligations.json`](../../governance/trust-plane/outstanding-obligations.json).
-Every row remains unresolved.
+Every row remains unresolved. These rows do not block deterministic software completion; they block
+provider, benchmark, promotion, generalization, and self-improvement claims.
 
 | Obligation | Evidence currently present | What it blocks |
 |---|---:|---|

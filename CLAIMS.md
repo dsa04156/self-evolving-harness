@@ -87,13 +87,12 @@ model-specific retuning.
 
 ## Current evidence status
 
-Evidence snapshot: implementation commit
-`5bd8061c6d16af2271320f9a60127b03be71dc7e`, tree
-`8d0113de86a79bb0a95aa48c48817520acf7c55e`.
+Status date: 2026-08-03. The authoritative source identity for a reproduction is the checkout supplied
+to `npm run verify:release`; persisted historical evidence retains its own exact commit and tree pins.
 
 | Claim | Current status | Evidence boundary |
 |---|---|---|
-| C-A1 | partially supported | Local source/import inspection and deterministic runtime tests find no Codex, Gajae-Code, or OpenCode invocation. The real-provider path is intentionally unexecuted under `NP-1`, so no live process-level provider claim is made. |
+| C-A1 | deterministically supported | Source/import inspection, the managed CLI, and runtime/process-boundary tests show an owned model/tool loop with no Codex, Gajae-Code, or OpenCode invocation. The adapter has not made a live provider call, so provider interoperability is not claimed. |
 | C-A2 | deterministically supported | The signed evolution-run journal requires a new candidate ID distinct from its parent, enforces an independent lifecycle, and passes approve, reject, failure, replay, and illegal-transition tests. |
 | C-A3 | deterministically and locally OS-boundary supported | Registry, closure, admission, canonical bundle, exact Git snapshot, external evaluator, and immutable-boundary tests pass within the documented local TCB. The same registry-generated candidate bundle passes under operations UID 1101 and evaluator UID 1103; a signed candidate-ID substitution is rejected. |
 | C-H1–C-H4 | unexecuted and unsupported | No candidate attribution-performance run, live provider, gate, final, temporal evaluation, or B0–B6 comparison has run. |

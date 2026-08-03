@@ -55,6 +55,7 @@ export interface OperationResponse {
     readonly receiptHash: string;
   }[];
   readonly nextAllowedActions: readonly NextAction[];
+  readonly data?: JsonValue;
 }
 
 type SessionExecutor = (task: string, abortSignal: AbortSignal) => Promise<AgentRunResult>;
@@ -72,17 +73,17 @@ export class SimulatedTerminationCrash extends Error {
 }
 
 const NEXT_ACTIONS: Readonly<Record<SessionState, readonly NextAction[]>> = Object.freeze({
-  created: ["observe", "terminate", "retire", "events", "artifacts"],
-  initialized: ["submit", "observe", "terminate", "events", "artifacts"],
+  created: ["observe", "terminate", "validate", "events", "artifacts"],
+  initialized: ["submit", "observe", "terminate", "validate", "events", "artifacts"],
   running: ["observe", "interrupt", "terminate", "validate", "events", "artifacts"],
-  waiting: ["observe", "interrupt", "terminate", "resume", "events", "artifacts"],
-  blocked: ["observe", "terminate", "recover", "events", "artifacts"],
-  recovering: ["observe", "interrupt", "terminate", "events", "artifacts"],
-  validating: ["observe", "interrupt", "terminate", "events", "artifacts"],
-  completed: ["observe", "finalize", "retire", "events", "artifacts"],
-  retired: ["observe", "events", "artifacts"],
-  terminating: ["observe", "events", "artifacts"],
-  terminated: ["observe", "events", "artifacts"],
+  waiting: ["observe", "interrupt", "terminate", "resume", "validate", "events", "artifacts"],
+  blocked: ["observe", "terminate", "recover", "validate", "events", "artifacts"],
+  recovering: ["observe", "interrupt", "terminate", "validate", "events", "artifacts"],
+  validating: ["observe", "interrupt", "terminate", "validate", "events", "artifacts"],
+  completed: ["observe", "terminate", "validate", "finalize", "retire", "events", "artifacts"],
+  retired: ["observe", "validate", "events", "artifacts"],
+  terminating: ["observe", "validate", "events", "artifacts"],
+  terminated: ["observe", "validate", "events", "artifacts"],
 });
 
 export class OperationsControlPlane {
@@ -349,6 +350,37 @@ export class OperationsControlPlane {
     return this.#response("observe", sessionId, []);
   }
 
+  public async resume(sessionId: string): Promise<OperationResponse> {
+    return this.#withStateLock(sessionId, async () => {
+      const definition = this.#definition(sessionId);
+      assertCondition(
+        (await this.#lifecycle.state(sessionId)) === "waiting",
+        "INVALID_STATE_TRANSITION",
+        "Only waiting sessions can resume",
+      );
+      const receipt = await this.#controlReceipt("session_checkpoint", definition);
+      await this.#lifecycle.transition({
+        sessionId,
+        toState: "running",
+        evidenceReceiptIds: [receipt.receiptId],
+        signer: this.#signer,
+      });
+      return this.#response("resume", sessionId, [receipt]);
+    });
+  }
+
+  public async validate(sessionId: string): Promise<OperationResponse> {
+    const definition = this.#definition(sessionId);
+    await this.#receipts.verifyAll();
+    await this.#lifecycle.verifyAll();
+    const receipt = await this.#controlReceipt("audit_replay", definition);
+    await this.#receipts.verify(receipt);
+    return this.#response("validate", sessionId, [receipt], {
+      receiptChainValid: true,
+      lifecycleChainValid: true,
+    });
+  }
+
   public async interrupt(sessionId: string): Promise<OperationResponse> {
     this.#definition(sessionId);
     const controller = this.#abortControllers.get(sessionId);
@@ -419,6 +451,60 @@ export class OperationsControlPlane {
   }
 
   public async finalize(sessionId: string): Promise<OperationResponse> {
+    return this.#retireCompleted("finalize", sessionId);
+  }
+
+  public async retire(sessionId: string): Promise<OperationResponse> {
+    return this.#retireCompleted("retire", sessionId);
+  }
+
+  public async events(sessionId: string): Promise<OperationResponse> {
+    this.#definition(sessionId);
+    const records = await this.#lifecycle.records(sessionId);
+    const receiptIds = [...new Set(records.flatMap((record) => record.evidenceReceiptIds))];
+    const receipts = await Promise.all(
+      receiptIds.map((receiptId) => this.#receipts.get(receiptId)),
+    );
+    for (const receipt of receipts) await this.#receipts.verify(receipt);
+    return this.#response("events", sessionId, receipts, {
+      lifecycleRecordIds: records.map((record) => record.recordId),
+      eventRanges: receipts.flatMap((receipt) => receipt.eventRanges),
+      recordedObservationEventIds: receipts.flatMap(
+        (receipt) => receipt.recordedObservationEventIds,
+      ),
+      verifierOutcomeEventIds: receipts.flatMap(
+        (receipt) => receipt.verifierOutcomeEventIds,
+      ),
+      inferenceEventIds: receipts.flatMap((receipt) => receipt.inferenceEventIds),
+    });
+  }
+
+  public async artifacts(sessionId: string): Promise<OperationResponse> {
+    this.#definition(sessionId);
+    const records = await this.#lifecycle.records(sessionId);
+    const receiptIds = [...new Set(records.flatMap((record) => record.evidenceReceiptIds))];
+    const receipts = await Promise.all(
+      receiptIds.map((receiptId) => this.#receipts.get(receiptId)),
+    );
+    for (const receipt of receipts) await this.#receipts.verify(receipt);
+    return this.#response("artifacts", sessionId, receipts, {
+      artifacts: receipts.flatMap((receipt) =>
+        receipt.artifactRefs.map((artifact) => ({
+          contentHash: artifact.contentHash,
+          mediaType: artifact.mediaType,
+          sizeBytes: artifact.sizeBytes,
+          ...(artifact.redacted === undefined
+            ? {}
+            : { redacted: artifact.redacted }),
+        })),
+      ),
+    });
+  }
+
+  async #retireCompleted(
+    operation: "finalize" | "retire",
+    sessionId: string,
+  ): Promise<OperationResponse> {
     return this.#withStateLock(sessionId, async () => {
       const definition = this.#definition(sessionId);
       assertCondition(
@@ -434,7 +520,7 @@ export class OperationsControlPlane {
         signer: this.#signer,
       });
       await this.#releaseSessionHold(definition);
-      return this.#response("finalize", sessionId, [receipt]);
+      return this.#response(operation, sessionId, [receipt]);
     });
   }
 
@@ -499,7 +585,7 @@ export class OperationsControlPlane {
   }
 
   async #controlReceipt(
-    receiptType: "session_initialization" | "session_checkpoint" | "session_completion" | "artifact_retention",
+    receiptType: "session_initialization" | "session_checkpoint" | "session_completion" | "artifact_retention" | "audit_replay",
     definition: SignedSessionDefinition,
     identity: { readonly receiptId: string; readonly createdAt: string } | null = null,
   ): Promise<EvidenceReceipt> {
@@ -608,6 +694,7 @@ export class OperationsControlPlane {
     operation: Operation,
     sessionId: string,
     receipts: readonly EvidenceReceipt[],
+    data?: JsonValue,
   ): Promise<OperationResponse> {
     const state = await this.#lifecycle.state(sessionId);
     const response: OperationResponse = {
@@ -620,6 +707,7 @@ export class OperationsControlPlane {
         receiptHash: receipt.receiptHash,
       })),
       nextAllowedActions: NEXT_ACTIONS[state],
+      ...(data === undefined ? {} : { data }),
     };
     this.#schemas.validate(OPERATION_RESPONSE_SCHEMA_ID, response as unknown as JsonValue);
     return response;

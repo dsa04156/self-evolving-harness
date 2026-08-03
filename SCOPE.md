@@ -1,8 +1,9 @@
 # Scope: Standalone Self-Evolving Coding-Agent Harness
 
-Status: **Gate 2-approved deterministic prototype; no-paid-provider development profile**
+Status: **deterministic MVP complete; empirical protocol unexecuted under no-paid-provider profile**
 Protocol version: `draft-1`
-Date frozen: 2026-07-30
+Scope frozen: 2026-07-30
+Implementation status updated: 2026-08-03
 
 Resource-profile amendment: `NP-1`, 2026-07-31. The user has Codex CLI subscription access but
 has not provisioned a Platform API credential. Codex CLI is a development and review instrument
@@ -98,8 +99,11 @@ An improved score in a single run is not evidence of general self-improvement.
 The pre-contract Python files remain hash-pinned under `spikes/python-contract-spike/` with an explicit
 non-authoritative notice. They are outside package, test, import, runtime, and evidence paths.
 
-The authoritative TypeScript runtime and Python trust-plane processes now implement the deterministic
-prototype approved at Architect Gate 2R. Development proceeds with `FakeProvider` and synthetic,
-non-research fixtures. The OpenAI provider adapter is contract-tested but its live smoke is optional and
-unexecuted under profile `NP-1`. That omission blocks provider interoperability and empirical research
-claims; it does not turn Codex CLI into a runtime dependency.
+The authoritative TypeScript runtime and Python trust-plane processes implement the deterministic MVP
+approved at Architect Gate 2R. A managed entry point now joins session operations, the standalone
+model/tool kernel, signed evidence, validation, and retirement; the evolution coordinator separately
+joins attribution, bounded candidate creation, isolated evaluation, qualification, deployment, and
+rollback. Development uses `FakeProvider` and synthetic, non-research fixtures. The OpenAI provider
+adapter is contract-tested, but its live smoke is optional and unexecuted under profile `NP-1`. That
+omission blocks provider-interoperability and empirical research claims; it does not turn Codex CLI into
+a runtime dependency.

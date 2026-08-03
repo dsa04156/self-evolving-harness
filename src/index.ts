@@ -81,6 +81,7 @@ export * from "./runtime/budget.js";
 export * from "./runtime/context.js";
 export * from "./runtime/descendants.js";
 export * from "./runtime/memory.js";
+export * from "./runtime/managed.js";
 export * from "./runtime/path-guard.js";
 export * from "./runtime/routing.js";
 export * from "./runtime/sandbox-process.js";

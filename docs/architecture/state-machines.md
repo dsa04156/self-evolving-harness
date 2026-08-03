@@ -1,6 +1,6 @@
 # Session, Harness Qualification, and Deployment State
 
-Status: Gate 1RRR correction candidate
+Status: implemented deterministic MVP contract
 
 The session lifecycle, harness qualification lifecycle, and channel deployment history are independent.
 A transition in one never implies a transition in another.

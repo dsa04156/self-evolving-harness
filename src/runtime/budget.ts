@@ -20,11 +20,16 @@ function emptyUsage(): BudgetUsage {
 export class BudgetAccount {
   readonly limits: BudgetLimits;
   readonly #clock: Clock;
+  readonly #parent: BudgetAccount | null;
   readonly #startedNanos: bigint;
   readonly #usage = emptyUsage();
   #sealed = false;
 
-  public constructor(limits: BudgetLimits, clock: Clock) {
+  public constructor(
+    limits: BudgetLimits,
+    clock: Clock,
+    parent: BudgetAccount | null = null,
+  ) {
     for (const [name, value] of Object.entries(limits)) {
       assertCondition(
         Number.isSafeInteger(value) && value >= 0,
@@ -32,8 +37,18 @@ export class BudgetAccount {
         `Invalid budget limit ${name}`,
       );
     }
+    if (parent !== null) {
+      for (const key of Object.keys(limits) as (keyof BudgetLimits)[]) {
+        assertCondition(
+          limits[key] <= parent.limits[key],
+          "AUTHORIZATION_DENIED",
+          `Delegated budget ${key} exceeds its parent`,
+        );
+      }
+    }
     this.limits = limits;
     this.#clock = clock;
+    this.#parent = parent;
     this.#startedNanos = clock.monotonicNanos();
   }
 
@@ -45,6 +60,7 @@ export class BudgetAccount {
       "BUDGET_EXHAUSTED",
       "Model-call budget exhausted",
     );
+    this.#parent?.reserveModelCall();
     this.#usage.modelCalls += 1;
   }
 
@@ -57,20 +73,21 @@ export class BudgetAccount {
         `Provider returned invalid usage ${name}`,
       );
     }
-    this.#usage.inputTokens += usage.inputTokens;
-    this.#usage.outputTokens += usage.outputTokens;
-    this.#usage.reasoningTokens += usage.reasoningTokens;
-    this.#usage.cachedInputTokens += usage.cachedInputTokens;
     assertCondition(
-      this.#usage.inputTokens <= this.limits.maxInputTokens,
+      this.#usage.inputTokens + usage.inputTokens <= this.limits.maxInputTokens,
       "BUDGET_EXHAUSTED",
       "Input-token budget exhausted",
     );
     assertCondition(
-      this.#usage.outputTokens <= this.limits.maxOutputTokens,
+      this.#usage.outputTokens + usage.outputTokens <= this.limits.maxOutputTokens,
       "BUDGET_EXHAUSTED",
       "Output-token budget exhausted",
     );
+    this.#parent?.chargeModelUsage(usage);
+    this.#usage.inputTokens += usage.inputTokens;
+    this.#usage.outputTokens += usage.outputTokens;
+    this.#usage.reasoningTokens += usage.reasoningTokens;
+    this.#usage.cachedInputTokens += usage.cachedInputTokens;
   }
 
   public reserveToolCall(): void {
@@ -81,6 +98,7 @@ export class BudgetAccount {
       "BUDGET_EXHAUSTED",
       "Tool-call budget exhausted",
     );
+    this.#parent?.reserveToolCall();
     this.#usage.toolCalls += 1;
   }
 
@@ -92,6 +110,7 @@ export class BudgetAccount {
       "BUDGET_EXHAUSTED",
       "Retry budget exhausted",
     );
+    this.#parent?.reserveRetry();
     this.#usage.retries += 1;
   }
 
@@ -103,6 +122,7 @@ export class BudgetAccount {
       "BUDGET_EXHAUSTED",
       "Descendant budget exhausted",
     );
+    this.#parent?.reserveDescendant();
     this.#usage.descendants += 1;
   }
 
@@ -112,6 +132,7 @@ export class BudgetAccount {
     if (elapsed > this.limits.maxWallClockMillis) {
       throw new HarnessError("DEADLINE_EXCEEDED", "Session wall-clock budget exhausted");
     }
+    this.#parent?.assertTime();
   }
 
   public snapshot(): Readonly<BudgetUsage> {

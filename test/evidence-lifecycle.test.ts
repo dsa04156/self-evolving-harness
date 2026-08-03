@@ -272,9 +272,56 @@ test("operations responses expose deterministic state, evidence and next actions
   );
   assert.equal(submitted.state, "completed");
   assert.ok(submitted.nextAllowedActions.includes("finalize"));
-  const finalized = await control.finalize("session.operations.1");
-  assert.equal(finalized.state, "retired");
-  assert.deepEqual(finalized.nextAllowedActions, ["observe", "events", "artifacts"]);
+  const validation = await control.validate("session.operations.1");
+  assert.equal(validation.operation, "validate");
+  const eventProjection = await control.events("session.operations.1");
+  assert.equal(eventProjection.operation, "events");
+  assert.ok(eventProjection.evidence.length >= 4);
+  const artifactProjection = await control.artifacts("session.operations.1");
+  assert.equal(artifactProjection.operation, "artifacts");
+  const retired = await control.retire("session.operations.1");
+  assert.equal(retired.state, "retired");
+  assert.deepEqual(retired.nextAllowedActions, [
+    "observe",
+    "validate",
+    "events",
+    "artifacts",
+  ]);
+
+  const waitingSessionId = "session.operations.waiting";
+  await control.start(waitingSessionId, {
+    ...pins,
+    budgetAccountId: "budget.operations.waiting",
+  });
+  const runningReceipt = await receipts.create({
+    receiptType: "session_checkpoint",
+    subjectIds: [waitingSessionId],
+    harnessVersionIds: [harnessVersionId],
+    runtimeStateSnapshotIds: [runtimeStateSnapshotId],
+    signer: operationsSigner,
+  });
+  await lifecycle.transition({
+    sessionId: waitingSessionId,
+    toState: "running",
+    evidenceReceiptIds: [runningReceipt.receiptId],
+    signer: operationsSigner,
+  });
+  const waitingReceipt = await receipts.create({
+    receiptType: "session_checkpoint",
+    subjectIds: [waitingSessionId],
+    harnessVersionIds: [harnessVersionId],
+    runtimeStateSnapshotIds: [runtimeStateSnapshotId],
+    signer: operationsSigner,
+  });
+  await lifecycle.transition({
+    sessionId: waitingSessionId,
+    toState: "waiting",
+    evidenceReceiptIds: [waitingReceipt.receiptId],
+    signer: operationsSigner,
+  });
+  const resumed = await control.resume(waitingSessionId);
+  assert.equal(resumed.state, "running");
+  await control.terminate(waitingSessionId);
   await lifecycle.verifyAll();
 });
 
