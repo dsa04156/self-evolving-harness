@@ -1033,3 +1033,53 @@ response path, interpreted decision, required revisions, and the commit containi
   budgets, benchmark/vault/protected data access, sentinel fill, final IDs, B0–B6, attribution,
   mutation, candidates, selection, promotion, deployment, push/release/publication, and empirical,
   security, evolution, or self-improvement claims
+
+## Round 3RRRRRRRRRRRRRRRRRRR — 2026-08-03
+
+- sent authoritative implementation-evidence packet:
+  `architect/PACKET_03RRRRRRRRRRRRRRRRRRR_CALIBRATION_CONTRACT_EVIDENCE.md`
+- packet hash: `f423c31fdbe44537bfbe8a45d23e85bccf7e3df2121c0962727b0d4af4de3f99`
+- packet size: 11,524 characters / 11,532 bytes
+- implementation source commit/tree:
+  `f8e9df2053c958131fd47385e688f6560b3034c3` /
+  `a60897009ddf04b0a4ffb09c5f948d4bcc08a721`
+- record sealing commit/tree:
+  `4c13b841a30413bc617999edd429829181acbce6` /
+  `108b91b442d6ee972354e5e225ee6f391ffb8a58`
+- contract ID/hash/raw SHA-256:
+  `cc-sha256:8d4ffe8fc9fee52dd3b81b58ae8c7ba65b0bafc4f1d7079f91f3e810f20fff9f` /
+  `sha256:004bd1d7ae369a6e29978117d83539dec90633f3da3f6d1a0c5d5a6fbf3c8f56` /
+  `5231c0152ee359e42c1879ecc4d1740c8eafde132bd501f8e4196f217128d22d`
+- audit receipt ID/hash/raw SHA-256:
+  `ccar-sha256:5991e59e2f7e0b11a74616c2e4f6be347b64560c9782857c21d2764a95dbee9f` /
+  `sha256:0f4ed49ee4941dcd9c1cdcc5abef5418f8445bdea7f7ea9c6ad2bfb17f7429a4` /
+  `b3a43954c251d7b991c7e6d27b30ec6e353ebec506ae809b0a615eaa8375b270`
+- validation: TypeScript check/build passed; full deterministic suite 155/155; focused contract suite
+  8/8; model coverage 100/100/100 lines/branches/functions; independent verifier coverage
+  98.77/98.21/84.21; calibration, numeric-freeze, and aggregate trust verifiers passed; seven
+  obligations remained unresolved; zero calls, execution, authority, final IDs, secrets, and pushes
+- transport: direct CDP reused the exact existing Chrome target and conversation. The long insert
+  timed out before send; recovery verified the complete 12,051-character rendered composer and
+  unchanged user count before one `send-existing 2` submission. No new tab/window, continuation,
+  upload, screenshot, or packet resend was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 13,606 characters / 13,644 bytes with
+  SHA-256 `cda739fc3e64172150154c95d9c8ce0efa354c52bd030a293e96b503cd8a4862`
+- architect decision: `APPROVE`
+- blocking findings: none for the zero-execution calibration-contract implementation
+- accepted: non-self-referential two-commit sealing; 22 exact artifacts; 25/8/12/6/26/5 numeric and
+  rule inventory; evaluator/scorer identity, mount, data, capability, message, creator, and E0–E4
+  separation; 31 validly re-signed attacks; receipt byte substitution rejection; strict zero-authority
+  and non-claim boundary
+- authorized next: synthetic public-development-only pure deterministic programs for F/G/J/K/L/M;
+  closed candidate-grid schemas and fixed bounds; a non-evidentiary
+  `calibration_derivation_program_readiness` record and reference-only audit receipt under another
+  two-commit layout; independent verifier; the named drift/rounding/grid/missingness/ancestry/authority
+  attacks; and a narrow evidence packet
+- still prohibited: actual calibration plan/envelope or pilot; any nonzero budget; real provider/model/
+  price identity or call; credentials; Codex CLI provider backend; benchmark/vault/protected data;
+  sentinel/statistical-margin fill; final IDs; research/B0–B6/attribution/mutation/candidate work;
+  selection/promotion/deployment; push/release/publication; and empirical or certification claims

@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRRRRRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRRRRRRRRRRR used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,20 +16,20 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRRRRRRRRRRRRR direct CDP verified target
+- last reuse preflight: Round 03RRRRRRRRRRRRRRRRRRR direct CDP verified target
   `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
-  button, and the prior Round 03RRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
-  recovery verified the complete 12,989-character rendered composer and unchanged user count,
+  button, and the prior Round 03RRRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
+  recovery verified the complete 12,051-character rendered composer and unchanged user count,
   then submitted it exactly once without opening a new tab or window. The response completed
   normally; no continuation was sent.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-03
-- last packet: `architect/PACKET_03RRRRRRRRRRRRRRRRRR_EVALUATOR_SCORER_SEPARATION.md`
-- last packet sha256: `d7ae7b647c58ff735dbd676390dd79300d26011ef8db85a8b3b979537c172ac6`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrr.md`
-- last response sha256: `809987398f5abf6045cf62d6e91153332a406d3f671f784c37339f5a6a57e443`
-- next packet: zero-execution calibration-contract implementation evidence only
+- last packet: `architect/PACKET_03RRRRRRRRRRRRRRRRRRR_CALIBRATION_CONTRACT_EVIDENCE.md`
+- last packet sha256: `f423c31fdbe44537bfbe8a45d23e85bccf7e3df2121c0962727b0d4af4de3f99`
+- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrr.md`
+- last response sha256: `cda739fc3e64172150154c95d9c8ce0efa354c52bd030a293e96b503cd8a4862`
+- next packet: offline synthetic calibration-derivation program readiness evidence only
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -114,10 +114,15 @@
 - Round 03RRRRRRRRRRRRRRRRRR decision: `APPROVE`. Distinct evaluator/scorer principals, instances,
   keys, processes, writable roots, data/capability boundaries, exclusive record creation, the one-way
   `D → E0 → E1 → E2 → E3 → E4` graph, and anti-collapse attacks close the sole role-collapse defect.
-- current authorization: implement only one closed zero-execution calibration-contract schema,
-  deterministic semantic admission verifier, exactly one protocol-author-signed preregistered public-
-  development contract, one reference-only audit receipt, validly re-signed anti-collapse tests, full
-  offline validation, and a narrow evidence packet using a source/sealing two-commit layout. Preserve
-  all numeric and zero-authority state. No calibration, provider/model, benchmark/vault/task/research,
-  B0–B6, attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical
-  claim action is authorized.
+- Round 03RRRRRRRRRRRRRRRRRRR decision: `APPROVE`. The source/sealing commits, closed contract and
+  receipt, semantic verifier, complete numeric/rule/graph inventory, role and data reduction, 31
+  validly re-signed attacks, 155/155 suite, zero-authority state, and claim discipline close the
+  calibration-contract implementation scope.
+- current authorization: implement only content-addressed pure deterministic synthetic readiness
+  programs for F/G/J/K/L/M, closed finite grid schemas, fixed selection/rounding rules, synthetic
+  failure cases, one signed `calibration_derivation_program_readiness` record, one reference-only
+  receipt, independent verifier, named adversarial tests, and a narrow packet under a two-commit
+  layout. Synthetic results must remain public development, non-evidentiary, non-confirmatory, and
+  inadmissible as numeric-freeze values. No real calibration/provider/benchmark/research, nonzero
+  budget, sentinel fill, final ID, candidate/selection/promotion/deployment, push/publication, or claim
+  action is authorized.

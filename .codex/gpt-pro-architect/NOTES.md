@@ -557,3 +557,27 @@ any paid-provider request.
 - No calibration, provider/model, benchmark/vault/task/research execution, nonzero budget, sentinel
   fill, final IDs, B0–B6, attribution/mutation/candidate, selection/promotion/deployment, push,
   publication, or empirical/security/evolution/self-improvement claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRRRRRR calibration-contract evidence decision
+
+- External decision: `APPROVE`; no blocker remains for the offline zero-execution calibration-contract
+  implementation.
+- Clean source `f8e9df2...` and later seal `4c13b84...` form the accepted non-self-referential layout.
+  The contract binds 22 source artifacts and the receipt is reference-only.
+- Schema plus semantic admission preserve 25 sentinels, eight groups, 12 phases, six classes, 26
+  assignments, five rule families, the numeric DAG, E0–E4 graph, atomic freeze, and seven unresolved
+  obligations without deriving a value.
+- Evaluator and scorer are unequal in principal, instance, key, digest, process, root, canonical mount
+  source, and backing object. Mounts are inactive; all capabilities have `granted=false`,
+  `delegable=false`, and null handles. Scorer, verifier, and author protected-data boundaries are
+  explicit.
+- Thirty-one validly re-signed semantic attacks plus receipt-byte substitution pass; the complete suite
+  is 155/155 with zero provider/research actions and zero authorities.
+- Authorized next scope is synthetic-only pure deterministic readiness code for F/G/J/K/L/M, frozen
+  finite candidate grids, strict selection/rounding rules, non-admissible synthetic results, one signed
+  readiness record, one reference-only receipt, independent verification, named adversarial tests, and
+  a narrow packet under another two-commit layout.
+- Actual calibration/pilot/provider/model/price/benchmark/research work, nonzero budgets, credentials,
+  sentinel or margin fill, final IDs, B0–B6, attribution/mutation/candidate, selection/promotion/
+  deployment, push/publication, and empirical/security/evolution/self-improvement claims remain
+  prohibited.
