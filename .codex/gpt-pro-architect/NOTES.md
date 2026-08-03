@@ -518,3 +518,20 @@ any paid-provider request.
   Codex-CLI provider wrapping, nonzero budget, benchmark/vault access, calibration/pilot/research,
   B0–B6, attribution, candidate/selection/promotion/deployment, publication, or empirical claim is
   authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRRRR derivation preregistration decision
+
+- External decision: `REVISE`; inventory, classification, DAG, derivation rules, atomic freeze, most
+  role/data restrictions, evidence flow, failure semantics, and zero-authority state are accepted.
+- Sole defect: `calibration evaluator/scorer` collapsed two authorities despite the contract rejecting
+  role-collapsed evidence. An independent verifier cannot repair that collapse after production.
+- Narrow correction must define distinct `calibration_evaluator` and `calibration_scorer` principals,
+  keys, mount/data classes, accepted/emitted records, capabilities, and exclusive creation rights.
+- Required one-way flow is executor → signed evaluator measurement commitment → scorer aggregate
+  commitment → independent verifier receipt → protocol-author derived-value proposal.
+- Future schema must reject equal principal/key/public-key identities, scorer task/verifier access,
+  evaluator aggregate creation, author raw-measurement access, direct evaluator-to-author release,
+  aliases/wrappers/delegation collapse, and combined record types.
+- All 25 sentinels, eight groups, classifications, numeric rules, failure rules, null final IDs, and false
+  authorities remain unchanged. Only a no-execution correction packet is authorized; no implementation,
+  provider, calibration, benchmark, research, selection, deployment, publication, or claim action.

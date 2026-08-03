@@ -964,3 +964,36 @@ response path, interpreted decision, required revisions, and the commit containi
   Codex CLI as provider; any nonzero execution budget; benchmark/vault/protected data access; calibration,
   pilot, research scheduler, B0–B6, attribution, mutation, candidate, selection, promotion, deployment,
   final protocol/budget ID allocation, or empirical/security/evolution/self-improvement claim
+
+## Round 3RRRRRRRRRRRRRRRRR — 2026-08-03
+
+- sent authoritative project packet:
+  `architect/PACKET_03RRRRRRRRRRRRRRRRR_NUMERIC_DERIVATION_PREREGISTRATION.md`
+- packet hash: `bffddeb8f9c7614f0ee7be5adb49cfd977b89ee3e607253b6f29e8629af61239`
+- packet size: 19,912 characters / 19,922 bytes
+- approved entry remained
+  `nfe-sha256:7517cce6f2878429161bd73154d1ef71f5bb8fe27ca3a77e08b4b55b43df268f`;
+  all 25 sentinel records, eight pending groups, seven unresolved obligations, null final IDs, and zero
+  authorities were preserved
+- transport: direct CDP reused the exact existing Chrome target and conversation. The long insert
+  timed out before send; recovery verified the complete 20,573-character rendered composer and
+  unchanged user count before one `send-existing` submission. No new tab/window, continuation,
+  upload, screenshot, or packet resend was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 10,066 characters / 10,090 bytes with
+  SHA-256 `f002f7808d5377035dee1f5dbb060faf6e79802f86249c59b6a45f2f55e9d3f0`
+- architect decision: `REVISE`
+- accepted: exact pending inventory, closed derivation classes, acyclic calibration-envelope versus
+  research-budget DAG, bounded deterministic derivation rules, atomic freeze, remaining role/data
+  restrictions, proposed evidence contract, failure semantics, and unchanged zero-authority state
+- sole blocker: one future row combined `calibration evaluator/scorer`, contradicting the fail-closed
+  rule against role collapse and omitting a signed one-way evaluator-to-scorer release boundary
+- authorized correction: separate `calibration_evaluator` and `calibration_scorer` principals, keys,
+  mounts, messages, data, capabilities, and exclusive record authorities; add both graph nodes and
+  schema-level inequality/anti-alias rules; preserve every numeric and zero-authority rule; resubmit
+- still prohibited: calibration-contract implementation/execution, any nonzero budget, provider/model
+  selection/call, credentials, Codex CLI provider use, benchmark/vault/pilot/research access, sentinel
+  fill, final IDs, B0–B6/attribution/candidate/selection/promotion/deployment, push/publication, or claim
