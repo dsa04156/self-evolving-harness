@@ -48,6 +48,7 @@ export * from "./governance/development-artifact-taint.js";
 export * from "./governance/development-prediction-seal.js";
 export * from "./governance/publication-exposure.js";
 export * from "./governance/historical-publication-exposure.js";
+export * from "./governance/publication-continuity.js";
 export * from "./governance/trust-plane-conformance.js";
 export * from "./governance/trust-plane-aggregate-verifier.js";
 export * from "./governance/research-protocol-numeric-freeze-entry.js";

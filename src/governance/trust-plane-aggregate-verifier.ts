@@ -369,6 +369,31 @@ async function gitBytes(
   return result.stdout;
 }
 
+async function gitIsAncestor(
+  root: string,
+  ancestor: string,
+  descendant: string,
+): Promise<boolean> {
+  try {
+    await execFileAsync(
+      "git",
+      ["merge-base", "--is-ancestor", ancestor, descendant],
+      { cwd: root },
+    );
+    return true;
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 1
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 async function verifyCommit(
   root: string,
   commit: string,
@@ -1241,7 +1266,7 @@ export async function verifyTrustPlaneAggregate(input: {
     sourceTree === manifest.sourceSnapshot.sourceTree,
     "source snapshot tree mismatch",
   );
-  const remoteCommit = (
+  const currentRemoteCommit = (
     await gitText(root, [
       "rev-parse",
       "--verify",
@@ -1249,8 +1274,12 @@ export async function verifyTrustPlaneAggregate(input: {
     ])
   ).trim();
   ensure(
-    remoteCommit === manifest.sourceSnapshot.remoteCommit,
-    "remote-tracking publication boundary changed",
+    await gitIsAncestor(
+      root,
+      manifest.sourceSnapshot.remoteCommit,
+      currentRemoteCommit,
+    ),
+    "recorded publication boundary is absent from the current remote-tracking history",
   );
   ensure(
     manifest.sourceSnapshot.additionalPushPerformed === false,

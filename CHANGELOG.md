@@ -14,6 +14,9 @@
   tests.
 - Added a one-command release verifier and closed the root documentation, related-work, evaluation
   report, completion matrix, and paper-draft deliverables.
+- Split immutable historical-publication replay from live remote continuity, so the release gate accepts
+  legitimate fast-forward publications while scanning every post-corrective Git blob and path for
+  credentials and environment files.
 
 ## 0.1.0 — research and trust-plane prototype
 

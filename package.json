@@ -32,7 +32,7 @@
     "create:publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-publication-governance.ts",
     "verify:publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-publication-governance.ts",
     "create:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/create-historical-publication-governance.ts",
-    "verify:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-historical-publication-governance.ts",
+    "verify:historical-publication-governance": "npx -y node@24.18.1 --import tsx scripts/verify-historical-publication-continuity.ts",
     "create:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/create-trust-plane-conformance.ts --write",
     "verify:trust-plane-conformance": "npx -y node@24.18.1 --import tsx scripts/verify-trust-plane-conformance.ts",
     "create:numeric-freeze-entry": "npx -y node@24.18.1 --import tsx scripts/create-research-protocol-numeric-freeze-entry.ts",
