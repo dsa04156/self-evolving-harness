@@ -1,0 +1,609 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/calibration-contract.schema.json",
+  "title": "Zero-execution calibration contract records",
+  "description": "Closed preregistration and reference-only audit receipt. These records grant no calibration, research, provider, selection, promotion, or deployment authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/contract" },
+    { "$ref": "#/$defs/auditReceipt" }
+  ],
+  "$defs": {
+    "gitArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "path", "sourceCommit", "sha256", "sizeBytes", "mediaType"],
+      "properties": {
+        "artifactId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "text/markdown; charset=utf-8",
+            "text/typescript; charset=utf-8",
+            "text/yaml; charset=utf-8"
+          ]
+        }
+      }
+    },
+    "sentinel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sentinel", "effectiveExpansionCount"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "sentinel": {
+          "type": "string",
+          "enum": ["PILOT_PENDING", "PILOT_PENDING_BY_PRECISION_RULE", "PILOT_PENDING_AFTER_COUNT_FREEZE"]
+        },
+        "effectiveExpansionCount": { "type": "integer", "minimum": 1, "maximum": 64 }
+      }
+    },
+    "derivationAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathOrGroup", "derivationClass"],
+      "properties": {
+        "pathOrGroup": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "derivationClass": {
+          "type": "string",
+          "enum": [
+            "normative_contract_value",
+            "environment_identity_dependent",
+            "provider_or_model_identity_dependent",
+            "mine_calibration_required",
+            "dedicated_pilot_required",
+            "withdraw_if_not_estimable"
+          ]
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "cycleEdgesForbidden"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 15,
+          "maxItems": 15,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-O]$" }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3, "maxLength": 80 }
+        },
+        "cycleEdgesForbidden": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3, "maxLength": 40 }
+        }
+      }
+    },
+    "derivationRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "targets", "dataRole", "samplingUnit", "candidateBound", "selectionRule", "precisionRule", "failureDisposition"],
+      "properties": {
+        "ruleId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-N]$" }
+        },
+        "dataRole": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "samplingUnit": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "candidateBound": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "selectionRule": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "precisionRule": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "failureDisposition": { "$ref": "./common.schema.json#/$defs/entityId" }
+      }
+    },
+    "atomicFreeze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredResolvedNodes", "outputs", "activation", "finalIdentityDerivation", "grantsExecution", "requiresLaterArchitectApproval", "amendmentRule", "forbiddenInputs"],
+      "properties": {
+        "requiredResolvedNodes": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[B-N]$" }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["ProtocolManifest", "BudgetFreezeManifest"] }
+        },
+        "activation": { "const": "joint_transaction_only" },
+        "finalIdentityDerivation": { "const": "after_all_payload_bytes_exist" },
+        "grantsExecution": { "const": false },
+        "requiresLaterArchitectApproval": { "const": true },
+        "amendmentRule": { "const": "new_protocol_id_and_permanent_non_pooling" },
+        "forbiddenInputs": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        }
+      }
+    },
+    "mount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["writableMountRoot", "canonicalSourceId", "backingObjectId", "mounted"],
+      "properties": {
+        "writableMountRoot": { "type": "string", "pattern": "^future-mount://calibration/(evaluator|scorer)$" },
+        "canonicalSourceId": { "type": "string", "pattern": "^mount-source-sha256:[a-f0-9]{64}$" },
+        "backingObjectId": { "type": "string", "pattern": "^mount-object-sha256:[a-f0-9]{64}$" },
+        "mounted": { "const": false }
+      }
+    },
+    "roleAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "publicPrincipal", "processIdentity", "writableMount", "readableDataClasses", "writableDataClasses", "forbiddenDataClasses", "currentCapabilityHandles", "delegatedCapabilityIds", "roleAliases", "keyRotationLineage"],
+      "properties": {
+        "role": { "type": "string", "enum": ["calibration_evaluator", "calibration_scorer"] },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "processIdentity": { "type": "string", "pattern": "^future\\.process\\.calibration\\.(evaluator|scorer)\\.v1$" },
+        "writableMount": { "$ref": "#/$defs/mount" },
+        "readableDataClasses": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "writableDataClasses": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "forbiddenDataClasses": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "currentCapabilityHandles": { "type": "array", "maxItems": 0 },
+        "delegatedCapabilityIds": { "type": "array", "maxItems": 0 },
+        "roleAliases": { "type": "array", "maxItems": 0 },
+        "keyRotationLineage": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capabilityId", "role", "purpose", "granted", "delegable", "currentHandle"],
+      "properties": {
+        "capabilityId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "role": { "type": "string", "enum": ["calibration_evaluator", "calibration_scorer"] },
+        "purpose": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "granted": { "const": false },
+        "delegable": { "const": false },
+        "currentHandle": { "type": "null" }
+      }
+    },
+    "mountMatrixEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "mountKind", "writableMountRoot", "canonicalSourceId", "backingObjectId", "mounted", "currentWriteCapability"],
+      "properties": {
+        "role": { "type": "string", "enum": ["calibration_evaluator", "calibration_scorer"] },
+        "mountKind": { "const": "reserved_future_writable" },
+        "writableMountRoot": { "type": "string", "pattern": "^future-mount://calibration/(evaluator|scorer)$" },
+        "canonicalSourceId": { "type": "string", "pattern": "^mount-source-sha256:[a-f0-9]{64}$" },
+        "backingObjectId": { "type": "string", "pattern": "^mount-object-sha256:[a-f0-9]{64}$" },
+        "mounted": { "const": false },
+        "currentWriteCapability": { "type": "null" }
+      }
+    },
+    "dataAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "allowedFutureDataClasses", "forbiddenDataClasses", "currentAccessGranted"],
+      "properties": {
+        "role": { "type": "string", "enum": ["calibration_evaluator", "calibration_scorer", "independent_verifier", "protocol_author"] },
+        "allowedFutureDataClasses": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "forbiddenDataClasses": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        },
+        "currentAccessGranted": { "const": false }
+      }
+    },
+    "messageFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "acceptedRecordTypes"],
+      "properties": {
+        "from": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "to": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "acceptedRecordTypes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+        }
+      }
+    },
+    "recordCreation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordType", "soleCreator", "proxyWrapAliasDelegateCosignReuseForbidden"],
+      "properties": {
+        "recordType": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "soleCreator": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "proxyWrapAliasDelegateCosignReuseForbidden": { "const": true }
+      }
+    },
+    "evidenceGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "forbiddenEdges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^(D|E[0-4]|F|G|K|M|O)$" }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3, "maxLength": 100 }
+        },
+        "forbiddenEdges": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 3, "maxLength": 40 }
+        }
+      }
+    },
+    "zeroBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerModelRequestAttempts", "providerTokens", "providerCostMicros", "runtimeToolAttempts", "benchmarkVaultUnlocks", "protectedDataAccesses", "feedbackReleases", "researchSchedulerProcesses", "taskExecutions", "calibrationExecutions", "processCount", "wallClockSeconds", "cpuSeconds", "memoryMiB", "outputBytes", "mutationProposals", "candidateManifests", "evaluationResults", "selectionPromotionDeploymentActions", "gitPushes"],
+      "properties": {
+        "providerModelRequestAttempts": { "const": 0 },
+        "providerTokens": { "const": 0 },
+        "providerCostMicros": { "const": 0 },
+        "runtimeToolAttempts": { "const": 0 },
+        "benchmarkVaultUnlocks": { "const": 0 },
+        "protectedDataAccesses": { "const": 0 },
+        "feedbackReleases": { "const": 0 },
+        "researchSchedulerProcesses": { "const": 0 },
+        "taskExecutions": { "const": 0 },
+        "calibrationExecutions": { "const": 0 },
+        "processCount": { "const": 0 },
+        "wallClockSeconds": { "const": 0 },
+        "cpuSeconds": { "const": 0 },
+        "memoryMiB": { "const": 0 },
+        "outputBytes": { "const": 0 },
+        "mutationProposals": { "const": 0 },
+        "candidateManifests": { "const": 0 },
+        "evaluationResults": { "const": 0 },
+        "selectionPromotionDeploymentActions": { "const": 0 },
+        "gitPushes": { "const": 0 }
+      }
+    },
+    "authorityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerExecutionAuthorized", "researchEvidenceAuthorized", "candidateSelectionAuthorized", "promotionAuthorized", "deploymentAuthorized", "claimAuthorityGranted", "calibrationExecutionAuthorized", "contractActivationAuthorized", "protectedDataAccessAuthorized"],
+      "properties": {
+        "providerExecutionAuthorized": { "const": false },
+        "researchEvidenceAuthorized": { "const": false },
+        "candidateSelectionAuthorized": { "const": false },
+        "promotionAuthorized": { "const": false },
+        "deploymentAuthorized": { "const": false },
+        "claimAuthorityGranted": { "const": false },
+        "calibrationExecutionAuthorized": { "const": false },
+        "contractActivationAuthorized": { "const": false },
+        "protectedDataAccessAuthorized": { "const": false }
+      }
+    },
+    "eligibilityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publicDevelopment", "authorizedForResearchEvidence", "confirmatory", "eligibleForGate", "eligibleForFinal", "eligibleForHeldOut", "eligibleForSealed", "eligibleForTemporalHoldout", "authorizedForPromotion", "authorizedForCalibration", "authorizedForProtocolFreeze"],
+      "properties": {
+        "publicDevelopment": { "const": true },
+        "authorizedForResearchEvidence": { "const": false },
+        "confirmatory": { "const": false },
+        "eligibleForGate": { "const": false },
+        "eligibleForFinal": { "const": false },
+        "eligibleForHeldOut": { "const": false },
+        "eligibleForSealed": { "const": false },
+        "eligibleForTemporalHoldout": { "const": false },
+        "authorizedForPromotion": { "const": false },
+        "authorizedForCalibration": { "const": false },
+        "authorizedForProtocolFreeze": { "const": false }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "calibrationContractId", "recordType", "zeroExecution", "status", "evidencePresent", "authorizedForResearchEvidence", "sourceSnapshot", "artifacts", "priorBindings", "pendingInventory", "derivationContract", "authoritySeparation", "capabilityMatrix", "mountMatrix", "dataAccessMatrix", "messageFlows", "recordCreationMatrix", "evidenceGraph", "zeroBudget", "authorityState", "eligibilityState", "futureIdentityState", "claimBoundary", "recordedAt", "recordedBy", "contractHash", "publicPrincipal", "attestation"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationContract.v1" },
+        "calibrationContractId": { "type": "string", "pattern": "^cc-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_contract_preregistration" },
+        "zeroExecution": { "const": true },
+        "status": { "const": "preregistered_only" },
+        "evidencePresent": { "const": false },
+        "authorizedForResearchEvidence": { "const": false },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceCommit", "sourceTree", "additionalPushPerformed"],
+          "properties": {
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "additionalPushPerformed": { "const": false }
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 22,
+          "maxItems": 22,
+          "items": { "$ref": "#/$defs/gitArtifact" }
+        },
+        "priorBindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["numericFreezeEntryId", "numericFreezeEntryRawSha256", "entryEvidencePacketSha256", "entryEvidenceRulingSha256", "derivationPacketSha256", "derivationRulingSha256", "separationPacketSha256", "separationRulingSha256", "derivationDecision", "separationDecision"],
+          "properties": {
+            "numericFreezeEntryId": { "const": "nfe-sha256:7517cce6f2878429161bd73154d1ef71f5bb8fe27ca3a77e08b4b55b43df268f" },
+            "numericFreezeEntryRawSha256": { "const": "sha256:432b341bf40096134d787381fb963c12266e2d73db97e079946614335ad01391" },
+            "entryEvidencePacketSha256": { "const": "sha256:6adbec974e9f994cb2dac92bbcb4f831611c5a19635296b8c52831ab9b3ccee6" },
+            "entryEvidenceRulingSha256": { "const": "sha256:8552851015a6fc09659677442710da6b1227a12943b52f1289d9dd51f4bea3ab" },
+            "derivationPacketSha256": { "const": "sha256:bffddeb8f9c7614f0ee7be5adb49cfd977b89ee3e607253b6f29e8629af61239" },
+            "derivationRulingSha256": { "const": "sha256:f002f7808d5377035dee1f5dbb060faf6e79802f86249c59b6a45f2f55e9d3f0" },
+            "separationPacketSha256": { "const": "sha256:d7ae7b647c58ff735dbd676390dd79300d26011ef8db85a8b3b979537c172ac6" },
+            "separationRulingSha256": { "const": "sha256:809987398f5abf6045cf62d6e91153332a406d3f671f784c37339f5a6a57e443" },
+            "derivationDecision": { "const": "REVISE" },
+            "separationDecision": { "const": "APPROVE" }
+          }
+        },
+        "pendingInventory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["groups", "sentinels", "phaseIds"],
+          "properties": {
+            "groups": {
+              "type": "array",
+              "minItems": 8,
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1, "maxLength": 80 }
+            },
+            "sentinels": {
+              "type": "array",
+              "minItems": 25,
+              "maxItems": 25,
+              "items": { "$ref": "#/$defs/sentinel" }
+            },
+            "phaseIds": {
+              "type": "array",
+              "minItems": 12,
+              "maxItems": 12,
+              "uniqueItems": true,
+              "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+            }
+          }
+        },
+        "derivationContract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["classes", "assignments", "numericGraph", "rules", "atomicFreeze", "failureConditions"],
+          "properties": {
+            "classes": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": { "type": "string", "enum": ["normative_contract_value", "environment_identity_dependent", "provider_or_model_identity_dependent", "mine_calibration_required", "dedicated_pilot_required", "withdraw_if_not_estimable"] }
+            },
+            "assignments": {
+              "type": "array",
+              "minItems": 26,
+              "maxItems": 26,
+              "items": { "$ref": "#/$defs/derivationAssignment" }
+            },
+            "numericGraph": { "$ref": "#/$defs/graph" },
+            "rules": {
+              "type": "array",
+              "minItems": 5,
+              "maxItems": 5,
+              "items": { "$ref": "#/$defs/derivationRule" }
+            },
+            "atomicFreeze": { "$ref": "#/$defs/atomicFreeze" },
+            "failureConditions": {
+              "type": "array",
+              "minItems": 11,
+              "maxItems": 11,
+              "uniqueItems": true,
+              "items": { "$ref": "./common.schema.json#/$defs/entityId" }
+            }
+          }
+        },
+        "authoritySeparation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["evaluator", "scorer", "requiredInequalities", "canonicalMountSourcesMustDiffer", "backingObjectsMustDiffer", "delegationForbidden", "aliasingForbidden", "proxyWrappingCosigningInheritanceTemporaryReuseForbidden"],
+          "properties": {
+            "evaluator": { "$ref": "#/$defs/roleAuthority" },
+            "scorer": { "$ref": "#/$defs/roleAuthority" },
+            "requiredInequalities": {
+              "const": ["principalId", "instanceId", "keyId", "publicKeyDigest", "processIdentity", "writableMountRoot"]
+            },
+            "canonicalMountSourcesMustDiffer": { "const": true },
+            "backingObjectsMustDiffer": { "const": true },
+            "delegationForbidden": { "const": true },
+            "aliasingForbidden": { "const": true },
+            "proxyWrappingCosigningInheritanceTemporaryReuseForbidden": { "const": true }
+          }
+        },
+        "capabilityMatrix": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": { "$ref": "#/$defs/capability" }
+        },
+        "mountMatrix": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/mountMatrixEntry" }
+        },
+        "dataAccessMatrix": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/dataAccess" }
+        },
+        "messageFlows": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/messageFlow" }
+        },
+        "recordCreationMatrix": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": { "$ref": "#/$defs/recordCreation" }
+        },
+        "evidenceGraph": { "$ref": "#/$defs/evidenceGraph" },
+        "zeroBudget": { "$ref": "#/$defs/zeroBudget" },
+        "authorityState": { "$ref": "#/$defs/authorityState" },
+        "eligibilityState": { "$ref": "#/$defs/eligibilityState" },
+        "futureIdentityState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["finalProtocolId", "budgetFreezeId", "providerIdentity", "modelIdentity", "calibrationEnvelopeId"],
+          "properties": {
+            "finalProtocolId": { "type": "null" },
+            "budgetFreezeId": { "type": "null" },
+            "providerIdentity": { "type": "null" },
+            "modelIdentity": { "type": "null" },
+            "calibrationEnvelopeId": { "type": "null" }
+          }
+        },
+        "claimBoundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["contractPreregistered", "calibrationPerformed", "numericFreezeComplete", "researchProtocolFrozen", "performanceEvidence", "fairnessEvidence", "securityClaim", "evolutionClaim", "selfImprovementClaim"],
+          "properties": {
+            "contractPreregistered": { "const": true },
+            "calibrationPerformed": { "const": false },
+            "numericFreezeComplete": { "const": false },
+            "researchProtocolFrozen": { "const": false },
+            "performanceEvidence": { "const": false },
+            "fairnessEvidence": { "const": false },
+            "securityClaim": { "const": false },
+            "evolutionClaim": { "const": false },
+            "selfImprovementClaim": { "const": false }
+          }
+        },
+        "recordedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "recordedBy": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "contractHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "./common.schema.json#/$defs/attestation" }
+      }
+    },
+    "auditReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "receiptId", "recordType", "contractReference", "verifierArtifactId", "verification", "verifiedAt", "producer", "receiptHash", "publicPrincipal", "attestation"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationContractAuditReceipt.v1" },
+        "receiptId": { "type": "string", "pattern": "^ccar-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_contract_audit_receipt" },
+        "contractReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["calibrationContractId", "contractHash", "path", "sourceCommit", "sourceTree", "sha256", "sizeBytes"],
+          "properties": {
+            "calibrationContractId": { "type": "string", "pattern": "^cc-sha256:[a-f0-9]{64}$" },
+            "contractHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "path": { "const": "governance/gate3/calibration-contract-preregistration.json" },
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 }
+          }
+        },
+        "verifierArtifactId": { "const": "calibration_contract_verifier" },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaValid", "signatureValid", "sourceBindingsValid", "numericInventoryUnchanged", "derivationContractComplete", "authoritySeparationValid", "mountSourcesDisjoint", "messageAndRecordOwnershipValid", "evidenceGraphComplete", "zeroExecutionAndAuthorityValid", "forbiddenDataAbsent", "finalIdentitiesAbsent", "authoritiesGranted"],
+          "properties": {
+            "schemaValid": { "const": true },
+            "signatureValid": { "const": true },
+            "sourceBindingsValid": { "const": true },
+            "numericInventoryUnchanged": { "const": true },
+            "derivationContractComplete": { "const": true },
+            "authoritySeparationValid": { "const": true },
+            "mountSourcesDisjoint": { "const": true },
+            "messageAndRecordOwnershipValid": { "const": true },
+            "evidenceGraphComplete": { "const": true },
+            "zeroExecutionAndAuthorityValid": { "const": true },
+            "forbiddenDataAbsent": { "const": true },
+            "finalIdentitiesAbsent": { "const": true },
+            "authoritiesGranted": { "const": 0 }
+          }
+        },
+        "verifiedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "producer": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "receiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "./common.schema.json#/$defs/attestation" }
+      }
+    }
+  }
+}

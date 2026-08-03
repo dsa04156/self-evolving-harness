@@ -52,6 +52,8 @@ export * from "./governance/trust-plane-conformance.js";
 export * from "./governance/trust-plane-aggregate-verifier.js";
 export * from "./governance/research-protocol-numeric-freeze-entry.js";
 export * from "./governance/research-protocol-numeric-freeze-entry-verifier.js";
+export * from "./governance/calibration-contract.js";
+export * from "./governance/calibration-contract-verifier.js";
 export * from "./operations/session-lifecycle.js";
 export * from "./operations/session-definition.js";
 export * from "./operations/control-plane.js";

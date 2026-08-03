@@ -28,6 +28,10 @@ export type PrincipalRole =
   | "benchmark_author"
   | "benchmark_reviewer"
   | "protocol_author"
+  | "calibration_executor"
+  | "calibration_evaluator"
+  | "calibration_scorer"
+  | "independent_verifier"
   | "human_operator"
   | "fake_provider";
 
