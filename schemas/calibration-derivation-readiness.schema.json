@@ -1,0 +1,609 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/calibration-derivation-readiness.schema.json",
+  "title": "Synthetic-only calibration derivation program readiness records",
+  "description": "A public-development readiness record and reference-only audit receipt. Neither record is a calibration plan, envelope, pilot receipt, protocol freeze, budget freeze, or source of admissible numeric values.",
+  "oneOf": [
+    { "$ref": "#/$defs/readiness" },
+    { "$ref": "#/$defs/auditReceipt" }
+  ],
+  "$defs": {
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "signature"],
+      "properties": {
+        "keyId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "algorithm": { "const": "Ed25519" },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{80,128}$"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "path", "sourceCommit", "sha256", "sizeBytes", "mediaType"],
+      "properties": {
+        "artifactId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+        },
+        "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "application/json",
+            "text/markdown; charset=utf-8",
+            "text/typescript; charset=utf-8"
+          ]
+        }
+      }
+    },
+    "programDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "programId",
+        "programName",
+        "sourceArtifactId",
+        "sourceSha256",
+        "estimatorIdentity",
+        "candidateBound",
+        "confidenceBasisPoints",
+        "failureBoundProbabilityMicros",
+        "selectionRule",
+        "tieRule",
+        "roundingRule"
+      ],
+      "properties": {
+        "target": { "type": "string", "enum": ["F", "G", "J", "K", "L", "M"] },
+        "programId": { "type": "string", "pattern": "^cdp-sha256:[a-f0-9]{64}$" },
+        "programName": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "sourceArtifactId": { "const": "derivation_programs_source" },
+        "sourceSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "estimatorIdentity": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "candidateBound": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "confidenceBasisPoints": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0, "maximum": 10000 },
+            { "type": "null" }
+          ]
+        },
+        "failureBoundProbabilityMicros": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0, "maximum": 1000000 },
+            { "type": "null" }
+          ]
+        },
+        "selectionRule": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "tieRule": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "roundingRule": { "$ref": "./common.schema.json#/$defs/entityId" }
+      }
+    },
+    "syntheticResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "syntheticResultId",
+        "target",
+        "status",
+        "inputHash",
+        "publicDevelopment",
+        "authorizedForResearchEvidence",
+        "admissibleAsNumericFreezeValue",
+        "confirmatory",
+        "outcome"
+      ],
+      "properties": {
+        "syntheticResultId": { "type": "string", "pattern": "^sdr-sha256:[a-f0-9]{64}$" },
+        "target": { "type": "string", "enum": ["F", "G", "J", "K", "L", "M"] },
+        "status": {
+          "type": "string",
+          "enum": [
+            "selected_synthetic_only",
+            "withdrawn_synthetic_only",
+            "precision_limited_synthetic_only"
+          ]
+        },
+        "inputHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicDevelopment": { "const": true },
+        "authorizedForResearchEvidence": { "const": false },
+        "admissibleAsNumericFreezeValue": { "const": false },
+        "confirmatory": { "const": false },
+        "outcome": { "type": "object", "minProperties": 2, "maxProperties": 8 }
+      }
+    },
+    "syntheticVector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "target",
+        "purpose",
+        "publicDevelopment",
+        "authorizedForResearchEvidence",
+        "admissibleAsNumericFreezeValue",
+        "confirmatory",
+        "input",
+        "result"
+      ],
+      "properties": {
+        "caseId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "target": { "type": "string", "enum": ["F", "G", "J", "K", "L", "M"] },
+        "purpose": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "publicDevelopment": { "const": true },
+        "authorizedForResearchEvidence": { "const": false },
+        "admissibleAsNumericFreezeValue": { "const": false },
+        "confirmatory": { "const": false },
+        "input": { "type": "object", "minProperties": 4, "maxProperties": 12 },
+        "result": { "$ref": "#/$defs/syntheticResult" }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "publicPrincipal",
+        "processIdentity",
+        "currentCapabilityHandles",
+        "delegatedCapabilityIds",
+        "roleAliases"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["protocol_author", "independent_verifier", "audit_store"]
+        },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "processIdentity": {
+          "type": "string",
+          "pattern": "^process\\.calibration-derivation-readiness\\.(protocol-author|independent-verifier|audit-store)\\.v1$"
+        },
+        "currentCapabilityHandles": { "type": "array", "maxItems": 0 },
+        "delegatedCapabilityIds": { "type": "array", "maxItems": 0 },
+        "roleAliases": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "roleBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocolAuthor",
+        "independentVerifier",
+        "auditStore",
+        "requiredInequalities",
+        "aliasingDelegationCosigningProxyingForbidden"
+      ],
+      "properties": {
+        "protocolAuthor": { "$ref": "#/$defs/role" },
+        "independentVerifier": { "$ref": "#/$defs/role" },
+        "auditStore": { "$ref": "#/$defs/role" },
+        "requiredInequalities": {
+          "const": [
+            "principalId",
+            "instanceId",
+            "keyId",
+            "publicKeyDigest",
+            "processIdentity"
+          ]
+        },
+        "aliasingDelegationCosigningProxyingForbidden": { "const": true }
+      }
+    },
+    "independentVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hashDomain",
+        "readinessId",
+        "readinessHash",
+        "readinessArtifactSha256",
+        "verification",
+        "verifiedAt",
+        "verifier",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "hashDomain": { "const": "CalibrationDerivationIndependentVerification.v1" },
+        "readinessId": { "type": "string", "pattern": "^cdr-sha256:[a-f0-9]{64}$" },
+        "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "readinessArtifactSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schemaValid",
+            "signaturesValid",
+            "sourceBindingsValid",
+            "programsContentAddressed",
+            "gridAndEstimatorContractExact",
+            "syntheticInputPolicyExact",
+            "conformanceVectorsRecomputed",
+            "failureAndWithdrawalContractExact",
+            "dependencyGraphAcyclicAndNoOToD",
+            "syntheticOutputsUnboundFromSentinels",
+            "rolesDisjoint",
+            "zeroResearchBudget",
+            "finalIdentitiesAbsent",
+            "authoritiesGranted"
+          ],
+          "properties": {
+            "schemaValid": { "const": true },
+            "signaturesValid": { "const": true },
+            "sourceBindingsValid": { "const": true },
+            "programsContentAddressed": { "const": true },
+            "gridAndEstimatorContractExact": { "const": true },
+            "syntheticInputPolicyExact": { "const": true },
+            "conformanceVectorsRecomputed": { "const": true },
+            "failureAndWithdrawalContractExact": { "const": true },
+            "dependencyGraphAcyclicAndNoOToD": { "const": true },
+            "syntheticOutputsUnboundFromSentinels": { "const": true },
+            "rolesDisjoint": { "const": true },
+            "zeroResearchBudget": { "const": true },
+            "finalIdentitiesAbsent": { "const": true },
+            "authoritiesGranted": { "const": 0 }
+          }
+        },
+        "verifiedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "verifier": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "hashDomain",
+        "readinessId",
+        "recordType",
+        "status",
+        "zeroResearchExecution",
+        "researchEvidencePresent",
+        "sourceSnapshot",
+        "priorBindings",
+        "artifacts",
+        "programDefinitions",
+        "gridContract",
+        "estimatorContract",
+        "syntheticInputPolicy",
+        "failureContract",
+        "dependencyContract",
+        "syntheticConformanceVectors",
+        "roleBoundary",
+        "researchExecutionBudget",
+        "authorityState",
+        "eligibilityState",
+        "futureIdentityState",
+        "forbiddenRecordTypes",
+        "claimBoundary",
+        "recordedAt",
+        "recordedBy",
+        "readinessHash",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationDerivationProgramReadiness.v1" },
+        "readinessId": { "type": "string", "pattern": "^cdr-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_derivation_program_readiness" },
+        "status": { "const": "synthetic_programs_ready_only" },
+        "zeroResearchExecution": { "const": true },
+        "researchEvidencePresent": { "const": false },
+        "sourceSnapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sourceCommit", "sourceTree", "additionalPushPerformed"],
+          "properties": {
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "additionalPushPerformed": { "const": false }
+          }
+        },
+        "priorBindings": {
+          "const": {
+            "numericFreezeEntryId": "nfe-sha256:7517cce6f2878429161bd73154d1ef71f5bb8fe27ca3a77e08b4b55b43df268f",
+            "numericFreezeEntryRawSha256": "sha256:432b341bf40096134d787381fb963c12266e2d73db97e079946614335ad01391",
+            "calibrationContractId": "cc-sha256:8d4ffe8fc9fee52dd3b81b58ae8c7ba65b0bafc4f1d7079f91f3e810f20fff9f",
+            "calibrationContractHash": "sha256:004bd1d7ae369a6e29978117d83539dec90633f3da3f6d1a0c5d5a6fbf3c8f56",
+            "calibrationContractRawSha256": "sha256:5231c0152ee359e42c1879ecc4d1740c8eafde132bd501f8e4196f217128d22d",
+            "calibrationContractSourceCommit": "f8e9df2053c958131fd47385e688f6560b3034c3"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 19,
+          "maxItems": 19,
+          "items": { "$ref": "#/$defs/artifact" }
+        },
+        "programDefinitions": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/programDefinition" }
+        },
+        "gridContract": {
+          "const": {
+            "protocolCandidateValuesChosen": false,
+            "protocolCandidateValues": [],
+            "implicitOrHiddenDefaultsAllowed": false,
+            "postResultGridModificationAllowed": false,
+            "capGrid": {
+              "targets": ["F", "G"],
+              "candidateMaximum": 8,
+              "candidateFields": ["candidateId", "cap", "strata"],
+              "stratumFields": ["stratumId", "observations", "adverseEvents", "missingUsageCount", "missingUsageChargedAtReservationCount", "infrastructureIncidentCount"],
+              "ordering": "strict_cap_ascending",
+              "duplicatesAllowed": false
+            },
+            "rolloutGrid": {
+              "target": "K",
+              "candidateValues": [2, 3, 5, 8],
+              "candidateFields": ["rolloutCount", "taskCount", "mcseBasisPoints", "seedVarianceShareBasisPoints", "missingObservationCount", "infrastructureIncidentCount"],
+              "ordering": "exact_2_3_5_8",
+              "duplicatesAllowed": false
+            },
+            "marginGrid": {
+              "target": "M",
+              "candidateMaximum": 8,
+              "candidateFields": ["candidateId", "allowedLossBasisPoints", "powerBasisPoints", "retentionBasisPoints", "missingObservationCount", "infrastructureIncidentCount"],
+              "ordering": "strictest_smallest_allowed_loss_first",
+              "duplicatesAllowed": false
+            }
+          }
+        },
+        "estimatorContract": {
+          "const": {
+            "failureEstimator": {
+              "identity": "wilson_one_sided_upper_bound.v1.z_1644854_micros.ceil_probability_micros",
+              "confidenceBasisPoints": 9500,
+              "zMicros": 1644854,
+              "acceptedUpperBoundProbabilityMicros": 10000,
+              "boundRounding": "upward_to_probability_micros"
+            },
+            "resourceRounding": "upward_to_declared_positive_integer_quantum",
+            "costRounding": "each_input_and_output_token_component_upward_to_integer_micro_then_sum",
+            "rolloutThresholds": {
+              "mcseMaximumBasisPoints": 100,
+              "seedVarianceShareMaximumBasisPoints": 2000
+            },
+            "seedStream": {
+              "digest": "SHA-256",
+              "domain": "seh.calibration.synthetic.seed-stream.v1",
+              "ordering": "counter_ascending_zero_based",
+              "output": "full_32_byte_lowercase_hex"
+            },
+            "marginThresholds": {
+              "powerMinimumBasisPoints": 8000,
+              "retentionMinimumBasisPoints": 8000,
+              "strictness": "smaller_allowed_loss_is_stricter",
+              "safetyMarginBasisPoints": 0
+            }
+          }
+        },
+        "syntheticInputPolicy": {
+          "const": {
+            "allowedInputClass": "synthetic_public_development_table",
+            "requiredResultMarking": {
+              "publicDevelopment": true,
+              "authorizedForResearchEvidence": false,
+              "admissibleAsNumericFreezeValue": false,
+              "confirmatory": false
+            },
+            "requiredAncestry": "manually_authored_synthetic_values",
+            "protectedDataCapabilityPresent": false,
+            "providerCapabilityPresent": false,
+            "benchmarkCapabilityPresent": false,
+            "filesystemWriteCapabilityPresent": false,
+            "shellOrGitCapabilityPresent": false,
+            "networkCapabilityPresent": false,
+            "forbiddenAncestry": ["protected_data", "provider_smoke", "public_fixture", "benchmark", "evaluator_vault", "gate_final_temporal_or_sealed", "real_provider_price", "provider_or_model_identity"],
+            "forbiddenOutputUses": ["numeric_freeze_sentinel_value", "statistical_margin_value", "ProtocolManifest_value", "BudgetFreezeManifest_value", "CalibrationPlanManifest_value", "calibration_envelope_value", "research_claim_evidence"]
+          }
+        },
+        "failureContract": {
+          "const": [
+            { "condition": "candidate_grid_enlargement", "disposition": "reject" },
+            { "condition": "hidden_or_implicit_default_candidate", "disposition": "reject" },
+            { "condition": "estimator_or_confidence_bound_drift", "disposition": "reject" },
+            { "condition": "rounding_or_tie_rule_reversal", "disposition": "reject" },
+            { "condition": "missing_required_stratum", "disposition": "withdraw" },
+            { "condition": "missing_usage_undercharging", "disposition": "withdraw" },
+            { "condition": "infrastructure_incident_exclusion", "disposition": "withdraw" },
+            { "condition": "post_result_grid_modification", "disposition": "withdraw" },
+            { "condition": "seed_stream_domain_or_order_change", "disposition": "reject" },
+            { "condition": "threshold_widening", "disposition": "reject" },
+            { "condition": "cycle_or_forbidden_O_to_D", "disposition": "reject" },
+            { "condition": "synthetic_output_as_sentinel", "disposition": "reject" },
+            { "condition": "provider_smoke_or_public_fixture_ancestry", "disposition": "reject" },
+            { "condition": "role_collapse_or_alias", "disposition": "reject" },
+            { "condition": "nonzero_research_budget", "disposition": "reject" },
+            { "condition": "final_identity_allocation", "disposition": "reject" },
+            { "condition": "authority_or_eligibility_escalation", "disposition": "reject" }
+          ]
+        },
+        "dependencyContract": {
+          "const": {
+            "numericGraph": {
+              "nodes": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"],
+              "edges": ["A->B", "A->C", "A->D", "A->H", "A->N", "B->D", "B->F", "B->G", "B->I", "B->N", "C->D", "C->F", "C->G", "D->E", "E->F", "E->G", "E->K", "E->M", "F->G", "G+I->J", "A->K", "A->L", "A->M", "K->L", "B+C+F+G+H+J+K+L+M+N->O"],
+              "cycleEdgesForbidden": ["O->D"]
+            },
+            "readinessTargets": ["F", "G", "J", "K", "L", "M"],
+            "requiredEdges": ["G+I->J", "K->L"],
+            "forbiddenEdges": ["O->D", "synthetic_output->pending_sentinel", "synthetic_output->ProtocolManifest", "synthetic_output->BudgetFreezeManifest"],
+            "syntheticOutputBindings": [],
+            "sentinelWrites": [],
+            "protocolManifestWrites": [],
+            "budgetFreezeWrites": []
+          }
+        },
+        "syntheticConformanceVectors": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": { "$ref": "#/$defs/syntheticVector" }
+        },
+        "roleBoundary": { "$ref": "#/$defs/roleBoundary" },
+        "researchExecutionBudget": {
+          "const": {
+            "providerModelRequestAttempts": 0,
+            "providerTokens": 0,
+            "providerCostMicros": 0,
+            "runtimeToolAttempts": 0,
+            "benchmarkVaultUnlocks": 0,
+            "protectedDataAccesses": 0,
+            "feedbackReleases": 0,
+            "researchSchedulerProcesses": 0,
+            "taskExecutions": 0,
+            "calibrationExecutions": 0,
+            "processCount": 0,
+            "wallClockSeconds": 0,
+            "cpuSeconds": 0,
+            "memoryMiB": 0,
+            "outputBytes": 0,
+            "mutationProposals": 0,
+            "candidateManifests": 0,
+            "evaluationResults": 0,
+            "selectionPromotionDeploymentActions": 0,
+            "gitPushes": 0,
+            "providerIdentitySelections": 0,
+            "modelIdentitySelections": 0,
+            "realPriceSelections": 0,
+            "calibrationPlanManifests": 0,
+            "calibrationEnvelopes": 0,
+            "sentinelWrites": 0,
+            "protocolManifestWrites": 0,
+            "budgetFreezeManifestWrites": 0
+          }
+        },
+        "authorityState": {
+          "const": {
+            "providerExecutionAuthorized": false,
+            "researchEvidenceAuthorized": false,
+            "candidateSelectionAuthorized": false,
+            "promotionAuthorized": false,
+            "deploymentAuthorized": false,
+            "claimAuthorityGranted": false,
+            "calibrationExecutionAuthorized": false,
+            "contractActivationAuthorized": false,
+            "protectedDataAccessAuthorized": false,
+            "syntheticResultMayResolveSentinel": false,
+            "syntheticResultMayPopulateProtocolManifest": false,
+            "syntheticResultMayPopulateBudgetFreezeManifest": false,
+            "readinessRecordMayActAsCalibrationPlan": false
+          }
+        },
+        "eligibilityState": {
+          "const": {
+            "publicDevelopment": true,
+            "authorizedForResearchEvidence": false,
+            "confirmatory": false,
+            "eligibleForGate": false,
+            "eligibleForFinal": false,
+            "eligibleForHeldOut": false,
+            "eligibleForSealed": false,
+            "eligibleForTemporalHoldout": false,
+            "authorizedForPromotion": false,
+            "authorizedForCalibration": false,
+            "authorizedForProtocolFreeze": false,
+            "admissibleAsNumericFreezeValue": false,
+            "admissibleForSentinelResolution": false,
+            "admissibleForStatisticalMargin": false,
+            "admissibleForProtocolManifest": false,
+            "admissibleForBudgetFreezeManifest": false
+          }
+        },
+        "futureIdentityState": {
+          "const": {
+            "finalProtocolId": null,
+            "budgetFreezeId": null,
+            "calibrationPlanManifestId": null,
+            "calibrationEnvelopeId": null,
+            "selectedProtocolValueSetId": null
+          }
+        },
+        "forbiddenRecordTypes": {
+          "const": ["CalibrationPlanManifest", "calibration_envelope", "pilot_receipt", "ProtocolManifest", "BudgetFreezeManifest", "protocol_freeze", "budget_freeze"]
+        },
+        "claimBoundary": {
+          "const": {
+            "deterministicProgramsImplemented": true,
+            "syntheticConformanceOnly": true,
+            "calibrationPerformed": false,
+            "numericValuesFrozen": false,
+            "estimatorAdequacyEstablished": false,
+            "performanceEvidence": false,
+            "fairnessEvidence": false,
+            "attributionEvidence": false,
+            "securityCertification": false,
+            "evolutionClaim": false,
+            "selfImprovementClaim": false
+          }
+        },
+        "recordedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "recordedBy": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "auditReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "hashDomain",
+        "receiptId",
+        "recordType",
+        "readinessReference",
+        "independentVerification",
+        "referenceOnly",
+        "grantsAuthority",
+        "producer",
+        "receiptHash",
+        "publicPrincipal",
+        "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationDerivationReadinessAuditReceipt.v1" },
+        "receiptId": { "type": "string", "pattern": "^cdrar-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_derivation_program_readiness_audit_receipt" },
+        "readinessReference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["readinessId", "readinessHash", "path", "sourceCommit", "sourceTree", "sha256", "sizeBytes"],
+          "properties": {
+            "readinessId": { "type": "string", "pattern": "^cdr-sha256:[a-f0-9]{64}$" },
+            "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "path": { "const": "governance/gate3/calibration-derivation-program-readiness.json" },
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 }
+          }
+        },
+        "independentVerification": { "$ref": "#/$defs/independentVerification" },
+        "referenceOnly": { "const": true },
+        "grantsAuthority": { "const": false },
+        "producer": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "receiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    }
+  }
+}
