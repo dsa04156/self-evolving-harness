@@ -649,3 +649,21 @@ any paid-provider request.
   the established source/seal pattern and submit one correction packet.
 - No actual calibration, provider, protected data, nonzero budget, final value, research evaluation,
   evolution, promotion, push/publication, or empirical claim is authorized.
+
+## Durable Round 3R23 terminal-evidence correction decision
+
+- External decision: `APPROVE`; the prior sole blocker is closed with exactly one terminal E2 branch,
+  matching E3 disposition, and E4 only after `verified_aggregate`.
+- E0 accounting is exact per expected stratum: one execution, one usage naming it, one measurement
+  naming both, matching accounting heads, and no orphan, reuse, cross-stratum substitution, missing
+  usage, or unmatched incident.
+- Three independent in-memory scenarios replace the contradictory fixture: success with E4,
+  missingness withdrawal without E4, and terminal scorer failure without E4. Twelve newly required
+  validly re-signed attacks and all earlier attacks pass; the full suite is 199/199.
+- Source `0e33dc2...` and seal `9ff2455...` preserve the rejected readiness, receipt, and `REVISE`
+  ruling and add only corrected v2 readiness plus its reference-only receipt.
+- The v2 records remain public-development-only and non-evidentiary; actual records/capabilities,
+  execution budgets, authorities, provider calls, protected access, future identities, and O remain zero/null.
+- Only a no-execution `CalibrationPlanManifest` construction preregistration packet is authorized next.
+  Implementation, a signed plan, capability, execution, provider identity, protected data, nonzero
+  values, research evaluation, promotion, push/publication, and empirical claims remain prohibited.

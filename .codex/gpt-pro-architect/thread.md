@@ -8,7 +8,7 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: no new Oracle session; Round 03RRRRRRRRRRRRRRRRRRRRRR used the required direct-CDP continuation
+- oracle latest session id: no new Oracle session; Round 3R23 used the required direct-CDP continuation
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -16,20 +16,20 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 03RRRRRRRRRRRRRRRRRRRRRR direct CDP verified target
+- last reuse preflight: Round 3R23 direct CDP verified target
   `4BA3B4F29D8FD1597A712A46C80CB67E`, the exact conversation URL, an empty composer, no active stop
-  button, and the prior Round 03RRRRRRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
-  recovery verified the complete 20,979-character rendered composer and unchanged user count,
+  button, and the prior Round 03RRRRRRRRRRRRRRRRRRRRRR response. The insert operation timed out before send;
+  recovery verified the complete 14,390-character rendered composer and unchanged user count,
   then submitted it exactly once without opening a new tab or window. The response completed
   normally; no continuation was sent.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-03
-- last packet: `architect/PACKET_03RRRRRRRRRRRRRRRRRRRRRR_CALIBRATION_EVIDENCE_CONTRACT_READINESS_EVIDENCE.md`
-- last packet sha256: `6b6fef15530868c4a1c00965db36e5222ba56712a6e4f7b4ff60aa38cce79b7e`
-- last response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrrrrr.md`
-- last response sha256: `0e73d97bc113da856a2ddbb0a38cf40022cb4de0032dbaa96ae93fafcf36914c`
-- next packet: terminal-disposition and exact E0→E1 accounting correction evidence only
+- last packet: `architect/PACKET_03R23_CALIBRATION_TERMINAL_EVIDENCE_CORRECTION.md`
+- last packet sha256: `3cc9f52a0ce104e4f71fb84d45c8905797b34346f12031ef3a3896e48fbab292`
+- last response: `.codex/gpt-pro-architect/responses/response-3r23.md`
+- last response sha256: `4590823bc79d29edf83e931b26bf78c7263dd4119d5ad059bcc837f025c3b0ee`
+- next packet: no-execution CalibrationPlanManifest construction preregistration only
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -129,12 +129,16 @@
   readiness scope.
 - Round 03RRRRRRRRRRRRRRRRRRRRRR decision: `REVISE`. Closed record inventory, exclusive role
   ownership, body-free disclosure, E0–E4 directionality, unissued capability, source/seal/audit, and
-  zero-authority claims were accepted. The sole blocker is contradictory terminal evidence within one
+  zero-authority claims were accepted. The sole blocker was contradictory terminal evidence within one
   attempt plus incomplete E0→E1 execution/usage accounting.
-- current authorization: correct only terminal-branch exclusivity and exact E0→E1 accounting. Define
-  three exclusive terminal dispositions, bind E3 to the matching verified disposition, allow E4 only
-  after a verified aggregate, replace the fixture with three scenarios, reject the twelve named signed
-  attacks, extend nested verifier/audit bindings, reseal under the two-commit layout, and submit one
-  narrow correction packet. No actual plan/calibration/capability/execution, provider/model/data/budget,
-  sentinel/final-ID/O, research/B0–B6/attribution/mutation/candidate work, push/publication, or empirical
-  claim is authorized.
+- Round 3R23 decision: `APPROVE`. Exactly-one terminal disposition, matching E3, aggregate-only E4,
+  fail-closed aggregate success, exact E0/E1 accounting and incident coverage, three scenarios,
+  twelve newly required signed attacks, and append-only v2 rejection lineage close the sole blocker.
+- current authorization: prepare only one no-execution `CalibrationPlanManifest` construction
+  preregistration packet. It may define a value-free field inventory, exact admission prerequisites,
+  distinct future role matrix, accepted v2 terminal/accounting semantics, an unissued opaque capability
+  shape, an all-absent-or-zero envelope structure, and explicit fail-closed admission conditions. It
+  must request another Architect ruling before schema implementation or any signed plan. Actual
+  manifest/schema/plan/envelope/capability/execution, nonzero budget, provider/model/price/credentials/
+  calls, protected or benchmark data, values/final IDs/O, B0–B6, attribution/mutation/candidates,
+  selection/promotion/deployment, push/release/publication, and empirical claims remain prohibited.

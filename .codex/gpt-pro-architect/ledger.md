@@ -1218,3 +1218,43 @@ response path, interpreted decision, required revisions, and the commit containi
   bindings, another two-commit seal, and one narrow correction packet
 - still prohibited: actual calibration/plan/capability/execution/provider/data/budget/sentinel/final-ID/O,
   research/B0–B6/attribution/mutation/candidate work, push/publication, and empirical claims
+
+## Round 3R23 — 2026-08-03
+
+- sent correction packet: `architect/PACKET_03R23_CALIBRATION_TERMINAL_EVIDENCE_CORRECTION.md`
+- packet commit/tree: `129e072bed4dcc8a1a3e62fbb6b44ce782f5f6e0` /
+  `27a3157bbb9d59a9d0634714da46ea82d79d81c7`
+- packet SHA-256/size: `3cc9f52a0ce104e4f71fb84d45c8905797b34346f12031ef3a3896e48fbab292` /
+  13,780 bytes
+- correction source commit/tree: `0e33dc21fc4aa74bd2800d7c69f9bd74c11d52ee` /
+  `9c8baad2ee6289fce774abb9d5f0c9b81c18da79`
+- v2 seal commit/tree: `9ff245541d79f96366d3108ff12e9a2fc269aaec` /
+  `2209a1b9103525a60c6aa0b2484aeb2320317d42`
+- v2 readiness ID/hash/raw: `cecr-sha256:4aae7c02ac8f68d0aa06546316d76f35bbe4e1b6260736a1c457013e98d3ca6b` /
+  `sha256:539f6d1677c7df0bb169b00145515c08564b370feaf3eaae17c1ae968d1ae384` /
+  `e234e26afdf182037fd50b958b77e1dae2e238a96b5d00818980765160dd60bc`
+- v2 receipt ID/hash/raw: `cecrar-sha256:0a251f2a424467e03572631dce0cf15086004d1f46941dbf347df0782e056841` /
+  `sha256:306568c906cbec81d25839da3cc1aee72fad574b40dc04a119c313af71042b8f` /
+  `7e50ba0cbfbd475c1a3c787ec9e059d1d61737d54936707ac1750224e39731b3`
+- validation: check/build passed; full deterministic suite 199/199 in 348,891.728195 ms;
+  focused suite 14/14; focused contract/readiness/verifier line coverage 99.54/100/97.64%;
+  all prior calibration verifiers passed; create-exclusive replay rejected with `EEXIST`; clean tree;
+  zero actual evidence, capability, execution, provider call, protected access, final identity, O, or authority
+- transport: direct CDP reused exact target `4BA3B4F29D8FD1597A712A46C80CB67E` and conversation
+  `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`. Long insertion timed
+  out before send; recovery verified the complete 14,390-character composer and unchanged user count,
+  then called `send-existing 2` exactly once. No new tab/window, resend, continuation, upload, or screenshot.
+- raw response: `.codex/gpt-pro-architect/responses/response-3r23.md`
+- raw-response verification: browser and local content both 8,770 characters / 8,800 bytes including
+  final newline; SHA-256 `4590823bc79d29edf83e931b26bf78c7263dd4119d5ad059bcc837f025c3b0ee`
+- architect decision: `APPROVE`
+- accepted: exactly-one terminal branch; branch-bound E3; aggregate-only E4; fail-closed successful
+  aggregate; exact E0 execution/usage/stratum/accounting/incident coverage; three independent
+  scenarios; twelve new signed attacks; preserved rejected evidence; append-only v2 source/seal/audit
+- required changes: none for this correction
+- authorized next: one no-execution `CalibrationPlanManifest` construction preregistration packet only,
+  defining value-free field inventory, prerequisites, role matrix, terminal/accounting rules, zero-value
+  envelope shape, and fail-closed admission conditions; obtain another ruling before implementation
+- still prohibited: actual manifest/schema/signed plan/envelope/capability/execution, nonzero budget,
+  provider/model/price/credentials/calls, protected or benchmark data, values/final IDs/O, B0–B6,
+  attribution/mutation/candidates, selection/promotion/deployment, push/release/publication, and claims
