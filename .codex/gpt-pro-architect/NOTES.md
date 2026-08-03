@@ -607,3 +607,30 @@ any paid-provider request.
   provider/Codex backend, benchmark/vault/protected data, sentinel/margin fill, final IDs, B0–B6,
   attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical and
   certification claim is authorized.
+
+## Durable Round 3RRRRRRRRRRRRRRRRRRRRR assembly-readiness evidence decision
+
+- External decision: `APPROVE`; no blocker remains for the offline calibration-plan assembly and
+  freeze-admission readiness implementation.
+- Clean source `73753fc...` and later seal `1ccf571...` form the accepted non-self-referential layout;
+  24 references point to the source snapshot and the seal adds exactly one readiness record and one
+  reference-only receipt.
+- The complete value-free map covers 25 sentinels plus statistical margins, 26 mappings, and 136
+  effective future outputs. The independent verifier reconstructs paths, phase expansion, derivation
+  classes, and graph bindings from the exact prior records.
+- The metadata firewall rejects incomplete/conflicting mappings, wrong authorities, missing lineage,
+  contaminated ancestry, raw evaluator/scorer values, hidden defaults, premature grids/identities,
+  nonzero authority, and O creation. A synthetic predicate result cannot act as admission evidence.
+- F/G/K/M grid shapes contain no candidate values or instances. Eight TypeScript/Python portability
+  vectors match byte-for-byte but remain non-admissible conformance evidence only.
+- Eighteen validly re-signed record attacks, one wrong-role signature, receipt-byte substitution, and
+  14 firewall denial families pass; the full suite is 185/185 with seven unresolved obligations and
+  zero authority.
+- Authorized next scope is one offline body-free E0–E4 evidence-record contract package: closed record
+  schemas, exclusive executor/evaluator/scorer/verifier/author ownership, one-way graph and disclosure
+  rules, an unissued/unconsumed synthetic one-time capability shape, semantic verifier, re-signed
+  attacks, one signed readiness record, one reference-only receipt, and a narrow packet.
+- No actual plan/envelope/capability, execution/nonzero budget, provider/model/environment/price,
+  credentials, benchmark/vault/task/raw measurement, sentinel/margin fill, final IDs/O, B0–B6,
+  attribution/mutation/candidate, selection/promotion/deployment, push/publication, or empirical and
+  certification claim is authorized.

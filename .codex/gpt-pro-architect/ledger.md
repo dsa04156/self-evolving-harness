@@ -1134,3 +1134,58 @@ response path, interpreted decision, required revisions, and the commit containi
   real-price selection; credentials; Codex CLI provider backend; benchmark/vault/protected data;
   sentinel/margin fill or final IDs; B0–B6/attribution/mutation/candidate work; selection/promotion/
   deployment; push/release/publication; and empirical, security, evolution, or self-improvement claims
+
+## Round 3RRRRRRRRRRRRRRRRRRRRR — 2026-08-03
+
+- sent authoritative implementation-evidence packet:
+  `architect/PACKET_03RRRRRRRRRRRRRRRRRRRRR_CALIBRATION_PLAN_ASSEMBLY_READINESS_EVIDENCE.md`
+- packet commit/tree:
+  `9ed01c2afdc30f77e47c5f4fca616125d8a51880` /
+  `9b0ad4d1472a6297b5f9a2095e1682b91654c631`
+- packet hash: `069f4926b0bd161a3f3f9079007657997c6c6db39e9f474aaf202c9723eb99e9`
+- packet size: 19,970 characters / 19,978 bytes
+- implementation source commit/tree:
+  `73753fc3967f0d533754ab89b1c0b4527e8de7cf` /
+  `b93e968e8a49381e33ba67cea8dd6a969be11868`
+- record sealing commit/tree:
+  `1ccf571665b370c8604900cc0e0e94962e354d19` /
+  `2f0ceabd59370fc4dd308a4b460ce3b027e162bd`
+- assembly readiness ID/hash/raw SHA-256:
+  `cpar-sha256:0ae47c5688fd04d6069ba406cd74b1b050bd94713e36d240fab08f4142470b42` /
+  `sha256:09351930673187bda15eba19d9ff829f62f09dddea68c10d606d1ced157b6a0c` /
+  `813cf2513bfa0f7faf5fdbec99c3c466fad8c0e1563d5437bc3153428907a2b0`
+- audit receipt ID/hash/raw SHA-256:
+  `cparar-sha256:a515ba050d4f158fb4d95148e2049b7aa66ab4c4783996664706f6f3897cdcc2` /
+  `sha256:04968d8313a85d841ef8195f9154a88a205bc37a68e7d1b76dafd378756e1c1e` /
+  `d066dbf27815443c2a62ebfbaac0b06b157482db4e5e98d24085bf637b2f36a4`
+- validation: TypeScript check/build passed; full deterministic suite 185/185; focused assembly suite
+  6/6; eight TypeScript/Python golden vectors matched; 18 validly re-signed readiness attacks, one
+  wrong-role record, and one receipt substitution were rejected; 14 firewall denial families were
+  observed; all prior calibration and aggregate trust verifiers passed; seven obligations remain
+  unresolved; zero execution, authority, final IDs, secrets, and pushes
+- transport: direct CDP reused the exact existing Chrome target and conversation. The long insert
+  timed out before send; recovery verified the complete 20,648-character rendered composer and
+  unchanged user count before one `send-existing 2` submission. No new tab/window, continuation,
+  upload, screenshot, or packet resend was used.
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / target: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- raw response: `.codex/gpt-pro-architect/responses/response-3rrrrrrrrrrrrrrrrrrrrr.md`
+- raw-response verification: browser and local content both 16,017 characters / 16,052 bytes with
+  SHA-256 `094b31e93575c388a48b7a7f2482a0f7320c2dad0b8323e1eda1a09f93a6931c`
+- architect decision: `APPROVE`
+- blocking findings: none for calibration-plan assembly/freeze-admission readiness
+- accepted: 24 source bindings; complete 25+1/136 value-free mapping; metadata-only no-O firewall;
+  value-free grid shapes; exact arithmetic/serialization contract; eight cross-language vectors;
+  pairwise roles and nested reference-only audit; 18 validly re-signed attacks; 185/185 regression;
+  exact zero-authority and bounded-claim state
+- authorized next: offline body-free E0–E4 calibration evidence-record contracts; closed synthetic
+  opaque one-time capability shape with `issued=false`, `consumed=false`, null handle and no authority;
+  exclusive executor/evaluator/scorer/verifier/author ownership; one-way graph and disclosure rules;
+  deterministic verifier and named re-signed attacks; one signed readiness record and reference-only
+  receipt under another two-commit layout; narrow evidence packet
+- still prohibited: actual plan/envelope/capability issuance or consumption; nonzero budgets;
+  provider/model/environment/real-price selection; credentials or Codex provider backend;
+  benchmark/vault/task/raw measurement access; sentinel/margin fill, final IDs, or O; B0–B6/
+  attribution/mutation/candidate work; selection/promotion/deployment; push/release/publication; and
+  empirical, security, evolution, or self-improvement claims
