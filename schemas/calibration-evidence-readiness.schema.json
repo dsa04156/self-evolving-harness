@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/calibration-evidence-readiness.schema.json",
+  "title": "Calibration evidence contract readiness",
+  "description": "A signed, public-development, body-free E0-E4 contract package and its reference-only audit receipt. It contains no real evidence record, issued capability, nonzero budget, final identity, or authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/readiness" },
+    { "$ref": "#/$defs/auditReceipt" }
+  ],
+  "$defs": {
+    "attestation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keyId", "algorithm", "signature"],
+      "properties": {
+        "keyId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "algorithm": { "const": "Ed25519" },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]{80,128}$" }
+      }
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "path", "sourceCommit", "sha256", "sizeBytes", "mediaType"],
+      "properties": {
+        "artifactId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "path": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$" },
+        "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 33554432 },
+        "mediaType": { "type": "string", "enum": ["application/json", "text/markdown; charset=utf-8", "text/typescript; charset=utf-8"] }
+      }
+    },
+    "role": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "publicPrincipal", "processIdentity", "currentCapabilityHandles", "delegatedCapabilityIds", "proxyPrincipalIds", "wrapperPrincipalIds", "roleAliases", "cosignerKeyIds"],
+      "properties": {
+        "role": { "type": "string", "enum": ["calibration_executor", "calibration_evaluator", "calibration_scorer", "independent_verifier", "protocol_author", "audit_store"] },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "processIdentity": { "type": "string", "pattern": "^process\\.calibration-evidence\\.(calibration-executor|calibration-evaluator|calibration-scorer|independent-verifier|protocol-author|audit-store)\\.v1$" },
+        "currentCapabilityHandles": { "type": "array", "maxItems": 0 },
+        "delegatedCapabilityIds": { "type": "array", "maxItems": 0 },
+        "proxyPrincipalIds": { "type": "array", "maxItems": 0 },
+        "wrapperPrincipalIds": { "type": "array", "maxItems": 0 },
+        "roleAliases": { "type": "array", "maxItems": 0 },
+        "cosignerKeyIds": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "roleBoundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["calibrationExecutor", "calibrationEvaluator", "calibrationScorer", "independentVerifier", "protocolAuthor", "auditStore", "requiredInequalities", "exclusiveOwnershipAndNoDelegationProxyWrapperAliasCosign"],
+      "properties": {
+        "calibrationExecutor": { "$ref": "#/$defs/role" },
+        "calibrationEvaluator": { "$ref": "#/$defs/role" },
+        "calibrationScorer": { "$ref": "#/$defs/role" },
+        "independentVerifier": { "$ref": "#/$defs/role" },
+        "protocolAuthor": { "$ref": "#/$defs/role" },
+        "auditStore": { "$ref": "#/$defs/role" },
+        "requiredInequalities": { "const": ["principalId", "instanceId", "keyId", "publicKeyDigest", "processIdentity"] },
+        "exclusiveOwnershipAndNoDelegationProxyWrapperAliasCosign": { "const": true }
+      }
+    },
+    "contractInventoryEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recordType", "stage", "ownerRole", "idPrefix", "closedSchema", "bodyFree", "directExclusiveOwnerSignature", "currentInstancesPersisted"],
+      "properties": {
+        "recordType": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "stage": { "type": "string", "enum": ["E0", "E1", "E2", "E3", "E4"] },
+        "ownerRole": { "type": "string", "enum": ["calibration_executor", "calibration_evaluator", "calibration_scorer", "independent_verifier", "protocol_author"] },
+        "idPrefix": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256$" },
+        "closedSchema": { "const": true },
+        "bodyFree": { "const": true },
+        "directExclusiveOwnerSignature": { "const": true },
+        "currentInstancesPersisted": { "const": 0 }
+      }
+    },
+    "contractHashes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inventory", "ownershipMatrix", "disclosureMatrix", "graphContract", "syntheticCapabilityDescriptor", "zeroBudget", "authorityState", "eligibilityState"],
+      "properties": {
+        "inventory": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "ownershipMatrix": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "disclosureMatrix": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "graphContract": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "syntheticCapabilityDescriptor": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "zeroBudget": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "authorityState": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "eligibilityState": { "$ref": "./common.schema.json#/$defs/sha256" }
+      }
+    },
+    "verificationFlags": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaValid", "signaturesValid", "sourceBindingsValid", "assemblyBindingValid", "contractsClosedAndBodyFree", "ownershipAndDisclosureMatricesExact", "oneWayGraphExact", "syntheticChainVerified", "roleBoundaryDisjoint", "capabilityUnissuedAndUnconsumed", "zeroExecutionBudget", "actualEvidenceRecordsAbsent", "finalIdentitiesAbsent", "oCreationAndActivationAbsent", "authoritiesGranted"],
+      "properties": {
+        "schemaValid": { "const": true },
+        "signaturesValid": { "const": true },
+        "sourceBindingsValid": { "const": true },
+        "assemblyBindingValid": { "const": true },
+        "contractsClosedAndBodyFree": { "const": true },
+        "ownershipAndDisclosureMatricesExact": { "const": true },
+        "oneWayGraphExact": { "const": true },
+        "syntheticChainVerified": { "const": true },
+        "roleBoundaryDisjoint": { "const": true },
+        "capabilityUnissuedAndUnconsumed": { "const": true },
+        "zeroExecutionBudget": { "const": true },
+        "actualEvidenceRecordsAbsent": { "const": true },
+        "finalIdentitiesAbsent": { "const": true },
+        "oCreationAndActivationAbsent": { "const": true },
+        "authoritiesGranted": { "const": 0 }
+      }
+    },
+    "independentVerification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hashDomain", "readinessId", "readinessHash", "readinessArtifactSha256", "verification", "verifiedAt", "verifier", "publicPrincipal", "attestation"],
+      "properties": {
+        "hashDomain": { "const": "CalibrationEvidenceIndependentVerification.v1" },
+        "readinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
+        "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "readinessArtifactSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "verification": { "$ref": "#/$defs/verificationFlags" },
+        "verifiedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "verifier": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "readiness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "readinessId", "recordType", "status", "sourceSnapshot", "priorBindings", "artifacts", "contractInventory", "ownershipMatrix", "disclosureMatrix", "graphContract", "syntheticCapabilityDescriptor", "syntheticFixtureContract", "contractHashes", "roleBoundary", "actualEvidenceRecords", "actualCapabilities", "researchExecutionBudget", "authorityState", "eligibilityState", "futureIdentityState", "forbiddenMaterialAndActions", "claimBoundary", "recordedAt", "recordedBy", "readinessHash", "publicPrincipal", "attestation"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationEvidenceContractReadiness.v1" },
+        "readinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_evidence_contract_readiness" },
+        "status": { "const": "offline_body_free_contracts_ready_only" },
+        "sourceSnapshot": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sourceCommit", "sourceTree", "additionalPushPerformed"],
+          "properties": {
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "additionalPushPerformed": { "const": false }
+          }
+        },
+        "priorBindings": {
+          "type": "object", "additionalProperties": false,
+          "required": ["assemblyReadinessId", "assemblyReadinessHash", "assemblyReadinessRawSha256", "assemblyAuditReceiptId", "assemblyAuditReceiptHash", "assemblyAuditReceiptRawSha256", "assemblyEvidenceRulingRawSha256", "assemblyEvidenceDecision"],
+          "properties": {
+            "assemblyReadinessId": { "type": "string", "pattern": "^cpar-sha256:[a-f0-9]{64}$" },
+            "assemblyReadinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "assemblyReadinessRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "assemblyAuditReceiptId": { "type": "string", "pattern": "^cparar-sha256:[a-f0-9]{64}$" },
+            "assemblyAuditReceiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "assemblyAuditReceiptRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "assemblyEvidenceRulingRawSha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "assemblyEvidenceDecision": { "const": "APPROVE" }
+          }
+        },
+        "artifacts": { "type": "array", "minItems": 18, "maxItems": 18, "items": { "$ref": "#/$defs/artifact" } },
+        "contractInventory": { "type": "array", "minItems": 13, "maxItems": 13, "items": { "$ref": "#/$defs/contractInventoryEntry" } },
+        "ownershipMatrix": { "type": "array", "minItems": 5, "maxItems": 5 },
+        "disclosureMatrix": { "type": "array", "minItems": 5, "maxItems": 5 },
+        "graphContract": { "type": "object", "minProperties": 8 },
+        "syntheticCapabilityDescriptor": { "$ref": "./calibration-evidence-contracts.schema.json#/$defs/syntheticCapability" },
+        "syntheticFixtureContract": {
+          "const": {
+            "expectedRecordCount": 14,
+            "expectedStageCounts": { "E0": 3, "E1": 4, "E2": 5, "E3": 1, "E4": 1 },
+            "expectedStratumCount": 2,
+            "fixturesPersistedAsCalibrationEvidence": false,
+            "actualEvidenceRecordsPersisted": 0,
+            "validlyResignedAttackFamiliesMinimum": 18
+          }
+        },
+        "contractHashes": { "$ref": "#/$defs/contractHashes" },
+        "roleBoundary": { "$ref": "#/$defs/roleBoundary" },
+        "actualEvidenceRecords": { "type": "array", "maxItems": 0 },
+        "actualCapabilities": { "type": "array", "maxItems": 0 },
+        "researchExecutionBudget": { "$ref": "./calibration-evidence-contracts.schema.json#/$defs/zeroBudget" },
+        "authorityState": {
+          "const": {
+            "calibrationPlanCreated": false,
+            "calibrationEnvelopeCreated": false,
+            "calibrationCapabilityIssued": false,
+            "calibrationCapabilityConsumed": false,
+            "calibrationExecutionAuthorized": false,
+            "protectedDataAccessAuthorized": false,
+            "evidenceAdmissionAuthorized": false,
+            "numericFreezeWriteAuthorized": false,
+            "protocolManifestWriteAuthorized": false,
+            "budgetFreezeWriteAuthorized": false,
+            "oProposalAuthorized": false,
+            "oActivationAuthorized": false,
+            "promotionAuthorized": false,
+            "deploymentAuthorized": false
+          }
+        },
+        "eligibilityState": {
+          "const": {
+            "publicDevelopment": true,
+            "synthetic": true,
+            "authorizedForResearchEvidence": false,
+            "admissibleAsCalibrationEvidence": false,
+            "admissibleAsNumericFreezeValue": false,
+            "confirmatory": false,
+            "admissibleAsCalibrationPlan": false,
+            "admissibleAsProtocolManifest": false,
+            "admissibleAsBudgetFreezeManifest": false,
+            "admissibleAsPromotionEvidence": false,
+            "admissibleAsDeploymentEvidence": false
+          }
+        },
+        "futureIdentityState": {
+          "const": {
+            "finalProtocolId": null,
+            "budgetFreezeId": null,
+            "calibrationPlanManifestId": null,
+            "calibrationEnvelopeId": null,
+            "selectedProtocolValueSetId": null,
+            "capabilityId": null,
+            "capabilityHandle": null,
+            "freezeTransactionId": null,
+            "oProposalId": null,
+            "oActivationId": null
+          }
+        },
+        "forbiddenMaterialAndActions": { "const": ["actual_calibration_plan", "actual_calibration_envelope", "capability_issuance_or_consumption", "nonzero_budget", "provider_model_environment_or_price_selection", "credential_or_API_call", "benchmark_vault_task_or_raw_measurement", "sentinel_margin_final_identity_or_O", "attribution_mutation_candidate_promotion_or_deployment"] },
+        "claimBoundary": {
+          "const": {
+            "closedSchemasImplemented": true,
+            "semanticGraphVerifierImplemented": true,
+            "publicDevelopmentConformanceOnly": true,
+            "calibrationPerformed": false,
+            "evidenceAdmitted": false,
+            "capabilityIssuedOrConsumed": false,
+            "numericValuesFrozen": false,
+            "estimatorAdequacyEstablished": false,
+            "performanceEvidence": false,
+            "fairnessEvidence": false,
+            "attributionEvidence": false,
+            "securityCertification": false,
+            "evolutionClaim": false,
+            "selfImprovementClaim": false
+          }
+        },
+        "recordedAt": { "$ref": "./common.schema.json#/$defs/timestamp" },
+        "recordedBy": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "auditReceipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "receiptId", "recordType", "readinessReference", "independentVerification", "referenceOnly", "grantsAuthority", "producer", "receiptHash", "publicPrincipal", "attestation"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationEvidenceReadinessAuditReceipt.v1" },
+        "receiptId": { "type": "string", "pattern": "^cecrar-sha256:[a-f0-9]{64}$" },
+        "recordType": { "const": "calibration_evidence_contract_readiness_audit_receipt" },
+        "readinessReference": {
+          "type": "object", "additionalProperties": false,
+          "required": ["readinessId", "readinessHash", "path", "sourceCommit", "sourceTree", "sha256", "sizeBytes"],
+          "properties": {
+            "readinessId": { "type": "string", "pattern": "^cecr-sha256:[a-f0-9]{64}$" },
+            "readinessHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "path": { "const": "governance/gate3/calibration-evidence-contract-readiness.json" },
+            "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sourceTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+            "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+            "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 33554432 }
+          }
+        },
+        "independentVerification": { "$ref": "#/$defs/independentVerification" },
+        "referenceOnly": { "const": true },
+        "grantsAuthority": { "const": false },
+        "producer": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "receiptHash": { "$ref": "./common.schema.json#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    }
+  }
+}

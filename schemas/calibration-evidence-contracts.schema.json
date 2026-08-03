@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/calibration-evidence-contracts.schema.json",
+  "title": "Body-free calibration evidence contracts",
+  "description": "Closed public-development schemas for synthetic E0-E4 evidence records and an unissued one-time capability descriptor. These objects are non-admissible and grant no execution or freeze authority.",
+  "oneOf": [
+    { "$ref": "#/$defs/syntheticCapability" },
+    { "$ref": "#/$defs/executionReceipt" },
+    { "$ref": "#/$defs/usageReceipt" },
+    { "$ref": "#/$defs/executorIncident" },
+    { "$ref": "#/$defs/measurementCommitment" },
+    { "$ref": "#/$defs/evaluatorFailure" },
+    { "$ref": "#/$defs/evaluatorIncident" },
+    { "$ref": "#/$defs/aggregateCommitment" },
+    { "$ref": "#/$defs/rejectedCandidate" },
+    { "$ref": "#/$defs/withdrawalRecord" },
+    { "$ref": "#/$defs/scorerFailure" },
+    { "$ref": "#/$defs/scorerIncident" },
+    { "$ref": "#/$defs/verificationReceipt" },
+    { "$ref": "#/$defs/derivedValueProposal" }
+  ],
+  "$defs": {
+    "sha256": { "$ref": "./common.schema.json#/$defs/sha256" },
+    "timestamp": { "$ref": "./common.schema.json#/$defs/timestamp" },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "signature"],
+      "properties": {
+        "keyId": { "$ref": "./common.schema.json#/$defs/entityId" },
+        "algorithm": { "const": "Ed25519" },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]{80,128}$" }
+      }
+    },
+    "disposition": {
+      "const": {
+        "publicDevelopment": true,
+        "synthetic": true,
+        "authorizedForResearchEvidence": false,
+        "admissibleAsCalibrationEvidence": false,
+        "admissibleAsNumericFreezeValue": false,
+        "confirmatory": false
+      }
+    },
+    "zeroBudget": {
+      "const": {
+        "providerModelRequestAttempts": 0,
+        "totalChargedTokens": 0,
+        "providerCostMicros": 0,
+        "toolAttempts": 0,
+        "wallClockSeconds": 0,
+        "processCount": 0,
+        "cpuSeconds": 0,
+        "memoryMiB": 0,
+        "outputBytes": 0,
+        "protectedDataAccesses": 0
+      }
+    },
+    "creationMode": {
+      "const": {
+        "directExclusiveOwnerSignature": true,
+        "delegated": false,
+        "proxied": false,
+        "wrapped": false,
+        "aliased": false,
+        "cosigned": false,
+        "combinedRecordTypes": false
+      }
+    },
+    "recordType": {
+      "type": "string",
+      "enum": [
+        "CalibrationExecutionReceipt",
+        "CalibrationUsageReceipt",
+        "CalibrationIncidentRecord",
+        "CalibrationMeasurementCommitment",
+        "CalibrationEvaluatorFailureRecord",
+        "CalibrationEvaluatorIncidentRecord",
+        "AggregateCalibrationCommitment",
+        "RejectedDerivationCandidateCommitment",
+        "CalibrationWithdrawalRecord",
+        "CalibrationScorerFailureRecord",
+        "CalibrationScorerIncidentRecord",
+        "CalibrationVerificationReceipt",
+        "ProtocolAuthorDerivedValueProposal"
+      ]
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceRecordId", "evidenceRecordHash", "stage", "recordType"],
+      "properties": {
+        "evidenceRecordId": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" },
+        "evidenceRecordHash": { "$ref": "#/$defs/sha256" },
+        "stage": { "type": "string", "enum": ["E0", "E1", "E2", "E3", "E4"] },
+        "recordType": { "$ref": "#/$defs/recordType" }
+      }
+    },
+    "evidenceRecordBase": {
+      "type": "object",
+      "required": [
+        "schemaVersion", "hashDomain", "evidenceRecordId", "recordType", "stage",
+        "dependencies", "payload", "disposition", "budget", "creationMode", "recordedAt",
+        "recordedBy", "evidenceRecordHash", "publicPrincipal", "attestation"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "CalibrationEvidenceRecord.v1" },
+        "evidenceRecordId": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" },
+        "recordType": { "$ref": "#/$defs/recordType" },
+        "stage": { "type": "string", "enum": ["E0", "E1", "E2", "E3", "E4"] },
+        "dependencies": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/$defs/reference" } },
+        "payload": {},
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "budget": { "$ref": "#/$defs/zeroBudget" },
+        "creationMode": { "$ref": "#/$defs/creationMode" },
+        "recordedAt": { "$ref": "#/$defs/timestamp" },
+        "recordedBy": { "$ref": "./common.schema.json#/$defs/principalIdentity" },
+        "evidenceRecordHash": { "$ref": "#/$defs/sha256" },
+        "publicPrincipal": { "$ref": "./common.schema.json#/$defs/publicPrincipal" },
+        "attestation": { "$ref": "#/$defs/attestation" }
+      }
+    },
+    "commitmentArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sha256" }
+    },
+    "idArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^(cer|cur|cir|cmc|cefr|ceir|acc|rdcc|cwr|csfr|csir|cvr|padvp)-sha256:[a-f0-9]{64}$" }
+    },
+    "executionPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["executionCommitment", "accountingContextCommitment", "capabilityCommitment", "expectedStrataCommitments", "executionOccurred"],
+      "properties": {
+        "executionCommitment": { "$ref": "#/$defs/sha256" },
+        "accountingContextCommitment": { "$ref": "#/$defs/sha256" },
+        "capabilityCommitment": { "$ref": "#/$defs/sha256" },
+        "expectedStrataCommitments": { "$ref": "#/$defs/commitmentArray" },
+        "executionOccurred": { "const": false }
+      }
+    },
+    "usagePayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["usageCommitment", "accountingContextCommitment", "capabilityCommitment", "chargeObserved"],
+      "properties": {
+        "usageCommitment": { "$ref": "#/$defs/sha256" },
+        "accountingContextCommitment": { "$ref": "#/$defs/sha256" },
+        "capabilityCommitment": { "$ref": "#/$defs/sha256" },
+        "chargeObserved": { "const": false }
+      }
+    },
+    "executorIncidentPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incidentCommitment", "incidentClass", "disclosed", "realIncidentObserved"],
+      "properties": {
+        "incidentCommitment": { "$ref": "#/$defs/sha256" },
+        "incidentClass": { "const": "synthetic_conformance_incident" },
+        "disclosed": { "const": true },
+        "realIncidentObserved": { "const": false }
+      }
+    },
+    "measurementPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["stratumCommitment", "normalizedMeasurementCommitment", "normalizationContractCommitment", "missingnessState", "incidentCommitments", "rawMeasurementPresent"],
+      "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "normalizedMeasurementCommitment": { "$ref": "#/$defs/sha256" },
+        "normalizationContractCommitment": { "$ref": "#/$defs/sha256" },
+        "missingnessState": { "type": "string", "enum": ["complete", "missing_declared"] },
+        "incidentCommitments": { "type": "array", "maxItems": 16, "uniqueItems": true, "items": { "$ref": "#/$defs/sha256" } },
+        "rawMeasurementPresent": { "const": false }
+      }
+    },
+    "evaluatorFailurePayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["stratumCommitment", "failureCommitment", "failureClass", "missingnessDeclared", "directProtocolAuthorRelease"],
+      "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "failureCommitment": { "$ref": "#/$defs/sha256" },
+        "failureClass": { "type": "string", "enum": ["synthetic_missingness", "synthetic_evaluator_failure"] },
+        "missingnessDeclared": { "const": true },
+        "directProtocolAuthorRelease": { "const": false }
+      }
+    },
+    "evaluatorIncidentPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incidentCommitment", "incidentClass", "incidentDisclosed", "directProtocolAuthorRelease"],
+      "properties": {
+        "incidentCommitment": { "$ref": "#/$defs/sha256" },
+        "incidentClass": { "const": "synthetic_evaluator_incident" },
+        "incidentDisclosed": { "const": true },
+        "directProtocolAuthorRelease": { "const": false }
+      }
+    },
+    "observedStratum": {
+      "type": "object", "additionalProperties": false,
+      "required": ["stratumCommitment", "measurementRecordId"],
+      "properties": {
+        "stratumCommitment": { "$ref": "#/$defs/sha256" },
+        "measurementRecordId": { "type": "string", "pattern": "^cmc-sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "aggregatePayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["orderedE1RecordIds", "expectedStrataCommitments", "observedStrata", "gridCommitment", "rejectedCandidateCommitments", "ruleBranch", "precisionCheckCommitment", "evaluatorFailureRecordIds", "evaluatorIncidentRecordIds", "missingnessReported", "incidentsReported", "withdrawalState", "rawEvaluatorInputPresent", "protectedDataAccessed"],
+      "properties": {
+        "orderedE1RecordIds": { "$ref": "#/$defs/idArray" },
+        "expectedStrataCommitments": { "$ref": "#/$defs/commitmentArray" },
+        "observedStrata": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/observedStratum" } },
+        "gridCommitment": { "$ref": "#/$defs/sha256" },
+        "rejectedCandidateCommitments": { "$ref": "#/$defs/commitmentArray" },
+        "ruleBranch": { "const": "synthetic_conformance_only" },
+        "precisionCheckCommitment": { "$ref": "#/$defs/sha256" },
+        "evaluatorFailureRecordIds": { "$ref": "#/$defs/idArray" },
+        "evaluatorIncidentRecordIds": { "$ref": "#/$defs/idArray" },
+        "missingnessReported": { "const": true },
+        "incidentsReported": { "const": true },
+        "withdrawalState": { "const": "not_withdrawn_synthetic" },
+        "rawEvaluatorInputPresent": { "const": false },
+        "protectedDataAccessed": { "const": false }
+      }
+    },
+    "rejectedCandidatePayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rejectedCandidateCommitment", "gridCommitment", "rejectionReason", "valueDisclosed"],
+      "properties": {
+        "rejectedCandidateCommitment": { "$ref": "#/$defs/sha256" },
+        "gridCommitment": { "$ref": "#/$defs/sha256" },
+        "rejectionReason": { "type": "string", "enum": ["synthetic_infeasible", "synthetic_precision_limited"] },
+        "valueDisclosed": { "const": false }
+      }
+    },
+    "withdrawalPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["withdrawalCommitment", "withdrawalState", "selectedValuePresent"],
+      "properties": {
+        "withdrawalCommitment": { "$ref": "#/$defs/sha256" },
+        "withdrawalState": { "type": "string", "enum": ["not_withdrawn_synthetic", "synthetic_withdrawal"] },
+        "selectedValuePresent": { "const": false }
+      }
+    },
+    "scorerFailurePayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["failureCommitment", "failureClass", "rawEvaluatorInputPresent", "protectedDataAccessed"],
+      "properties": {
+        "failureCommitment": { "$ref": "#/$defs/sha256" },
+        "failureClass": { "const": "synthetic_scorer_failure" },
+        "rawEvaluatorInputPresent": { "const": false },
+        "protectedDataAccessed": { "const": false }
+      }
+    },
+    "scorerIncidentPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incidentCommitment", "incidentClass", "incidentDisclosed", "rawEvaluatorInputPresent", "protectedDataAccessed"],
+      "properties": {
+        "incidentCommitment": { "$ref": "#/$defs/sha256" },
+        "incidentClass": { "const": "synthetic_scorer_incident" },
+        "incidentDisclosed": { "const": true },
+        "rawEvaluatorInputPresent": { "const": false },
+        "protectedDataAccessed": { "const": false }
+      }
+    },
+    "verificationPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verifiedE2RecordIds", "aggregateRecordId", "verificationCommitment", "referenceOnly", "aggregateVerified", "graphVerified", "missingnessAndIncidentCoverageVerified", "grantsAuthority"],
+      "properties": {
+        "verifiedE2RecordIds": { "$ref": "#/$defs/idArray" },
+        "aggregateRecordId": { "type": "string", "pattern": "^acc-sha256:[a-f0-9]{64}$" },
+        "verificationCommitment": { "$ref": "#/$defs/sha256" },
+        "referenceOnly": { "const": true },
+        "aggregateVerified": { "const": true },
+        "graphVerified": { "const": true },
+        "missingnessAndIncidentCoverageVerified": { "const": true },
+        "grantsAuthority": { "const": false }
+      }
+    },
+    "proposalPayload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["aggregateRecordId", "verificationReceiptId", "derivedValueCommitment", "disclosure", "independentlyVerified", "freezeTransactionId", "finalProtocolId", "oProposalId", "oActivationId", "grantsAuthority"],
+      "properties": {
+        "aggregateRecordId": { "type": "string", "pattern": "^acc-sha256:[a-f0-9]{64}$" },
+        "verificationReceiptId": { "type": "string", "pattern": "^cvr-sha256:[a-f0-9]{64}$" },
+        "derivedValueCommitment": { "$ref": "#/$defs/sha256" },
+        "disclosure": { "const": "commitment_only" },
+        "independentlyVerified": { "const": true },
+        "freezeTransactionId": { "type": "null" },
+        "finalProtocolId": { "type": "null" },
+        "oProposalId": { "type": "null" },
+        "oActivationId": { "type": "null" },
+        "grantsAuthority": { "const": false }
+      }
+    },
+    "executionReceipt": { "$ref": "#/$defs/recordVariantExecution" },
+    "recordVariantExecution": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/evidenceRecordBase" },
+        { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cer-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationExecutionReceipt" }, "stage": { "const": "E0" }, "payload": { "$ref": "#/$defs/executionPayload" } } }
+      ]
+    },
+    "usageReceipt": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cur-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationUsageReceipt" }, "stage": { "const": "E0" }, "payload": { "$ref": "#/$defs/usagePayload" } } } ]
+    },
+    "executorIncident": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cir-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationIncidentRecord" }, "stage": { "const": "E0" }, "payload": { "$ref": "#/$defs/executorIncidentPayload" } } } ]
+    },
+    "measurementCommitment": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cmc-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationMeasurementCommitment" }, "stage": { "const": "E1" }, "payload": { "$ref": "#/$defs/measurementPayload" } } } ]
+    },
+    "evaluatorFailure": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cefr-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationEvaluatorFailureRecord" }, "stage": { "const": "E1" }, "payload": { "$ref": "#/$defs/evaluatorFailurePayload" } } } ]
+    },
+    "evaluatorIncident": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^ceir-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationEvaluatorIncidentRecord" }, "stage": { "const": "E1" }, "payload": { "$ref": "#/$defs/evaluatorIncidentPayload" } } } ]
+    },
+    "aggregateCommitment": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^acc-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "AggregateCalibrationCommitment" }, "stage": { "const": "E2" }, "payload": { "$ref": "#/$defs/aggregatePayload" } } } ]
+    },
+    "rejectedCandidate": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^rdcc-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "RejectedDerivationCandidateCommitment" }, "stage": { "const": "E2" }, "payload": { "$ref": "#/$defs/rejectedCandidatePayload" } } } ]
+    },
+    "withdrawalRecord": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cwr-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationWithdrawalRecord" }, "stage": { "const": "E2" }, "payload": { "$ref": "#/$defs/withdrawalPayload" } } } ]
+    },
+    "scorerFailure": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^csfr-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationScorerFailureRecord" }, "stage": { "const": "E2" }, "payload": { "$ref": "#/$defs/scorerFailurePayload" } } } ]
+    },
+    "scorerIncident": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^csir-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationScorerIncidentRecord" }, "stage": { "const": "E2" }, "payload": { "$ref": "#/$defs/scorerIncidentPayload" } } } ]
+    },
+    "verificationReceipt": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^cvr-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "CalibrationVerificationReceipt" }, "stage": { "const": "E3" }, "payload": { "$ref": "#/$defs/verificationPayload" } } } ]
+    },
+    "derivedValueProposal": {
+      "type": "object", "unevaluatedProperties": false,
+      "allOf": [ { "$ref": "#/$defs/evidenceRecordBase" }, { "properties": { "evidenceRecordId": { "type": "string", "pattern": "^padvp-sha256:[a-f0-9]{64}$" }, "recordType": { "const": "ProtocolAuthorDerivedValueProposal" }, "stage": { "const": "E4" }, "payload": { "$ref": "#/$defs/proposalPayload" } } } ]
+    },
+    "syntheticCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "hashDomain", "descriptorType", "capabilityCommitment", "datasetCommitment", "planCommitment", "gridCommitment", "budgetCommitment", "expectedStrataCommitments", "bodyFree", "oneTime", "opaqueCommitmentsOnly", "lifecycle", "replay", "budget", "disposition", "forbiddenMaterial"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "hashDomain": { "const": "SyntheticCalibrationCapabilityDescriptor.v1" },
+        "descriptorType": { "const": "synthetic_calibration_capability_descriptor" },
+        "capabilityCommitment": { "$ref": "#/$defs/sha256" },
+        "datasetCommitment": { "$ref": "#/$defs/sha256" },
+        "planCommitment": { "$ref": "#/$defs/sha256" },
+        "gridCommitment": { "$ref": "#/$defs/sha256" },
+        "budgetCommitment": { "$ref": "#/$defs/sha256" },
+        "expectedStrataCommitments": { "$ref": "#/$defs/commitmentArray" },
+        "bodyFree": { "const": true },
+        "oneTime": { "const": true },
+        "opaqueCommitmentsOnly": { "const": true },
+        "lifecycle": {
+          "const": { "issued": false, "consumed": false, "handle": null, "executionAuthorized": false, "issuanceReceiptId": null, "consumptionReceiptId": null }
+        },
+        "replay": {
+          "const": { "maximumConsumptionCount": 1, "observedConsumptionCount": 0, "replayDetected": false, "replayAccepted": false }
+        },
+        "budget": { "$ref": "#/$defs/zeroBudget" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "forbiddenMaterial": { "const": ["task_body", "verifier_logic", "label", "answer", "path", "real_handle", "provider_credential", "actual_model_identity", "active_authority"] }
+      }
+    }
+  }
+}
