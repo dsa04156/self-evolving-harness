@@ -17,6 +17,9 @@ separate.
 
 ## S1 — Gajae-Code
 
+CLI/TUI behavior was re-inspected at a newer exact SHA on 2026-08-03; see
+[`cli-ux-reference.md`](cli-ux-reference.md). The research-baseline snapshot below remains pinned.
+
 - Repository: <https://github.com/Yeachan-Heo/gajae-code>
 - Branch / commit: `main` / `8778760cf924246ab86e4c6c3fda26da8a572cd8`
 - Inspected: 2026-07-30
@@ -60,6 +63,9 @@ Permanent code references:
 [plugin assembly](https://github.com/code-yeongyu/oh-my-openagent/blob/258fab04159c0d628d7cc4c811e2907aee1cd0a1/packages/omo-opencode/src/testing/create-plugin-module.ts).
 
 ## S3 — OpenAI Codex
+
+CLI/TUI behavior was re-inspected at a newer exact SHA on 2026-08-03; see
+[`cli-ux-reference.md`](cli-ux-reference.md). The research-baseline snapshot below remains pinned.
 
 - Repository: <https://github.com/openai/codex>
 - Branch / commit: `main` / `6219b7c40fc9c702c0aef9964e72b492558f60e4`

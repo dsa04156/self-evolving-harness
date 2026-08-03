@@ -74,7 +74,7 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.2.0\n");
+  assert.equal(version.stdout, "0.3.0\n");
 });
 
 test("product CLI rejects authority state inside the writable workspace", async (t) => {

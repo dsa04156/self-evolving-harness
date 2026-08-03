@@ -5,7 +5,7 @@ import type { ToolDescriptionBinding } from "../runtime/tools.js";
 import { registerBuiltinTools } from "../tools/builtins.js";
 import type { PermissionMode } from "./config.js";
 
-export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v1";
+export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v2";
 
 const TOOL_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
   "filesystem.read":

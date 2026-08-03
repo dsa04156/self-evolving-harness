@@ -80,6 +80,7 @@ export * from "./product/config.js";
 export * from "./product/coding-agent.js";
 export * from "./product/cli.js";
 export * from "./product/defaults.js";
+export * from "./product/interactive.js";
 export * from "./product/session-store.js";
 export * from "./providers/real-smoke-artifacts.js";
 export * from "./providers/real-smoke-plan.js";

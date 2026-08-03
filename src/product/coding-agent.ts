@@ -34,6 +34,9 @@ export interface CodingAgentRunOptions {
   readonly paths: ProductStatePaths;
   readonly config: ProductConfig;
   readonly task: string;
+  /** Optional bounded thread context sent to the model while `task` stays human-facing. */
+  readonly executionTask?: string;
+  readonly contextSessionIds?: readonly string[];
   readonly parentSessionId?: string | null;
   readonly providerOverride?: ModelProvider;
   readonly verifierOverride?: TaskVerifier;
@@ -166,10 +169,14 @@ export async function runCodingAgentTask(
   options: CodingAgentRunOptions,
 ): Promise<ProductSessionRecord> {
   const task = options.task.trim();
+  const executionTask = (options.executionTask ?? task).trim();
   if (task.length === 0) {
     throw new HarnessError("SCHEMA_INVALID", "Task is empty");
   }
-  if (Buffer.byteLength(task, "utf8") > 256 * 1024) {
+  if (
+    Buffer.byteLength(task, "utf8") > 256 * 1024 ||
+    Buffer.byteLength(executionTask, "utf8") > 256 * 1024
+  ) {
     throw new HarnessError("PAYLOAD_TOO_LARGE", "Task exceeds 256 KiB");
   }
   const clock = new SystemClock();
@@ -183,6 +190,8 @@ export async function runCodingAgentTask(
       : { parentSessionId: options.parentSessionId }),
     workspaceRoot: options.workspaceRoot,
     task,
+    runtimeTaskHash: sha256({ task: executionTask }),
+    contextSessionIds: options.contextSessionIds ?? [],
     provider: options.config.provider,
     permissionMode: options.config.permissionMode,
     verificationCommands: options.config.verification.commands,
@@ -317,7 +326,7 @@ export async function runCodingAgentTask(
     const execution = await (async () => {
       options.abortSignal?.addEventListener("abort", onAbort, { once: true });
       try {
-        const executionPromise = runtime.execute(task);
+        const executionPromise = runtime.execute(executionTask);
         if (options.abortSignal?.aborted === true) onAbort();
         const result = await executionPromise;
         if (interrupt !== null) await interrupt;

@@ -64,46 +64,62 @@ or rollback decision.
 
 ## Quick start
 
-The default path is a local coding model through Ollama. It uses no API key and does not invoke
-Codex, Gajae-Code, OpenCode, or any other coding-agent runtime.
+`seh` launches its own coding-agent runtime. It does not invoke Codex, Gajae-Code, OpenCode, or
+another coding-agent harness behind the scenes.
 
 Requirements:
 
 - Linux with `/usr/bin/bwrap` (`bubblewrap`) for workspace process isolation
 - Node.js 22 or newer; deterministic release verification is pinned to Node.js 24.18.1 and npm 11.18.0
-- [Ollama](https://docs.ollama.com/quickstart) for the default no-key model path
+- One supported model provider configured as described in the [CLI user guide](docs/user-guide.md)
 
 ```bash
 git clone https://github.com/dsa04156/self-evolving-harness.git
 cd self-evolving-harness
 npm ci
 npm run link:cli
-
-# In another terminal if Ollama is not already running:
-ollama serve
-ollama pull qwen2.5-coder:7b
 ```
 
-Run the agent in any repository:
+Run the interactive agent in any repository:
 
 ```bash
 cd /path/to/your/project
 seh init --verify "npm test"
 seh doctor
-seh run "Add input validation and tests for the signup handler"
+seh
+
+# seh:1 > Add input validation and tests for the signup handler
+# seh:1 > Now add the regression case we discussed
+# seh:1 > /diff
+# seh:1 > /exit
+```
+
+Every prompt creates a durable, auditable child session while a bounded recent transcript preserves
+normal conversational follow-ups. This thread context is not a retry and does not create a new
+`HarnessVersion`. Start the shell with an initial prompt, or run a one-shot task with the explicit
+non-interactive command:
+
+```bash
+seh "Add input validation and focused tests"
+seh run "Add input validation and focused tests"
+seh exec --read-only "Review this repository"
 ```
 
 `seh run` can initialize a project automatically, but explicit `init` is recommended because it
 makes the model, permission mode, and verification command visible first. The default mode may edit
-the selected workspace. Start an inspection-only task with `seh run --read-only "review this repo"`.
+the selected workspace.
 
 Useful commands:
 
 ```bash
-seh chat                                      # interactive prompts
+seh                                           # interactive coding-agent shell
+seh chat                                      # explicit interactive form
+seh continue "keep going from the latest session"
 seh sessions                                  # recent durable sessions
 seh status                                    # latest session evidence and usage
-seh resume SESSION_ID "finish the failed test" # new child session, not evolution
+seh resume                                    # interactive session picker
+seh resume --last                             # continue the latest session
+seh resume SESSION_ID "finish the failed test"
 seh memory add -n project_facts "Use npm test"
 seh config
 ```
@@ -113,7 +129,7 @@ Project configuration, session evidence, and memory are stored outside the targe
 [CLI user guide](docs/user-guide.md) for permissions, OpenAI opt-in, verification behavior, state
 layout, and troubleshooting.
 
-For a deterministic runtime check that needs neither Ollama nor an API key, run:
+For a deterministic runtime check that needs no live model provider, run:
 
 ```bash
 seh demo
@@ -123,7 +139,7 @@ seh demo
 
 | Capability | What the runtime owns |
 | --- | --- |
-| Model providers | Native local Ollama adapter, opt-in OpenAI adapter, deterministic fake provider, and canonical request contracts |
+| Model providers | Native provider adapters, deterministic fake provider, and canonical request contracts |
 | Agent execution | Append-oriented model/tool/verifier loop with hard model, token, tool, retry, descendant, and time budgets |
 | Context | Ordered prompt, task, memory, skill, tool, and history selection with explicit overflow behavior |
 | Tools | `read`, `write`, exact `edit`, `bash`, `git status`, and `git diff` behind path and permission guards |
@@ -296,10 +312,10 @@ and systems artifact claim only.
 Deterministic development and release verification require no credential. The repository contains no
 API key, provider token, private-key PEM, or committed `.env` file.
 
-The default user CLI connects to a local Ollama server and needs no credential. The optional OpenAI
-path reads `OPENAI_API_KEY` only from the process environment; the config, session store, events, and
-memory never persist it. Real-provider output is nondeterministic and is not part of the deterministic
-release gate. Running a coding task does not by itself establish harness evolution.
+Provider credentials, when a selected adapter needs them, are read only from the process environment;
+the config, session store, events, and memory never persist them. Real-provider output is
+nondeterministic and is not part of the deterministic release gate. Running a coding task does not
+by itself establish harness evolution.
 
 ## Repository map
 
@@ -328,6 +344,7 @@ governance/        signed manifests, journals, and outstanding obligations
 - [Research contract](RESEARCH_CONTRACT.md) and [claims](CLAIMS.md)
 - [Evaluation protocol and final report](docs/evaluation/final-report.md)
 - [Exact-SHA prior-art ledger](docs/research/source-ledger.md)
+- [Codex/Gajae CLI code-path reference](docs/research/cli-ux-reference.md)
 - [Execution-path research](docs/research/execution-paths.md)
 - [Related work and positioning](docs/research/related-work.md)
 - [Reproducibility](REPRODUCIBILITY.md)

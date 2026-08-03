@@ -50,12 +50,16 @@ recommended first command because it records the permission and verification cho
 
 | Command | Purpose |
 | --- | --- |
+| `seh` | Start the interactive coding-agent shell |
+| `seh "TASK"` | Open the interactive shell and submit an initial prompt |
 | `seh init` | Bind configuration to the canonical current workspace |
 | `seh run "TASK"` | Execute one coding task and print the final answer and evidence summary |
-| `seh chat` | Read prompts interactively; each prompt is a new linked session |
+| `seh exec "TASK"` | Alias for the non-interactive `run` command |
+| `seh chat` | Explicit form of the interactive coding-agent shell |
+| `seh continue [PROMPT]` | Open the shell with the latest session loaded |
 | `seh sessions` | List recent sessions for this workspace |
 | `seh status [ID]` | Inspect the latest or selected session |
-| `seh resume ID [GUIDANCE]` | Start a new child session using the prior outcome as context |
+| `seh resume [ID] [GUIDANCE]` | Pick or load a prior session and continue interactively |
 | `seh doctor` | Check the sandbox, provider endpoint, and selected model |
 | `seh config` | Print the non-secret project configuration and its state path |
 | `seh memory add` | Add an operator-approved project fact, preference, or lesson |
@@ -68,6 +72,47 @@ also arrive through standard input:
 ```bash
 printf '%s\n' 'Diagnose why the focused test fails' | seh run --read-only
 ```
+
+## Interactive shell
+
+Running `seh` with no arguments opens the user-facing coding-agent shell:
+
+```text
+SEH 0.3.0  standalone coding agent
+workspace    /path/to/project
+model        provider/model
+permissions  workspace-write · shell network denied
+verification 1 command
+
+seh:1 > Fix the parser and add focused tests
+  ● thinking
+  → tool read
+  ✓ tool read
+  → tool edit
+  ✓ tool edit
+  ✓ verification
+```
+
+Recent user and assistant turns are supplied to the next model call as bounded, explicitly
+untrusted thread context. The human-facing task remains unchanged in the durable session record.
+Each prompt still creates a separate event stream and parent-linked session.
+
+| Slash command | Purpose |
+| --- | --- |
+| `/help` | Show all interactive commands |
+| `/new` | Clear the current thread context without deleting workspace memory |
+| `/status`, `/sessions` | Inspect durable session state |
+| `/resume [ID] [guidance]` | Pick or load a prior task and answer, optionally run guidance |
+| `/model [name]` | Show or temporarily change the model for following turns |
+| `/permissions`, `/read-only`, `/write` | Inspect or temporarily change tool authority |
+| `/verify` | Show the external verifier commands |
+| `/diff [--staged]` | Show Git diff through the no-network sandbox |
+| `/memory` | Show persistent memory records |
+| `/paste` | Enter a multiline task, ending with a line containing only `.` |
+| `/clear`, `/exit` | Clear or close the shell |
+
+Use `//` when a task itself must begin with `/`. Interactive model and permission changes are
+intentionally ephemeral; use `seh init --force ...` to change stored configuration.
 
 ## Permissions
 
@@ -130,8 +175,9 @@ seh memory add --namespace user_preferences "Prefer minimal diffs"
 seh memory list
 ```
 
-`resume` and successive `chat` prompts create new auditable child sessions. They reuse workspace and
-memory, but they do not create a `HarnessVersion` and are not recorded as harness evolution.
+`continue`, `resume`, and successive interactive prompts create new auditable child sessions. They reuse the
+workspace, persistent memory, and bounded thread context, but they do not create a `HarnessVersion`
+and are not recorded as harness evolution.
 
 ## Optional OpenAI provider
 
@@ -154,5 +200,6 @@ No API key is needed for Ollama or the deterministic demo. The CLI never writes
   it does not silently execute an unsandboxed shell.
 - `Project is already initialized`: use the existing config or replace it explicitly with
   `seh init --force ...`.
-- A session was interrupted or blocked: inspect `seh status ID`, then use
-  `seh resume ID "recovery guidance"`. This creates a new trace while preserving the failed one.
+- A session was interrupted or blocked: inspect `seh status ID`, then use `seh resume` for the
+  picker, `seh resume --last`, or `seh resume ID "recovery guidance"`. Each creates a new trace while
+  preserving the failed one.

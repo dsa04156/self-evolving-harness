@@ -3,10 +3,10 @@ import { parseArgs } from "node:util";
 import * as readline from "node:readline/promises";
 
 import { RandomIdFactory, SystemClock } from "../core/determinism.js";
-import { HarnessError, assertCondition } from "../core/errors.js";
-import type { RuntimeEvent } from "../evidence/runtime-events.js";
+import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
 import { listOllamaModels } from "../providers/ollama-provider.js";
 import { FilesystemMemory, type MemoryNamespace } from "../runtime/memory.js";
+import { BubblewrapProcessRunner } from "../runtime/sandbox-process.js";
 import {
   applyProductConfigOverrides,
   defaultProductConfig,
@@ -21,6 +21,15 @@ import {
   type ProductStatePaths,
 } from "./config.js";
 import { runCodingAgentTask } from "./coding-agent.js";
+import {
+  RuntimeEventView,
+  buildConversationalTask,
+  interactiveBanner,
+  interactiveHelp,
+  parseInteractiveInput,
+  permissionLabel,
+  type ConversationTurn,
+} from "./interactive.js";
 import {
   ProductSessionStore,
   type ProductSessionRecord,
@@ -115,22 +124,17 @@ async function configuredProject(
   };
 }
 
-function eventRenderer(quiet: boolean): (event: RuntimeEvent) => void {
-  return (event) => {
-    if (quiet) return;
-    if (event.eventType === "model_request_started") {
-      err("  ● model: reasoning\n");
-    } else if (event.eventType === "tool_call_requested") {
-      const toolName = event.payload["toolName"];
-      err(`  → tool: ${typeof toolName === "string" ? toolName : "unknown"}\n`);
-    } else if (event.eventType === "tool_call_completed") {
-      const toolName = event.payload["toolName"];
-      const ok = event.payload["ok"] === true;
-      err(`  ${ok ? "✓" : "✗"} tool: ${typeof toolName === "string" ? toolName : "unknown"}\n`);
-    } else if (event.eventType === "verification_completed") {
-      err(`  ${event.payload["passed"] === true ? "✓" : "✗"} verification\n`);
-    }
-  };
+type ConfiguredProject = Awaited<ReturnType<typeof configuredProject>>;
+
+interface InteractiveShellStartup {
+  readonly initialPrompt?: string;
+  readonly resumeSessionId?: string;
+  readonly resumeLatest?: boolean;
+  readonly resumePicker?: boolean;
+}
+
+function terminalColorEnabled(): boolean {
+  return process.env["NO_COLOR"] === undefined && process.stderr.isTTY === true;
 }
 
 function printSession(record: ProductSessionRecord, json: boolean): void {
@@ -141,6 +145,9 @@ function printSession(record: ProductSessionRecord, json: boolean): void {
   out(`\n${record.result?.finalText ?? "No final answer was produced."}\n`);
   out(`\nSession: ${record.sessionId}\n`);
   out(`State: ${record.state}\n`);
+  if ((record.contextSessionIds?.length ?? 0) > 0) {
+    out(`Thread context: ${record.contextSessionIds?.length ?? 0} prior session(s)\n`);
+  }
   if (record.result?.verification !== null && record.result?.verification !== undefined) {
     out(
       `Verification: ${record.result.verification.passed ? "passed" : "failed"} — ${record.result.verification.summary}\n`,
@@ -164,16 +171,19 @@ async function readTaskFromStdin(): Promise<string> {
 }
 
 async function executeTask(input: {
-  readonly project: Awaited<ReturnType<typeof configuredProject>>;
+  readonly project: ConfiguredProject;
   readonly task: string;
+  readonly executionTask?: string;
+  readonly contextSessionIds?: readonly string[];
   readonly parentSessionId?: string | null;
   readonly json: boolean;
   readonly quiet: boolean;
+  readonly showProjectHeader?: boolean;
 }): Promise<ProductSessionRecord> {
-  if (input.project.initialized && !input.json) {
+  if (input.project.initialized && !input.json && input.showProjectHeader !== false) {
     err(`Initialized project config at ${input.project.paths.configFile}\n`);
   }
-  if (!input.json) {
+  if (!input.json && input.showProjectHeader !== false) {
     err(`SEH workspace: ${input.project.workspaceRoot}\n`);
     err(
       `Provider: ${input.project.config.provider.kind}/${input.project.config.provider.model}\n`,
@@ -183,16 +193,26 @@ async function executeTask(input: {
   const controller = new AbortController();
   const onSignal = (): void => controller.abort();
   process.once("SIGINT", onSignal);
+  const events = new RuntimeEventView({
+    quiet: input.quiet || input.json,
+    color: terminalColorEnabled(),
+  });
   try {
     return await runCodingAgentTask({
       workspaceRoot: input.project.workspaceRoot,
       paths: input.project.paths,
       config: input.project.config,
       task: input.task,
+      ...(input.executionTask === undefined
+        ? {}
+        : { executionTask: input.executionTask }),
+      ...(input.contextSessionIds === undefined
+        ? {}
+        : { contextSessionIds: input.contextSessionIds }),
       ...(input.parentSessionId === undefined
         ? {}
         : { parentSessionId: input.parentSessionId }),
-      onEvent: eventRenderer(input.quiet || input.json),
+      onEvent: events.render,
       abortSignal: controller.signal,
     });
   } finally {
@@ -291,6 +311,10 @@ function statusText(record: ProductSessionRecord): string {
     `Task: ${record.task}`,
   ];
   if (record.parentSessionId !== null) lines.push(`Parent: ${record.parentSessionId}`);
+  if (record.runtimeTaskHash !== undefined) lines.push(`Runtime task hash: ${record.runtimeTaskHash}`);
+  if ((record.contextSessionIds?.length ?? 0) > 0) {
+    lines.push(`Thread context sessions: ${record.contextSessionIds?.join(", ") ?? ""}`);
+  }
   if (record.result !== null) {
     lines.push(`Lifecycle: ${record.result.lifecycleState}`);
     lines.push(`Events: ${record.result.eventCount}`);
@@ -371,11 +395,17 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
       verify: { type: "string", multiple: true },
       json: { type: "boolean" },
       quiet: { type: "boolean", short: "q" },
+      last: { type: "boolean" },
     },
     allowPositionals: true,
   });
-  const sessionId = parsed.positionals[0];
-  assertCondition(sessionId !== undefined, "SCHEMA_INVALID", "resume requires a session ID");
+  const useLatest = parsed.values.last === true;
+  assertCondition(
+    !(useLatest && parsed.positionals.length > 0),
+    "SCHEMA_INVALID",
+    "--last does not accept a session ID or guidance",
+  );
+  const sessionId = useLatest ? undefined : parsed.positionals[0];
   const common: CommonCommandOptions = {
     workspace: parsed.values.workspace,
     provider: parsed.values.provider,
@@ -386,7 +416,28 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
     verify: parsed.values.verify,
   };
   const project = await configuredProject(common, false);
-  const prior = await new ProductSessionStore(project.paths).get(sessionId);
+  if (
+    process.stdin.isTTY === true &&
+    process.stdout.isTTY === true &&
+    parsed.values.json !== true
+  ) {
+    return runInteractiveShell(project, parsed.values.quiet === true, {
+      ...(sessionId === undefined ? {} : { resumeSessionId: sessionId }),
+      ...(useLatest ? { resumeLatest: true } : {}),
+      ...(sessionId === undefined && !useLatest ? { resumePicker: true } : {}),
+      ...(parsed.positionals.length <= 1
+        ? {}
+        : { initialPrompt: parsed.positionals.slice(1).join(" ").trim() }),
+    });
+  }
+  assertCondition(
+    sessionId !== undefined || useLatest,
+    "SCHEMA_INVALID",
+    "non-interactive resume requires a session ID or --last",
+  );
+  const store = new ProductSessionStore(project.paths);
+  const prior = useLatest ? await store.latest() : await store.get(sessionId as string);
+  assertCondition(prior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
   const guidance = parsed.positionals.slice(1).join(" ").trim();
   const task = [
     "Resume a prior coding-agent task as a new auditable session.",
@@ -402,6 +453,7 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
     project,
     task,
     parentSessionId: prior.sessionId,
+    contextSessionIds: [prior.sessionId],
     json: parsed.values.json === true,
     quiet: parsed.values.quiet === true,
   });
@@ -520,7 +572,294 @@ async function memoryCommand(args: readonly string[]): Promise<number> {
   return 0;
 }
 
-async function chatCommand(args: readonly string[]): Promise<number> {
+async function printInteractiveMemory(paths: ProductStatePaths): Promise<void> {
+  const records = (
+    await new FilesystemMemory(
+      paths.memoryRoot,
+      new SystemClock(),
+      new RandomIdFactory(),
+    ).list([...USER_MEMORY_NAMESPACES, "session_summaries"])
+  ).slice(-20);
+  if (records.length === 0) {
+    out("No memory records.\n");
+    return;
+  }
+  for (const record of records) {
+    out(`${record.namespace} · ${record.authority}\n${record.content}\n\n`);
+  }
+}
+
+async function printInteractiveDiff(
+  project: ConfiguredProject,
+  staged: boolean,
+): Promise<void> {
+  const runner = new BubblewrapProcessRunner(project.workspaceRoot, {
+    timeoutMillis: Math.min(project.config.process.timeoutMillis, 30_000),
+    maxOutputBytes: Math.min(project.config.process.maxOutputBytes, 512 * 1024),
+    maxCommandBytes: project.config.process.maxCommandBytes,
+    environment: {},
+  });
+  await runner.initialize();
+  const result = await runner.runExecutable("/usr/bin/git", [
+    "-c",
+    "core.pager=cat",
+    "-c",
+    "pager.diff=false",
+    "--no-optional-locks",
+    "diff",
+    "--no-ext-diff",
+    "--no-color",
+    "--src-prefix=a/",
+    "--dst-prefix=b/",
+    ...(staged ? ["--cached"] : []),
+  ]);
+  if (result.exitCode !== 0) {
+    throw new HarnessError(
+      "TOOL_EXECUTION_FAILED",
+      result.stderr.trim() || "Git diff failed inside the sandbox",
+    );
+  }
+  out(result.stdout.length === 0 ? "No diff.\n" : result.stdout);
+}
+
+function printRecentSessions(records: readonly ProductSessionRecord[]): void {
+  if (records.length === 0) {
+    out("No sessions.\n");
+    return;
+  }
+  for (const record of records) {
+    out(
+      `${record.sessionId}  ${record.state.padEnd(10)}  ${record.task.replace(/\s+/gu, " ").slice(0, 64)}\n`,
+    );
+  }
+}
+
+function splitFirstArgument(value: string): { readonly first: string; readonly rest: string } {
+  const trimmed = value.trim();
+  const separator = trimmed.search(/\s/u);
+  return separator === -1
+    ? { first: trimmed, rest: "" }
+    : { first: trimmed.slice(0, separator), rest: trimmed.slice(separator).trim() };
+}
+
+async function readPastedTask(
+  terminal: readline.Interface,
+  color: boolean,
+): Promise<string> {
+  out("Paste the task below. Finish with a line containing only `.`.\n");
+  const lines: string[] = [];
+  const continuationPrompt = color ? "\u001B[2m… \u001B[0m" : "… ";
+  while (true) {
+    const line = await terminal.question(continuationPrompt);
+    if (line === ".") break;
+    lines.push(line);
+  }
+  return lines.join("\n").trim();
+}
+
+async function selectInteractiveSession(
+  terminal: readline.Interface,
+  store: ProductSessionStore,
+): Promise<ProductSessionRecord | null> {
+  const records = (await store.list()).slice(0, 20);
+  assertCondition(records.length > 0, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
+  out("Resume a session\n");
+  records.forEach((record, index) => {
+    const task = record.task.replace(/\s+/gu, " ").slice(0, 68);
+    out(`  ${String(index + 1).padStart(2)}. ${record.state.padEnd(10)} ${task}\n`);
+  });
+  const answer = (await terminal.question("Select [1], session ID, or q: ")).trim();
+  if (answer.toLowerCase() === "q") return null;
+  if (answer === "") return records[0] ?? null;
+  const numeric = Number(answer);
+  if (Number.isSafeInteger(numeric) && numeric >= 1 && numeric <= records.length) {
+    return records[numeric - 1] ?? null;
+  }
+  const matches = records.filter((record) => record.sessionId.startsWith(answer));
+  assertCondition(matches.length === 1, "SCHEMA_INVALID", "Session selection is invalid or ambiguous");
+  return matches[0] ?? null;
+}
+
+async function runInteractiveShell(
+  project: ConfiguredProject,
+  quiet: boolean,
+  startup: InteractiveShellStartup = {},
+): Promise<number> {
+  let activeProject = project;
+  const color = terminalColorEnabled();
+  if (activeProject.initialized) {
+    err(`Initialized project config at ${activeProject.paths.configFile}\n`);
+  }
+  out(interactiveBanner({
+    workspaceRoot: activeProject.workspaceRoot,
+    config: activeProject.config,
+    color,
+  }));
+  const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
+  let latest: ProductSessionRecord | null = null;
+  let turns: ConversationTurn[] = [];
+  let threadNumber = 1;
+  const store = new ProductSessionStore(activeProject.paths);
+  const loadPrior = (prior: ProductSessionRecord): void => {
+    latest = prior;
+    turns = [{
+      sessionId: prior.sessionId,
+      user: prior.task,
+      assistant: prior.result?.finalText ?? "No final answer was produced.",
+    }];
+    out(`Loaded ${prior.sessionId} into thread ${threadNumber}. This is context, not evolution.\n`);
+  };
+  const runTurn = async (task: string): Promise<void> => {
+    const record = await executeTask({
+      project: activeProject,
+      task,
+      executionTask: buildConversationalTask(task, turns),
+      contextSessionIds: turns.map((turn) => turn.sessionId),
+      parentSessionId: latest?.sessionId ?? null,
+      json: false,
+      quiet,
+      showProjectHeader: false,
+    });
+    latest = record;
+    turns = [
+      ...turns,
+      {
+        sessionId: record.sessionId,
+        user: task,
+        assistant: record.result?.finalText ?? "No final answer was produced.",
+      },
+    ].slice(-8);
+    printSession(record, false);
+  };
+  const safelyRunTurn = async (task: string): Promise<void> => {
+    try {
+      await runTurn(task);
+    } catch (error) {
+      const failure = asHarnessError(error);
+      err(`${failure.code}: ${failure.safeDetail}\n`);
+    }
+  };
+  try {
+    let startupPrior: ProductSessionRecord | null = null;
+    if (startup.resumeSessionId !== undefined) {
+      startupPrior = await store.get(startup.resumeSessionId);
+    } else if (startup.resumeLatest === true) {
+      startupPrior = await store.latest();
+      assertCondition(startupPrior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
+    } else if (startup.resumePicker === true) {
+      startupPrior = await selectInteractiveSession(terminal, store);
+      if (startupPrior === null) {
+        out("Resume cancelled.\n");
+        return 0;
+      }
+    }
+    if (startupPrior !== null) loadPrior(startupPrior);
+    if ((startup.initialPrompt?.trim().length ?? 0) > 0) {
+      await safelyRunTurn(startup.initialPrompt as string);
+    }
+
+    while (true) {
+      const prompt = color
+        ? `\u001B[1;36mseh:${threadNumber} ›\u001B[0m `
+        : `seh:${threadNumber} > `;
+      const parsedInput = parseInteractiveInput(await terminal.question(prompt));
+      if (parsedInput.kind === "empty") continue;
+      if (parsedInput.kind === "task") {
+        await safelyRunTurn(parsedInput.text);
+        continue;
+      }
+
+      const { name, argument } = parsedInput;
+      try {
+        if (name === "exit" || name === "quit" || name === "q") break;
+        if (name === "help" || name === "?") {
+          out(`${interactiveHelp()}\n`);
+        } else if (name === "new") {
+          turns = [];
+          latest = null;
+          threadNumber += 1;
+          out(`Started thread ${threadNumber}. Workspace memory is unchanged.\n`);
+        } else if (name === "status") {
+          const record = latest ?? (await store.latest());
+          out(record === null ? "No sessions.\n" : statusText(record));
+        } else if (name === "sessions") {
+          printRecentSessions((await store.list()).slice(0, 10));
+        } else if (name === "resume") {
+          let prior: ProductSessionRecord | null;
+          let guidance = "";
+          if (argument === "") {
+            prior = await selectInteractiveSession(terminal, store);
+          } else if (argument === "--last") {
+            prior = await store.latest();
+            assertCondition(prior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
+          } else {
+            const split = splitFirstArgument(argument);
+            prior = await store.get(split.first);
+            guidance = split.rest;
+          }
+          if (prior !== null) {
+            loadPrior(prior);
+            if (guidance.length > 0) await safelyRunTurn(guidance);
+          }
+        } else if (name === "model") {
+          if (argument.length === 0) {
+            out(`${activeProject.config.provider.kind}/${activeProject.config.provider.model}\n`);
+          } else {
+            activeProject = {
+              ...activeProject,
+              config: applyProductConfigOverrides(activeProject.config, { model: argument }),
+            };
+            out(`Model for following turns: ${activeProject.config.provider.kind}/${argument} (not persisted)\n`);
+          }
+        } else if (name === "permissions") {
+          out(`${permissionLabel(activeProject.config.permissionMode)}\n`);
+        } else if (name === "read-only" || name === "write") {
+          const mode: PermissionMode = name === "read-only" ? "read-only" : "workspace-write";
+          activeProject = {
+            ...activeProject,
+            config: applyProductConfigOverrides(activeProject.config, { permissionMode: mode }),
+          };
+          out(`Permissions for following turns: ${permissionLabel(mode)} (not persisted)\n`);
+        } else if (name === "verify") {
+          if (activeProject.config.verification.commands.length === 0) {
+            out("Verification is advisory; no external command is configured.\n");
+          } else {
+            activeProject.config.verification.commands.forEach((command, index) =>
+              out(`${index + 1}. ${command}\n`),
+            );
+          }
+        } else if (name === "diff") {
+          assertCondition(
+            argument === "" || argument === "--staged",
+            "SCHEMA_INVALID",
+            "/diff accepts only --staged",
+          );
+          await printInteractiveDiff(activeProject, argument === "--staged");
+        } else if (name === "memory") {
+          await printInteractiveMemory(activeProject.paths);
+        } else if (name === "paste") {
+          const task = await readPastedTask(terminal, color);
+          if (task.length > 0) await safelyRunTurn(task);
+        } else if (name === "clear") {
+          out("\u001Bc");
+        } else {
+          err(`Unknown command /${name}. Type /help.\n`);
+        }
+      } catch (error) {
+        const failure = asHarnessError(error);
+        err(`${failure.code}: ${failure.safeDetail}\n`);
+      }
+    }
+  } finally {
+    terminal.close();
+  }
+  return 0;
+}
+
+async function chatCommand(
+  args: readonly string[],
+  startup: InteractiveShellStartup = {},
+): Promise<number> {
   const parsed = parseArgs({
     args: [...args],
     options: {
@@ -533,9 +872,13 @@ async function chatCommand(args: readonly string[]): Promise<number> {
       verify: { type: "string", multiple: true },
       quiet: { type: "boolean", short: "q" },
     },
-    allowPositionals: false,
+    allowPositionals: true,
   });
-  assertCondition(process.stdin.isTTY, "SCHEMA_INVALID", "chat requires an interactive terminal");
+  assertCondition(
+    process.stdin.isTTY === true && process.stdout.isTTY === true,
+    "SCHEMA_INVALID",
+    "interactive mode requires a terminal; use `seh run` or `seh exec` instead",
+  );
   const common: CommonCommandOptions = {
     workspace: parsed.values.workspace,
     provider: parsed.values.provider,
@@ -546,40 +889,17 @@ async function chatCommand(args: readonly string[]): Promise<number> {
     verify: parsed.values.verify,
   };
   const project = await configuredProject(common, true);
-  out("Self-Evolving Harness interactive coding agent\n");
-  out("Each prompt creates a signed session; workspace and persistent memory are shared.\n");
-  out("Commands: /status, /sessions, /exit\n\n");
-  const terminal = readline.createInterface({ input: process.stdin, output: process.stdout });
-  let latest: ProductSessionRecord | null = null;
-  try {
-    while (true) {
-      const line = (await terminal.question("seh> ")).trim();
-      if (line === "/exit" || line === "/quit") break;
-      if (line === "") continue;
-      if (line === "/status") {
-        const record = latest ?? (await new ProductSessionStore(project.paths).latest());
-        out(record === null ? "No sessions.\n" : statusText(record));
-        continue;
-      }
-      if (line === "/sessions") {
-        const records = (await new ProductSessionStore(project.paths).list()).slice(0, 10);
-        for (const record of records) out(`${record.sessionId}  ${record.state}  ${record.task.slice(0, 64)}\n`);
-        if (records.length === 0) out("No sessions.\n");
-        continue;
-      }
-      latest = await executeTask({
-        project,
-        task: line,
-        parentSessionId: latest?.sessionId ?? null,
-        json: false,
-        quiet: parsed.values.quiet === true,
-      });
-      printSession(latest, false);
-    }
-  } finally {
-    terminal.close();
-  }
-  return 0;
+  const prompt = parsed.positionals.join(" ").trim();
+  return runInteractiveShell(project, parsed.values.quiet === true, {
+    ...startup,
+    ...(startup.initialPrompt !== undefined || prompt.length === 0
+      ? {}
+      : { initialPrompt: prompt }),
+  });
+}
+
+async function continueCommand(args: readonly string[]): Promise<number> {
+  return chatCommand(args, { resumeLatest: true });
 }
 
 export function productUsage(): string {
@@ -588,12 +908,16 @@ export function productUsage(): string {
     "",
     "Usage:",
     "  seh --version",
+    "  seh                              Start the interactive coding agent",
+    "  seh [OPTIONS] \"task\"             Start interactively with an initial prompt",
     "  seh init [--provider ollama|openai] [--model MODEL] [--read-only]",
-    "  seh run [OPTIONS] \"task\"",
-    "  seh chat [OPTIONS]",
+    "  seh run [OPTIONS] \"task\"          Run one task non-interactively",
+    "  seh exec [OPTIONS] \"task\"         Alias for `seh run`",
+    "  seh chat [OPTIONS]               Start the interactive coding agent",
+    "  seh continue [OPTIONS] [prompt]  Continue the latest session",
     "  seh sessions [--limit N]",
     "  seh status [SESSION_ID]",
-    "  seh resume SESSION_ID [guidance]",
+    "  seh resume [SESSION_ID] [guidance] [--last]",
     "  seh doctor",
     "  seh config",
     "  seh memory add [-n NAMESPACE] \"fact\"",
@@ -621,8 +945,9 @@ export async function runProductCommand(
   args: readonly string[],
 ): Promise<number> {
   if (command === "init") return initCommand(args);
-  if (command === "run") return runCommand(args);
+  if (command === "run" || command === "exec") return runCommand(args);
   if (command === "chat") return chatCommand(args);
+  if (command === "continue") return continueCommand(args);
   if (command === "sessions") return sessionsCommand(args);
   if (command === "status") return statusCommand(args);
   if (command === "resume") return resumeCommand(args);

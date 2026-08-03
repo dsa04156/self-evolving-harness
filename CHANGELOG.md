@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.0 — interactive coding-agent shell
+
+### New features
+
+- **Direct interactive launch**: Run `seh` with no subcommand, or pass an initial prompt with
+  `seh "TASK"`, to enter the coding-agent shell. Use `seh run`, `seh exec`, or `seh -p` for a
+  non-interactive task.
+- **Session continuation**: Resume from a numbered picker, a session ID, or the latest session with
+  `seh resume`, `seh resume ID`, `seh resume --last`, and `seh continue`.
+- **In-shell controls**: Inspect sessions, status, memory, verification commands, permissions, model,
+  and sandboxed Git diffs without leaving the conversation. Multiline paste and fresh-thread commands
+  are also available through `/paste` and `/new`.
+
+### Improvements
+
+- **Real conversational follow-ups**: Recent user and assistant turns now become bounded, explicitly
+  untrusted context for the next prompt instead of relying only on a parent-session pointer.
+- **Auditable context**: Each turn remains an immutable child session and records the runtime task
+  hash plus the prior session IDs used as context. Continuing a chat is still not labelled as harness
+  evolution.
+- **Clearer live progress**: Model, tool, and verifier events are rendered as concise terminal status
+  lines while tool arguments and secrets remain hidden.
+- **Provider-neutral README**: The main product documentation now leads with the independent CLI and
+  moves provider-specific setup details to the user guide.
+
+### Breaking changes
+
+- **Action required for scripts**: `seh "TASK"` now starts an interactive session when attached to a
+  terminal. Automation should use `seh run "TASK"`, `seh exec "TASK"`, or `seh -p "TASK"`.
+
 ## 0.2.0 — user coding agent CLI and deterministic MVP completion
 
 - Added the installable `seh` coding-agent CLI with `init`, `run`, `chat`, `sessions`, `status`,

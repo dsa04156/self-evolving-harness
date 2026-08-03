@@ -49,6 +49,10 @@ export interface ProductSessionRecord {
   readonly parentSessionId: string | null;
   readonly workspaceRoot: string;
   readonly task: string;
+  /** Hash of the bounded task actually submitted to the runtime. Added in CLI 0.3.0. */
+  readonly runtimeTaskHash?: string;
+  /** Prior product sessions quoted into bounded thread context. Added in CLI 0.3.0. */
+  readonly contextSessionIds?: readonly string[];
   readonly provider: {
     readonly kind: ProductProviderConfig["kind"];
     readonly model: string;
@@ -127,6 +131,8 @@ export class ProductSessionStore {
     readonly parentSessionId?: string | null;
     readonly workspaceRoot: string;
     readonly task: string;
+    readonly runtimeTaskHash: string;
+    readonly contextSessionIds: readonly string[];
     readonly provider: ProductProviderConfig;
     readonly permissionMode: PermissionMode;
     readonly verificationCommands: readonly string[];
@@ -135,6 +141,38 @@ export class ProductSessionStore {
     assertSessionId(input.sessionId);
     if (input.parentSessionId !== undefined && input.parentSessionId !== null) {
       assertSessionId(input.parentSessionId);
+    }
+    assertCondition(
+      /^sha256:[a-f0-9]{64}$/u.test(input.runtimeTaskHash),
+      "SCHEMA_INVALID",
+      "Runtime task hash is invalid",
+    );
+    assertCondition(
+      input.contextSessionIds.length <= 8,
+      "SCHEMA_INVALID",
+      "Thread context may reference at most 8 sessions",
+    );
+    input.contextSessionIds.forEach(assertSessionId);
+    assertCondition(
+      new Set(input.contextSessionIds).size === input.contextSessionIds.length,
+      "SCHEMA_INVALID",
+      "Thread context contains duplicate sessions",
+    );
+    const parentSessionId = input.parentSessionId ?? null;
+    assertCondition(
+      parentSessionId === null
+        ? input.contextSessionIds.length === 0
+        : input.contextSessionIds.at(-1) === parentSessionId,
+      "SCHEMA_INVALID",
+      "Thread context must end at the parent session",
+    );
+    for (const referencedId of input.contextSessionIds) {
+      const referenced = await this.get(referencedId);
+      assertCondition(
+        referenced.workspaceRoot === input.workspaceRoot,
+        "AUTHORIZATION_DENIED",
+        "Thread context cannot cross workspace boundaries",
+      );
     }
     const directory = this.#paths.sessionDirectory(input.sessionId);
     try {
@@ -152,9 +190,11 @@ export class ProductSessionStore {
     const core: ProductSessionCore = {
       schemaVersion: 1,
       sessionId: input.sessionId,
-      parentSessionId: input.parentSessionId ?? null,
+      parentSessionId,
       workspaceRoot: input.workspaceRoot,
       task: input.task,
+      runtimeTaskHash: input.runtimeTaskHash,
+      contextSessionIds: [...input.contextSessionIds],
       provider: { kind: input.provider.kind, model: input.provider.model },
       permissionMode: input.permissionMode,
       verificationCommands: [...input.verificationCommands],
@@ -183,6 +223,8 @@ export class ProductSessionStore {
         core.parentSessionId === previous.parentSessionId &&
         core.workspaceRoot === previous.workspaceRoot &&
         core.task === previous.task &&
+        core.runtimeTaskHash === previous.runtimeTaskHash &&
+        JSON.stringify(core.contextSessionIds) === JSON.stringify(previous.contextSessionIds) &&
         core.createdAt === previous.createdAt,
       "AUTHORIZATION_DENIED",
       "Product session immutable fields cannot change",

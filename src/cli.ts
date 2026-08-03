@@ -9,11 +9,13 @@ import {
   FakeModelProvider,
   FakeTaskVerifier,
   HarnessError,
+  PRODUCT_CLI_VERSION,
   PrincipalSigner,
   SchemaRegistry,
   createManagedStandaloneRuntime,
   passingVerification,
   productUsage,
+  resolveProductCliInvocation,
   runProductCommand,
   sha256,
   type ModelResponse,
@@ -282,9 +284,13 @@ function usage(): void {
 }
 
 async function main(): Promise<void> {
-  const [command = "help", ...arguments_] = process.argv.slice(2);
+  const rawArguments = process.argv.slice(2);
+  const { command, args: arguments_ } = resolveProductCliInvocation(
+    rawArguments,
+    process.stdin.isTTY === true && process.stdout.isTTY === true,
+  );
   if (command === "version" || command === "--version" || command === "-V") {
-    process.stdout.write("0.2.0\n");
+    process.stdout.write(`${PRODUCT_CLI_VERSION}\n`);
     return;
   }
   if (command === "help" || command === "--help" || command === "-h") {
