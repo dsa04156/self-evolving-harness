@@ -4039,6 +4039,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "codex-seh"
+version = "0.0.0"
+dependencies = [
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "codex-shell-command"
 version = "0.0.0"
 dependencies = [

@@ -26,7 +26,78 @@
     "evidenceMayBePooled": false
   },
   "reuseClassification": "copied-apache-2.0-source-tree",
-  "modifiedFiles": [],
+  "modifiedFiles": [
+    {
+      "path": "upstream/codex/codex-rs/Cargo.lock",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/Cargo.lock",
+      "description": "Registers the codex-seh crate dependency graph.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/Cargo.toml",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/Cargo.toml",
+      "description": "Adds the internal codex-seh workspace crate.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/BUILD.bazel",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Declares the SEH Rust crate to the Codex Bazel build.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/Cargo.toml",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Declares the SEH Rust crate and its minimal dependencies.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/bootstrap.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Builds a deterministic 24-component Codex-derived bootstrap HarnessVersion.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/canonical.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Implements the integer-only canonical JSON and content hash profile.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/lib.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Exposes the Codex-derived SEH runtime integration API.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/model.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Defines portable HarnessVersion bundle and thread pin models.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/store.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Persists immutable harness bundles, active pointers, and inherited thread pins.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/verify.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Verifies component, closure, bundle, pointer, and pin integrity.",
+      "securityReviewed": false
+    }
+  ],
   "claims": {
     "officialOpenAIDistribution": false,
     "openAIEndorsed": false,
