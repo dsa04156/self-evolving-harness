@@ -50,7 +50,8 @@ live discovery remains authoritative for what an endpoint currently advertises.
 
 Provider keys are read from the process environment only. A browser or Codex CLI login is not
 reused: doing so would couple this independent runtime to another harness's private credential
-store. Use `/model` to switch provider and model together for the current interactive session.
+store. Use `/model` to switch provider and model together. The selected model, reasoning effort,
+and service tier are saved in project configuration and apply to each newly created task session.
 
 ### Local no-key provider
 
@@ -95,6 +96,9 @@ recommended first command because it records the permission and verification cho
 | `seh completion bash\|zsh\|fish` | Generate native shell completion |
 | `seh demo` | Run the deterministic fake-provider end-to-end demo |
 
+Common profile flags are `--model MODEL`, `--effort auto|none|minimal|low|medium|high|xhigh|max`,
+and `--fast` for OpenAI models that advertise priority processing.
+
 Use another workspace from any directory with `--workspace /absolute/or/relative/path`. A task may
 also arrive through standard input:
 
@@ -110,8 +114,8 @@ the command palette and session picker open as keyboard-driven overlays:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ SEH v0.5.0  SELF-EVOLVING CODING AGENT                                      │
-│ my-project                    provider/model · WORKSPACE WRITE                │
+│ SEH v0.6.0  SELF-EVOLVING CODING AGENT                                      │
+│ my-project              openai/gpt-5.6-sol · HIGH · FAST · WORKSPACE WRITE   │
 └──────────────────────────────────────────────────────────────────────────────┘
 
                        ● ╭────── TASK EXECUTION ──────╮ ·
@@ -148,6 +152,8 @@ moving the cursor.
 | `/status`, `/sessions` | Inspect durable session state |
 | `/resume [ID] [guidance]` | Pick or load a prior task and answer, optionally run guidance |
 | `/model [model-id]`, `/models` | Search providers and live/curated model routes, or select an exact ID |
+| `/effort [LEVEL\|auto]`, `/reasoning` | Pick a model-advertised reasoning level or use the provider default |
+| `/fast [on\|off]` | Toggle OpenAI priority processing for models that advertise it |
 | `/permissions`, `/read-only`, `/write` | Inspect or temporarily change tool authority |
 | `/verify` | Show the external verifier commands |
 | `/diff [--staged]` | Show Git diff through the no-network sandbox |
@@ -158,8 +164,9 @@ moving the cursor.
 | `/paste` | Show the direct-paste and `Shift+Enter` multiline shortcut |
 | `/clear`, `/home`, `/exit` | Redraw the workspace home or close the shell |
 
-Use `//` when a task itself must begin with `/`. Interactive model and permission changes are
-intentionally ephemeral; use `seh init --force ...` to change stored configuration.
+Use `//` when a task itself must begin with `/`. `/model`, `/effort`, and `/fast` persist the model
+execution profile. Interactive permission changes remain ephemeral; use `seh init --force ...` to
+change stored authority.
 
 ### Model picker
 
@@ -169,8 +176,10 @@ models and refreshes OpenRouter's public catalog, retaining only text-output mod
 tool calling. The current live catalog contains more than 250 routes across OpenAI, Anthropic,
 Google, DeepSeek, Qwen, Mistral, xAI, and other vendors.
 
-Selecting an entry changes both provider and model for the next newly created task session in the
-current shell. A running turn is never rebound in place. Previous task sessions remain immutable;
+Selecting an entry opens a second picker containing only that route's advertised reasoning levels.
+For GPT-5.6 Sol, Terra, and Luna this is `Low`, `Medium`, `High`, `Extra high`, then `More
+reasoning… → Max`. The chosen `(provider, model, effort, service tier)` profile is saved and applies
+to the next newly created task session. A running turn is never rebound in place. Previous task sessions remain immutable;
 only their bounded, untrusted plain-text answer can enter later conversational context, never their
 provider-native assistant state, tool-call envelope, or tool results. A checkmark means the model was
 returned by live discovery, not that the current account is entitled to use it. A circle marks a
@@ -190,10 +199,16 @@ curated catalog entry. Each provider also has its own `Enter another model ID` r
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
+`/effort` reopens the effort picker for the active model. `/effort auto` clears the explicit level.
+`/fast` toggles the `priority` service tier only on direct OpenAI routes that advertise it. SEH does
+not show a fake `Ultra` provider level: Codex implements Ultra as `Max` inference plus proactive
+multi-agent delegation, which is a separate orchestration behavior.
+
 Start typing anywhere in the picker to filter its labels and descriptions. `Esc` clears a non-empty
 search first and closes the picker on the next press. Search matches provider name, display name,
-and exact model ID. A selected entry may still need provider access or local installation. Model
-changes made here are session-only.
+and exact model ID. A selected entry may still need provider access or local installation. Saved
+model-profile changes are visible in the fixed header, `seh config`, and every new session's
+immutable `executionProfile` evidence.
 
 ### Shell completion
 
@@ -279,7 +294,7 @@ The OpenAI adapter is opt-in and requires an API key supplied only through the e
 
 ```bash
 export OPENAI_API_KEY='...'
-seh init --force --provider openai --model '<model-id>' --verify "npm test"
+seh init --force --provider openai --model 'gpt-5.6-sol' --effort high --fast --verify "npm test"
 seh run "Fix the failing tests"
 ```
 
@@ -290,7 +305,7 @@ OpenRouter exposes many vendors through one tool-capable adapter:
 
 ```bash
 export OPENROUTER_API_KEY='...'
-seh init --force --provider openrouter --model 'anthropic/claude-sonnet-5' --verify "npm test"
+seh init --force --provider openrouter --model 'anthropic/claude-sonnet-5' --effort high --verify "npm test"
 seh run "Fix the failing tests"
 ```
 

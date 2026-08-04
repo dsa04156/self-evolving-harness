@@ -74,7 +74,7 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.5.0\n");
+  assert.equal(version.stdout, "0.6.0\n");
 });
 
 test("product CLI generates native shell completion scripts", async () => {
@@ -82,10 +82,51 @@ test("product CLI generates native shell completion scripts", async () => {
   const bash = await cli(["completion", "bash"], stateRoot);
   assert.match(bash.stdout, /complete -F _seh_completion seh/u);
   assert.match(bash.stdout, /openai openrouter ollama/u);
+  assert.match(bash.stdout, /auto none minimal low medium high xhigh max/u);
   const zsh = await cli(["completion", "zsh"], stateRoot);
   assert.match(zsh.stdout, /#compdef seh/u);
   const fish = await cli(["completion", "fish"], stateRoot);
   assert.match(fish.stdout, /complete -c seh/u);
+});
+
+test("product CLI persists a model-specific reasoning profile and Fast tier", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-profile-"));
+  const workspace = path.join(root, "workspace");
+  const stateRoot = path.join(root, "state");
+  await mkdir(workspace, { recursive: true });
+  t.after(async () => rm(root, { recursive: true, force: true }));
+
+  await cli(
+    [
+      "init",
+      "--workspace",
+      workspace,
+      "--provider",
+      "openai",
+      "--model",
+      "gpt-5.6-sol",
+      "--effort",
+      "xhigh",
+      "--fast",
+    ],
+    stateRoot,
+  );
+
+  const configuration = await cli(["config", "--workspace", workspace], stateRoot);
+  const parsed = JSON.parse(configuration.stdout) as {
+    provider: {
+      kind: string;
+      model: string;
+      reasoningEffort: string | null;
+      serviceTier?: string;
+    };
+  };
+  assert.deepEqual(parsed.provider, {
+    kind: "openai",
+    model: "gpt-5.6-sol",
+    reasoningEffort: "xhigh",
+    serviceTier: "priority",
+  });
 });
 
 test("product CLI rejects authority state inside the writable workspace", async (t) => {

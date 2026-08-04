@@ -1,6 +1,12 @@
 import type { ProductProviderConfig } from "./config.js";
+import type { ModelReasoningCapabilities } from "./model-profile.js";
+import {
+  NO_REASONING_CAPABILITIES,
+  reasoningCapabilitiesSummary,
+} from "./model-profile.js";
 import {
   PRODUCT_PROVIDER_REGISTRY,
+  type ProductModelServiceTier,
   type ProductProviderKind,
   productProviderDescriptor,
 } from "./provider-registry.js";
@@ -17,6 +23,8 @@ export interface DiscoveredProductModel {
   readonly modelId: string;
   readonly name?: string;
   readonly description?: string;
+  readonly reasoning?: ModelReasoningCapabilities;
+  readonly serviceTiers?: readonly ProductModelServiceTier[];
 }
 
 export interface ProductModelChoice {
@@ -26,6 +34,8 @@ export interface ProductModelChoice {
   readonly label: string;
   readonly description: string;
   readonly source: ProductModelChoiceSource;
+  readonly reasoning: ModelReasoningCapabilities;
+  readonly serviceTiers: readonly ProductModelServiceTier[];
 }
 
 interface ProductModelCatalogInput {
@@ -65,6 +75,8 @@ function normalizedDiscovery(
       ...(candidate.description?.trim()
         ? { description: candidate.description.trim() }
         : {}),
+      ...(candidate.reasoning === undefined ? {} : { reasoning: candidate.reasoning }),
+      ...(candidate.serviceTiers === undefined ? {} : { serviceTiers: candidate.serviceTiers }),
     });
   }
   return [...byId.values()].sort((left, right) =>
@@ -91,18 +103,23 @@ export function buildProductModelChoices(
   const currentCatalogEntry = currentDescriptor.examples.find(
     (entry) => entry.modelId === input.provider.model,
   );
-  const currentDiscovered = normalizedDiscovery(input, input.provider.kind).some(
+  const currentDiscovered = normalizedDiscovery(input, input.provider.kind).find(
     (entry) => entry.modelId === input.provider.model,
   );
+  const currentReasoning =
+    currentDiscovered?.reasoning ?? currentCatalogEntry?.reasoning ?? NO_REASONING_CAPABILITIES;
+  const currentReasoningSummary = reasoningCapabilitiesSummary(currentReasoning);
   choices.push({
     id: modelChoiceId(input.provider.kind, input.provider.model),
     providerKind: input.provider.kind,
     modelId: input.provider.model,
     label: `● ${currentDescriptor.label}  ${currentCatalogEntry?.name ?? input.provider.model}`,
     description: `current · ${input.provider.kind}/${input.provider.model}${
-      currentDiscovered ? " · discovered live" : ""
-    }`,
+      currentDiscovered === undefined ? "" : " · discovered live"
+    }${currentReasoningSummary === null ? "" : ` · ${currentReasoningSummary}`}`,
     source: "current",
+    reasoning: currentReasoning,
+    serviceTiers: currentDiscovered?.serviceTiers ?? currentCatalogEntry?.serviceTiers ?? [],
   });
   seen.add(`${input.provider.kind}\u0000${input.provider.model}`);
 
@@ -118,6 +135,8 @@ export function buildProductModelChoices(
   ): void => {
     const key = `${descriptor.kind}\u0000${discovered.modelId}`;
     if (seen.has(key)) return;
+    const reasoning = discovered.reasoning ?? NO_REASONING_CAPABILITIES;
+    const reasoningSummary = reasoningCapabilitiesSummary(reasoning);
     choices.push({
       id: modelChoiceId(descriptor.kind, discovered.modelId),
       providerKind: descriptor.kind,
@@ -125,8 +144,10 @@ export function buildProductModelChoices(
       label: `✓ ${descriptor.label}  ${discovered.name ?? discovered.modelId}`,
       description: `live catalog · ${discovered.modelId}${
         discovered.description === undefined ? "" : ` · ${discovered.description}`
-      } · ${credentialHint(descriptor.kind)}`,
+      }${reasoningSummary === null || discovered.description?.includes("reasoning ") === true ? "" : ` · ${reasoningSummary}`} · ${credentialHint(descriptor.kind)}`,
       source: "discovered",
+      reasoning,
+      serviceTiers: discovered.serviceTiers ?? [],
     });
     seen.add(key);
   };
@@ -136,13 +157,19 @@ export function buildProductModelChoices(
   ): void => {
     const key = `${descriptor.kind}\u0000${example.modelId}`;
     if (seen.has(key)) return;
+    const reasoning = example.reasoning ?? NO_REASONING_CAPABILITIES;
+    const reasoningSummary = reasoningCapabilitiesSummary(reasoning);
     choices.push({
       id: modelChoiceId(descriptor.kind, example.modelId),
       providerKind: descriptor.kind,
       modelId: example.modelId,
       label: `○ ${descriptor.label}  ${example.name}`,
-      description: `catalog · ${example.modelId} · ${example.description} · ${credentialHint(descriptor.kind)}`,
+      description: `catalog · ${example.modelId} · ${example.description}${
+        reasoningSummary === null ? "" : ` · ${reasoningSummary}`
+      } · ${credentialHint(descriptor.kind)}`,
       source: "example",
+      reasoning,
+      serviceTiers: example.serviceTiers ?? [],
     });
     seen.add(key);
   };
@@ -178,6 +205,8 @@ export function buildProductModelChoices(
       label: `+ ${descriptor.label}  Enter another model ID`,
       description: `${descriptor.description} · ${credentialHint(descriptor.kind)}`,
       source: "custom",
+      reasoning: NO_REASONING_CAPABILITIES,
+      serviceTiers: [],
     });
   }
   return choices;

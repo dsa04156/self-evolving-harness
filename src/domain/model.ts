@@ -1,5 +1,26 @@
 import type { JsonValue } from "../core/canonical.js";
 
+/**
+ * Provider-wire reasoning efforts supported by SEH. `ultra` is intentionally
+ * absent: Codex treats Ultra as Max inference plus proactive multi-agent
+ * orchestration, not as an interchangeable single-model effort.
+ */
+export const MODEL_REASONING_EFFORTS = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
+
+export type ModelReasoningEffort = (typeof MODEL_REASONING_EFFORTS)[number];
+
+export function isModelReasoningEffort(value: string): value is ModelReasoningEffort {
+  return (MODEL_REASONING_EFFORTS as readonly string[]).includes(value);
+}
+
 export type ConversationRole = "system" | "user" | "assistant";
 
 export interface TextInputItem {
@@ -37,7 +58,7 @@ export interface ModelRequest {
   readonly input: readonly ModelInputItem[];
   readonly tools: readonly ModelTool[];
   readonly maxOutputTokens: number;
-  readonly reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  readonly reasoningEffort?: ModelReasoningEffort;
   readonly abortSignal?: AbortSignal;
 }
 

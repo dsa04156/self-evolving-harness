@@ -139,6 +139,7 @@ test("selected OpenRouter registry row reaches the SEH tool loop and verifier", 
     model: "vendor/coder",
     endpoint: "https://openrouter.ai/api/v1",
     requestTimeoutMillis: 600_000,
+    reasoningEffort: null,
   });
 
   const observed: Record<string, unknown>[] = [];
@@ -163,6 +164,10 @@ test("selected OpenRouter registry row reaches the SEH tool loop and verifier", 
 
   assert.equal(await readFile(path.join(workspace, "registry-result.txt"), "utf8"), "registry-to-runtime\n");
   assert.deepEqual(record.provider, { kind: "openrouter", model: "vendor/coder" });
+  assert.deepEqual(record.executionProfile, {
+    reasoningEffort: null,
+    serviceTier: null,
+  });
   assert.equal(record.state, "completed");
   assert.equal(record.result?.verification?.passed, true);
   assert.equal(record.result?.usage.modelCalls, 2);

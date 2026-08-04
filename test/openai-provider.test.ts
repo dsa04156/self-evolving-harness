@@ -107,5 +107,6 @@ test("OpenAI Responses adapter pins request controls and records the provider-re
     response.providerMetadata["reportedModel"],
     "gpt-5.6-luna-2026-07-31",
   );
+  assert.equal(response.providerMetadata["requestedReasoningEffort"], "none");
   assert.equal(response.usage.totalTokens, 15);
 });

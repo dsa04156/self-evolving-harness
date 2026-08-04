@@ -66,6 +66,8 @@ Permanent code references:
 
 CLI/TUI behavior was re-inspected at a newer exact SHA on 2026-08-03; see
 [`cli-ux-reference.md`](cli-ux-reference.md). The research-baseline snapshot below remains pinned.
+The model-profile path was re-inspected again on 2026-08-04 at exact main commit
+`b2dc8b3e4be4fe3a453d50e13835f707b258f15b`; that additive ledger is also in the same reference.
 
 - Repository: <https://github.com/openai/codex>
 - Branch / commit: `main` / `6219b7c40fc9c702c0aef9964e72b492558f60e4`

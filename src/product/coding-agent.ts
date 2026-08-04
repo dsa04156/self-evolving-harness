@@ -301,9 +301,9 @@ export async function runCodingAgentTask(
         datasetPermissions: ["user_workspace"],
       },
       modelIdentity: binding.modelIdentity,
-      ...(options.config.provider.kind === "openai"
-        ? { reasoningEffort: "medium" as const }
-        : {}),
+      ...(options.config.provider.reasoningEffort === null
+        ? {}
+        : { reasoningEffort: options.config.provider.reasoningEffort }),
       runtimeSigner: signers.runtime,
       operationsSigner: signers.operations,
       auditSigner: signers.audit,

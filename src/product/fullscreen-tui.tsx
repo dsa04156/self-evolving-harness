@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { PermissionMode } from "./config.js";
+import type { ModelReasoningEffort } from "../domain/model.js";
 import {
   INTERACTIVE_SLASH_COMMANDS,
   slashCommandSuggestions,
@@ -53,6 +54,8 @@ export interface FullscreenTuiStatus {
   readonly workspaceRoot: string;
   readonly provider: string;
   readonly model: string;
+  readonly reasoningEffort: ModelReasoningEffort | null;
+  readonly fastMode: boolean;
   readonly permissionMode: PermissionMode;
   readonly verificationCount: number;
   readonly threadNumber: number;
@@ -278,6 +281,9 @@ function Header({ status, compact }: { readonly status: FullscreenTuiStatus; rea
         <Text wrap="truncate-end">
           <Text color="magenta">{status.provider}/{status.model}</Text>
           <Text dimColor> · </Text>
+          <Text color="yellow">{(status.reasoningEffort ?? "AUTO").toUpperCase()}</Text>
+          {status.fastMode && <Text bold color="green"> · FAST</Text>}
+          <Text dimColor> · </Text>
           <Text color={accessColor}>{permissionText(status.permissionMode)}</Text>
           {!compact && <Text dimColor> · verify {status.verificationCount || "advisory"}</Text>}
         </Text>
@@ -355,7 +361,7 @@ function Home({
         <Text bold color="magenta">/</Text>
       </Box>
       <Box justifyContent="center">
-        <Text><Text color="magenta">/resume</Text><Text dimColor> history  </Text><Text color="magenta">/review</Text><Text dimColor> diff  </Text><Text color="magenta">/skills</Text><Text dimColor> workflow  </Text><Text color="magenta">/tools</Text><Text dimColor> authority</Text></Text>
+        <Text><Text color="magenta">/model</Text><Text dimColor> route  </Text><Text color="magenta">/effort</Text><Text dimColor> reasoning  </Text><Text color="magenta">/resume</Text><Text dimColor> history  </Text><Text color="magenta">/review</Text><Text dimColor> diff  </Text><Text color="magenta">/tools</Text><Text dimColor> authority</Text></Text>
       </Box>
       <Box marginTop={1} flexDirection="column" alignItems="center">
         {status.recentSessions.length === 0 ? (

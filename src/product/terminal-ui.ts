@@ -142,6 +142,20 @@ export const INTERACTIVE_SLASH_COMMANDS: readonly SlashCommandSpec[] = [
     group: "runtime",
   },
   {
+    name: "effort",
+    aliases: ["reasoning"],
+    description: "Choose reasoning supported by the active model",
+    argumentHint: "[auto|none|minimal|low|medium|high|xhigh|max]",
+    group: "runtime",
+  },
+  {
+    name: "fast",
+    aliases: [],
+    description: "Toggle OpenAI priority processing for supported models",
+    argumentHint: "[on|off]",
+    group: "runtime",
+  },
+  {
     name: "permissions",
     aliases: [],
     description: "Show the active permission profile",

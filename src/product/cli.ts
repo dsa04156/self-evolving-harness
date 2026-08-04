@@ -3,6 +3,10 @@ import { parseArgs } from "node:util";
 
 import { RandomIdFactory, SystemClock } from "../core/determinism.js";
 import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
+import {
+  isModelReasoningEffort,
+  type ModelReasoningEffort,
+} from "../domain/model.js";
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import { listOllamaModels } from "../providers/ollama-provider.js";
 import { listOpenRouterModels } from "../providers/openrouter-catalog.js";
@@ -44,9 +48,18 @@ import {
 } from "./model-catalog.js";
 import {
   isProductProviderKind,
+  productProviderCatalogEntry,
   productProviderDescriptor,
   type ProductProviderKind,
 } from "./provider-registry.js";
+import {
+  ADVANCED_REASONING_CHOICE_ID,
+  NO_REASONING_CAPABILITIES,
+  buildReasoningEffortChoices,
+  reasoningEffortIsSupported,
+  selectDefaultReasoningEffort,
+  type ModelReasoningCapabilities,
+} from "./model-profile.js";
 import {
   renderResponsePanel,
 } from "./terminal-ui.js";
@@ -61,6 +74,8 @@ interface CommonCommandOptions {
   readonly provider: string | undefined;
   readonly model: string | undefined;
   readonly endpoint: string | undefined;
+  readonly effort: string | undefined;
+  readonly fast: boolean | undefined;
   readonly readOnly: boolean | undefined;
   readonly write: boolean | undefined;
   readonly verify: readonly string[] | undefined;
@@ -95,13 +110,29 @@ function permissionMode(options: CommonCommandOptions): PermissionMode | undefin
   return undefined;
 }
 
+function modelReasoningEffort(
+  value: string | undefined,
+): ModelReasoningEffort | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === "auto") return null;
+  assertCondition(
+    isModelReasoningEffort(value),
+    "SCHEMA_INVALID",
+    "--effort must be auto, none, minimal, low, medium, high, xhigh, or max",
+  );
+  return value;
+}
+
 function configOverrides(options: CommonCommandOptions): ProductConfigOverrides {
   const kind = providerKind(options.provider);
   const mode = permissionMode(options);
+  const reasoningEffort = modelReasoningEffort(options.effort);
   return {
     ...(kind === undefined ? {} : { providerKind: kind }),
     ...(options.model === undefined ? {} : { model: options.model }),
     ...(options.endpoint === undefined ? {} : { endpoint: options.endpoint }),
+    ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    ...(options.fast === true ? { serviceTier: "priority" as const } : {}),
     ...(mode === undefined ? {} : { permissionMode: mode }),
     ...(options.verify === undefined ? {} : { verificationCommands: options.verify }),
   };
@@ -214,6 +245,14 @@ async function executeTask(input: {
     err(
       `Provider: ${input.project.config.provider.kind}/${input.project.config.provider.model}\n`,
     );
+    err(
+      `Reasoning: ${input.project.config.provider.reasoningEffort ?? "provider default"}${
+        input.project.config.provider.kind === "openai" &&
+        input.project.config.provider.serviceTier === "priority"
+          ? " · FAST"
+          : ""
+      }\n`,
+    );
     err(`Permissions: ${input.project.config.permissionMode} (shell network: denied)\n`);
   }
   const ownedController = input.abortSignal === undefined ? new AbortController() : null;
@@ -259,6 +298,8 @@ async function initCommand(args: readonly string[]): Promise<number> {
       workspace: { type: "string" },
       provider: { type: "string" },
       model: { type: "string" },
+      effort: { type: "string" },
+      fast: { type: "boolean" },
       endpoint: { type: "string" },
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
@@ -272,6 +313,8 @@ async function initCommand(args: readonly string[]): Promise<number> {
     provider: parsed.values.provider,
     model: parsed.values.model,
     endpoint: parsed.values.endpoint,
+    effort: parsed.values.effort,
+    fast: parsed.values.fast,
     readOnly: parsed.values["read-only"],
     write: parsed.values.write,
     verify: parsed.values.verify,
@@ -283,6 +326,10 @@ async function initCommand(args: readonly string[]): Promise<number> {
   out(`Workspace: ${workspaceRoot}\n`);
   out(`Config: ${paths.configFile}\n`);
   out(`Provider: ${config.provider.kind}/${config.provider.model}\n`);
+  out(`Reasoning: ${config.provider.reasoningEffort ?? "provider default"}\n`);
+  if (config.provider.kind === "openai") {
+    out(`Fast: ${config.provider.serviceTier === "priority" ? "on" : "off"}\n`);
+  }
   out(`Permissions: ${config.permissionMode}\n`);
   if (config.provider.kind === "ollama") {
     out(`\nNext:\n  ollama serve\n  ollama pull ${config.provider.model}\n  seh run "your task"\n`);
@@ -300,6 +347,8 @@ async function runCommand(args: readonly string[]): Promise<number> {
       workspace: { type: "string" },
       provider: { type: "string" },
       model: { type: "string" },
+      effort: { type: "string" },
+      fast: { type: "boolean" },
       endpoint: { type: "string" },
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
@@ -314,6 +363,8 @@ async function runCommand(args: readonly string[]): Promise<number> {
     provider: parsed.values.provider,
     model: parsed.values.model,
     endpoint: parsed.values.endpoint,
+    effort: parsed.values.effort,
+    fast: parsed.values.fast,
     readOnly: parsed.values["read-only"],
     write: parsed.values.write,
     verify: parsed.values.verify,
@@ -334,11 +385,16 @@ async function runCommand(args: readonly string[]): Promise<number> {
 }
 
 function statusText(record: ProductSessionRecord): string {
+  const serviceTier = record.executionProfile?.serviceTier;
   const lines = [
     `Session: ${record.sessionId}`,
     `State: ${record.state}`,
     `Created: ${record.createdAt}`,
     `Provider: ${record.provider.kind}/${record.provider.model}`,
+    `Reasoning: ${record.executionProfile?.reasoningEffort ?? "provider default"}`,
+    ...(serviceTier === null || serviceTier === undefined
+      ? []
+      : [`Service tier: ${serviceTier}`]),
     `Permissions: ${record.permissionMode}`,
     `Workspace: ${record.workspaceRoot}`,
     `Task: ${record.task}`,
@@ -422,6 +478,8 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
       workspace: { type: "string" },
       provider: { type: "string" },
       model: { type: "string" },
+      effort: { type: "string" },
+      fast: { type: "boolean" },
       endpoint: { type: "string" },
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
@@ -444,6 +502,8 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
     provider: parsed.values.provider,
     model: parsed.values.model,
     endpoint: parsed.values.endpoint,
+    effort: parsed.values.effort,
+    fast: parsed.values.fast,
     readOnly: parsed.values["read-only"],
     write: parsed.values.write,
     verify: parsed.values.verify,
@@ -754,6 +814,65 @@ async function selectableModels(
   };
 }
 
+function bundledReasoningCapabilities(
+  providerKind: ProductProviderKind,
+  modelId: string,
+): ModelReasoningCapabilities {
+  return (
+    productProviderCatalogEntry(providerKind, modelId)?.reasoning ??
+    NO_REASONING_CAPABILITIES
+  );
+}
+
+async function selectReasoningEffort(
+  terminal: FullscreenTuiController,
+  input: {
+    readonly providerKind: ProductProviderKind;
+    readonly modelId: string;
+    readonly capabilities: ModelReasoningCapabilities;
+    readonly current: ModelReasoningEffort | null;
+  },
+): Promise<ModelReasoningEffort | null | undefined> {
+  if (input.capabilities.supportedEfforts.length === 0) return null;
+  const standardChoices = buildReasoningEffortChoices({
+    capabilities: input.capabilities,
+    current: input.current,
+  });
+  const selected = await terminal.select(
+    `Reasoning effort · ${input.providerKind}/${input.modelId}`,
+    standardChoices,
+    "Only levels advertised by this model · choose More reasoning for Max · Esc cancel",
+  );
+  if (selected === null) return undefined;
+  if (selected === ADVANCED_REASONING_CHOICE_ID) {
+    const advancedChoices = buildReasoningEffortChoices({
+      capabilities: input.capabilities,
+      current: input.current,
+      advanced: true,
+    });
+    const advanced = await terminal.select(
+      `Advanced reasoning · ${input.providerKind}/${input.modelId}`,
+      advancedChoices,
+      "Max is slower and can use more tokens · Ultra is not a single-model provider effort · Esc cancel",
+    );
+    if (advanced === null) return undefined;
+    assertCondition(
+      isModelReasoningEffort(advanced) &&
+        advancedChoices.some((choice) => choice.effort === advanced),
+      "SCHEMA_INVALID",
+      "Unknown advanced reasoning-effort selection",
+    );
+    return advanced;
+  }
+  assertCondition(
+    isModelReasoningEffort(selected) &&
+      input.capabilities.supportedEfforts.includes(selected),
+    "SCHEMA_INVALID",
+    "Unknown reasoning-effort selection",
+  );
+  return selected;
+}
+
 async function runInteractiveShell(
   project: ConfiguredProject,
   quiet: boolean,
@@ -763,6 +882,10 @@ async function runInteractiveShell(
   let latest: ProductSessionRecord | null = null;
   let turns: ConversationTurn[] = [];
   let threadNumber = 1;
+  let activeReasoningCapabilities = bundledReasoningCapabilities(
+    activeProject.config.provider.kind,
+    activeProject.config.provider.model,
+  );
   const store = new ProductSessionStore(activeProject.paths);
   const tuiStatus = async (): Promise<FullscreenTuiStatus> => {
     const recentSessions = (await store.list()).slice(0, 5).map((record) => ({
@@ -775,6 +898,10 @@ async function runInteractiveShell(
       workspaceRoot: activeProject.workspaceRoot,
       provider: activeProject.config.provider.kind,
       model: activeProject.config.provider.model,
+      reasoningEffort: activeProject.config.provider.reasoningEffort,
+      fastMode:
+        activeProject.config.provider.kind === "openai" &&
+        activeProject.config.provider.serviceTier === "priority",
       permissionMode: activeProject.config.permissionMode,
       verificationCount: activeProject.config.verification.commands.length,
       threadNumber,
@@ -1004,13 +1131,32 @@ async function runInteractiveShell(
               }
             }
             assertCondition(modelId !== null, "SCHEMA_INVALID", "Selected model has no model ID");
+            const selectedReasoning = await selectReasoningEffort(terminal, {
+              providerKind: selectedChoice.providerKind,
+              modelId,
+              capabilities: selectedChoice.reasoning,
+              current:
+                selectedChoice.providerKind === activeProject.config.provider.kind &&
+                modelId === activeProject.config.provider.model
+                  ? activeProject.config.provider.reasoningEffort
+                  : selectDefaultReasoningEffort(selectedChoice.reasoning),
+            });
+            if (selectedReasoning === undefined) {
+              terminal.setNotice("Model selection cancelled");
+              continue;
+            }
             activeProject = {
               ...activeProject,
               config: applyProductConfigOverrides(activeProject.config, {
                 providerKind: selectedChoice.providerKind,
                 model: modelId,
+                reasoningEffort: selectedReasoning,
               }),
             };
+            activeReasoningCapabilities = selectedChoice.reasoning;
+            await saveProductConfig(activeProject.paths, activeProject.config, {
+              overwrite: true,
+            });
             await refreshStatus();
             const availability = selectedChoice?.source === "example"
               ? " · example; provider access or installation is still required"
@@ -1019,18 +1165,119 @@ async function runInteractiveShell(
               ? ""
               : ` · discovery unavailable: ${catalog.discoveryWarning}`;
             terminal.setNotice(
-              `Model: ${selectedChoice.providerKind}/${modelId} · applies to next task session · not persisted${availability}${discovery}`,
+              `Model: ${selectedChoice.providerKind}/${modelId} · reasoning ${
+                selectedReasoning ?? "provider default"
+              } · saved for following sessions${availability}${discovery}`,
             );
           } else {
+            const capabilities = bundledReasoningCapabilities(
+              activeProject.config.provider.kind,
+              argument,
+            );
             activeProject = {
               ...activeProject,
               config: applyProductConfigOverrides(activeProject.config, { model: argument }),
             };
+            activeReasoningCapabilities = capabilities;
+            await saveProductConfig(activeProject.paths, activeProject.config, {
+              overwrite: true,
+            });
             await refreshStatus();
             terminal.setNotice(
-              `Model: ${activeProject.config.provider.kind}/${argument} · applies to next task session · not persisted`,
+              `Model: ${activeProject.config.provider.kind}/${argument} · reasoning ${
+                activeProject.config.provider.reasoningEffort ?? "provider default"
+              } · saved for following sessions`,
             );
           }
+        } else if (name === "effort" || name === "reasoning") {
+          assertCondition(
+            activeProject.config.provider.kind !== "ollama",
+            "SCHEMA_INVALID",
+            "The Ollama adapter does not expose a portable reasoning-effort control",
+          );
+          let effort: ModelReasoningEffort | null;
+          if (argument.length === 0) {
+            assertCondition(
+              activeReasoningCapabilities.supportedEfforts.length > 0,
+              "ARTIFACT_UNAVAILABLE",
+              "This custom model has no advertised reasoning metadata; use /effort LEVEL only if its provider documents support",
+            );
+            const selected = await selectReasoningEffort(terminal, {
+              providerKind: activeProject.config.provider.kind,
+              modelId: activeProject.config.provider.model,
+              capabilities: activeReasoningCapabilities,
+              current: activeProject.config.provider.reasoningEffort,
+            });
+            if (selected === undefined) {
+              terminal.setNotice("Reasoning selection cancelled");
+              continue;
+            }
+            effort = selected;
+          } else if (argument === "auto") {
+            effort = null;
+          } else {
+            assertCondition(
+              isModelReasoningEffort(argument),
+              "SCHEMA_INVALID",
+              "Reasoning must be auto, none, minimal, low, medium, high, xhigh, or max",
+            );
+            assertCondition(
+              reasoningEffortIsSupported(activeReasoningCapabilities, argument),
+              "SCHEMA_INVALID",
+              `${activeProject.config.provider.model} does not advertise reasoning effort ${argument}`,
+            );
+            effort = argument;
+          }
+          activeProject = {
+            ...activeProject,
+            config: applyProductConfigOverrides(activeProject.config, {
+              reasoningEffort: effort,
+            }),
+          };
+          await saveProductConfig(activeProject.paths, activeProject.config, {
+            overwrite: true,
+          });
+          await refreshStatus();
+          terminal.setNotice(
+            `Reasoning: ${effort ?? "provider default"} · saved for following sessions`,
+          );
+        } else if (name === "fast") {
+          assertCondition(
+            activeProject.config.provider.kind === "openai",
+            "SCHEMA_INVALID",
+            "Fast mode is available only for direct OpenAI routes",
+          );
+          const supportsPriority =
+            productProviderCatalogEntry(
+              "openai",
+              activeProject.config.provider.model,
+            )?.serviceTiers?.some((tier) => tier.id === "priority") === true;
+          assertCondition(
+            supportsPriority,
+            "ARTIFACT_UNAVAILABLE",
+            `${activeProject.config.provider.model} does not advertise OpenAI priority processing`,
+          );
+          assertCondition(
+            argument === "" || argument === "on" || argument === "off",
+            "SCHEMA_INVALID",
+            "/fast accepts on or off",
+          );
+          const enable =
+            argument === "on" ||
+            (argument === "" && activeProject.config.provider.serviceTier !== "priority");
+          activeProject = {
+            ...activeProject,
+            config: applyProductConfigOverrides(activeProject.config, {
+              serviceTier: enable ? "priority" : "default",
+            }),
+          };
+          await saveProductConfig(activeProject.paths, activeProject.config, {
+            overwrite: true,
+          });
+          await refreshStatus();
+          terminal.setNotice(
+            `Fast mode: ${enable ? "ON · OpenAI priority processing" : "OFF · default service tier"} · applies to next task session`,
+          );
         } else if (name === "permissions") {
           terminal.appendMessage("system", permissionLabel(activeProject.config.permissionMode), {
             title: "PERMISSIONS",
@@ -1150,6 +1397,8 @@ async function chatCommand(
       workspace: { type: "string" },
       provider: { type: "string" },
       model: { type: "string" },
+      effort: { type: "string" },
+      fast: { type: "boolean" },
       endpoint: { type: "string" },
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
@@ -1168,6 +1417,8 @@ async function chatCommand(
     provider: parsed.values.provider,
     model: parsed.values.model,
     endpoint: parsed.values.endpoint,
+    effort: parsed.values.effort,
+    fast: parsed.values.fast,
     readOnly: parsed.values["read-only"],
     write: parsed.values.write,
     verify: parsed.values.verify,
@@ -1200,7 +1451,7 @@ export function productUsage(): string {
     "  seh --version",
     "  seh                              Start the interactive coding agent",
     "  seh [OPTIONS] \"task\"             Start interactively with an initial prompt",
-    "  seh init [--provider openai|openrouter|ollama] [--model MODEL] [--read-only]",
+    "  seh init [--provider NAME] [--model MODEL] [--effort LEVEL] [--fast] [--read-only]",
     "  seh run [OPTIONS] \"task\"          Run one task non-interactively",
     "  seh exec [OPTIONS] \"task\"         Alias for `seh run`",
     "  seh chat [OPTIONS]               Start the interactive coding agent",
@@ -1218,6 +1469,8 @@ export function productUsage(): string {
     "  --workspace PATH     Workspace to inspect or modify (default: current directory)",
     "  --provider NAME      openai, openrouter (250+ tool models), or ollama (local)",
     "  --model MODEL        Provider model name",
+    "  --effort LEVEL       auto, none, minimal, low, medium, high, xhigh, or max",
+    "  --fast               OpenAI priority processing when the model supports it",
     "  --endpoint URL       Ollama endpoint",
     "  --read-only          Disable write/edit/bash tools",
     "  --write              Enable workspace write tools",

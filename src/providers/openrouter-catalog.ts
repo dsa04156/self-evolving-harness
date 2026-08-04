@@ -1,4 +1,11 @@
 import { HarnessError, assertCondition } from "../core/errors.js";
+import type { ModelReasoningEffort } from "../domain/model.js";
+import {
+  NO_REASONING_CAPABILITIES,
+  normalizeReasoningCapabilities,
+  reasoningCapabilitiesSummary,
+  type ModelReasoningCapabilities,
+} from "../product/model-profile.js";
 import { OPENROUTER_ENDPOINT } from "../product/provider-registry.js";
 
 type FetchTransport = typeof globalThis.fetch;
@@ -10,6 +17,7 @@ export interface OpenRouterCatalogModel {
   readonly modelId: string;
   readonly name: string;
   readonly description: string;
+  readonly reasoning: ModelReasoningCapabilities;
 }
 
 function objectValue(value: unknown, detail: string): Record<string, unknown> {
@@ -38,6 +46,29 @@ function isFreeModel(model: Record<string, unknown>): boolean {
   if (typeof pricing !== "object" || pricing === null || Array.isArray(pricing)) return false;
   const values = pricing as Record<string, unknown>;
   return values["prompt"] === "0" && values["completion"] === "0";
+}
+
+function reasoningCapabilities(model: Record<string, unknown>): ModelReasoningCapabilities {
+  const value = model["reasoning"];
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return NO_REASONING_CAPABILITIES;
+  }
+  const reasoning = value as Record<string, unknown>;
+  const supported = reasoning["supported_efforts"];
+  const supportedEfforts: readonly string[] | null | undefined =
+    supported === null
+      ? null
+      : Array.isArray(supported)
+        ? supported.filter((effort): effort is ModelReasoningEffort => typeof effort === "string")
+        : undefined;
+  return normalizeReasoningCapabilities({
+    ...(typeof reasoning["default_effort"] === "string"
+      ? { defaultEffort: reasoning["default_effort"] }
+      : {}),
+    ...(supportedEfforts === undefined ? {} : { supportedEfforts }),
+    mandatory: reasoning["mandatory"] === true,
+    nullMeansAll: true,
+  });
 }
 
 async function boundedResponseText(response: Response): Promise<string> {
@@ -145,10 +176,16 @@ export async function listOpenRouterModels(
     const supported = model["supported_parameters"];
     if (!Array.isArray(supported) || !supported.includes("tools")) continue;
     const name = safeText(model["name"], modelId, 160);
-    const details = [tokenLabel(model["context_length"]), "tools", isFreeModel(model) ? "free" : null]
+    const reasoning = reasoningCapabilities(model);
+    const details = [
+      tokenLabel(model["context_length"]),
+      "tools",
+      reasoningCapabilitiesSummary(reasoning),
+      isFreeModel(model) ? "free" : null,
+    ]
       .filter((detail): detail is string => detail !== null)
       .join(" · ");
-    models.set(modelId, { modelId, name, description: details });
+    models.set(modelId, { modelId, name, description: details, reasoning });
   }
   return [...models.values()].sort((left, right) =>
     left.name.localeCompare(right.name) || left.modelId.localeCompare(right.modelId),

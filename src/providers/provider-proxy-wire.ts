@@ -21,6 +21,7 @@ import {
 } from "../contracts/schema-registry.js";
 import type {
   ModelProvider,
+  ModelReasoningEffort,
   ModelRequest,
   ModelResponse,
 } from "../domain/model.js";
@@ -66,14 +67,7 @@ export interface ProviderProxyRequestPayload {
     SerializableModelRequest,
     "reasoningEffort"
   > & {
-    readonly reasoningEffort:
-      | null
-      | "none"
-      | "low"
-      | "medium"
-      | "high"
-      | "xhigh"
-      | "max";
+    readonly reasoningEffort: ModelReasoningEffort | null;
   };
 }
 

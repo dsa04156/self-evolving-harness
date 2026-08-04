@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-a78bfa?style=flat-square">
+  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-a78bfa?style=flat-square">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-22d3ee?style=flat-square">
   <img alt="Standalone runtime" src="https://img.shields.io/badge/runtime-standalone-34d399?style=flat-square">
   <img alt="Research alpha" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
@@ -70,6 +70,8 @@ Type `/` and the command palette appears immediately:
 - a keyboard-driven session picker for `/resume`;
 - a searchable `/model` registry spanning direct OpenAI, 250+ live tool-capable OpenRouter routes,
   installed local models, curated examples, and exact custom IDs;
+- a second model-specific reasoning picker (`Low`, `Medium`, `High`, `Extra high`, then advanced
+  `Max`) plus `/effort` and an OpenAI `/fast` toggle;
 - `Shift+Enter` multiline editing and native bracketed paste;
 - `PageUp` / `PageDown` transcript navigation;
 - Korean and wide-character-aware cursor positioning;
@@ -89,6 +91,8 @@ Common interactive commands:
 | `/tools` / `/skills` | Inspect the active runtime surface |
 | `/context` | Show bounded thread and model context limits |
 | `/model` | Search providers and 250+ tool-capable model routes |
+| `/effort` | Select a reasoning level advertised by the active model |
+| `/fast` | Toggle OpenAI priority processing on supported models |
 | `/permissions` | Inspect the active authority profile |
 | `/read-only` / `/write` | Change authority for following turns |
 | `/memory` | Inspect persistent project memory |
@@ -130,7 +134,7 @@ seh -p "Explain the current Git diff"
 Initialize explicit workspace policy when you want the model, write authority, and verifier recorded before the first task:
 
 ```bash
-seh init --model YOUR_MODEL --write --verify "npm test"
+seh init --provider openai --model gpt-5.6-sol --effort high --fast --write --verify "npm test"
 seh doctor
 seh
 ```
@@ -207,7 +211,7 @@ SEH is a working research alpha, not a finished empirical claim.
 
 | Area | Status |
 | --- | --- |
-| User coding-agent CLI | Implemented: home, command palette, sessions, memory, tools, permissions, verification |
+| User coding-agent CLI | Implemented: home, command palette, model/effort/fast profiles, sessions, memory, tools, permissions, verification |
 | Deterministic standalone runtime | Implemented and covered by fake-model/fake-tool tests |
 | Versioned harness registry | Implemented |
 | Worktree-isolated bounded mutation | Implemented prototype |

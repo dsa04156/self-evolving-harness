@@ -143,3 +143,53 @@ clean-room, no-source-reuse decision.
 - Catalog visibility, endpoint discovery, credential presence, and successful inference remain four
   separate facts. No catalog row is presented as proof of account access.
 - No source or dependency was copied from any reference repository.
+
+## Codex model-profile follow-up — 2026-08-04
+
+- Repository / branch / exact commit: `openai/codex` / `main` /
+  `b2dc8b3e4be4fe3a453d50e13835f707b258f15b`
+- License: Apache-2.0
+
+The complete inspected path was:
+
+```text
+models-manager/models.json
+  → protocol/src/openai_models.rs::ModelPreset / ReasoningEffort
+  → models-manager/src/manager.rs catalog, cache, visibility, and default resolution
+  → tui/src/chatwidget/model_popups.rs model picker → reasoning picker
+  → AppEvent::UpdateModel / UpdateReasoningEffort / PersistModelSelection
+  → tui/src/app/config_persistence.rs
+  → core turn configuration
+  → core/src/client.rs reasoning_effort_for_request
+  → Responses API request
+```
+
+Observed facts:
+
+1. [`models.json`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/models-manager/models.json)
+   declares display name, description, default effort, ordered supported efforts, visibility,
+   priority, service tiers, and other runtime capabilities per model. Sol defaults to `low`; Terra
+   and Luna default to `medium`. Their normal single-model levels run through `max`.
+2. [`openai_models.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/protocol/src/openai_models.rs)
+   keeps model metadata typed in `ModelPreset`; `ReasoningEffort` is a separate value rather than a
+   suffix embedded in the model ID.
+3. [`model_popups.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/tui/src/chatwidget/model_popups.rs)
+   opens a model picker and then a model-specific effort picker. `Max` and `Ultra` are behind a
+   `More reasoning…` branch and acceptance emits separate update and persistence events.
+4. [`reasoning_shortcuts.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/tui/src/chatwidget/reasoning_shortcuts.rs)
+   steps only through the active model's advertised efforts and does not silently cross into the
+   advanced levels.
+5. [`service_tiers.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/tui/src/chatwidget/service_tiers.rs)
+   and [`service_tier_resolution.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/tui/src/service_tier_resolution.rs)
+   resolve speed separately from model and reasoning; the current catalog advertises `priority` as
+   `Fast` on supported models.
+6. [`client.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/core/src/client.rs)
+   maps `Ultra` to provider-wire `Max`, while
+   [`multi_agents.rs`](https://github.com/openai/codex/blob/b2dc8b3e4be4fe3a453d50e13835f707b258f15b/codex-rs/core/src/session/multi_agents.rs)
+   maps the same product selection to proactive multi-agent mode. Therefore `Ultra` is not merely
+   another portable API effort.
+
+SEH adoption: a clean-room typed execution profile, two-stage `/model` picker, `/effort`, `/fast`,
+model-specific validation, persisted project configuration, immutable per-session profile evidence,
+and provider-wire propagation. SEH deliberately stops at `Max`; it will not label a single-model call
+as `Ultra` until it owns the corresponding proactive multi-agent behavior.

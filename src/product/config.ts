@@ -14,11 +14,27 @@ import path from "node:path";
 
 import { parseStrictJson, sha256Text, type JsonValue } from "../core/canonical.js";
 import { HarnessError, assertCondition } from "../core/errors.js";
+import {
+  isModelReasoningEffort,
+  type ModelReasoningEffort,
+} from "../domain/model.js";
 import type { BudgetLimits } from "../domain/runtime.js";
 import {
+  reasoningEffortIsSupported,
+  selectDefaultReasoningEffort,
+} from "./model-profile.js";
+import {
   OPENROUTER_ENDPOINT,
+  productProviderCatalogEntry,
   type ProductProviderKind,
 } from "./provider-registry.js";
+
+export type ProductServiceTier =
+  | "auto"
+  | "default"
+  | "flex"
+  | "scale"
+  | "priority";
 
 export type ProductProviderConfig =
   | {
@@ -26,17 +42,20 @@ export type ProductProviderConfig =
       readonly model: string;
       readonly endpoint: string;
       readonly requestTimeoutMillis: number;
+      readonly reasoningEffort: null;
     }
   | {
       readonly kind: "openai";
       readonly model: string;
-      readonly serviceTier: "auto" | "default" | "flex" | "scale" | "priority";
+      readonly reasoningEffort: ModelReasoningEffort | null;
+      readonly serviceTier: ProductServiceTier;
     }
   | {
       readonly kind: "openrouter";
       readonly model: string;
       readonly endpoint: string;
       readonly requestTimeoutMillis: number;
+      readonly reasoningEffort: ModelReasoningEffort | null;
     };
 
 export type PermissionMode = "read-only" | "workspace-write";
@@ -76,6 +95,8 @@ export interface ProductConfigOverrides {
   readonly providerKind?: ProductProviderKind;
   readonly model?: string;
   readonly endpoint?: string;
+  readonly reasoningEffort?: ModelReasoningEffort | null;
+  readonly serviceTier?: ProductServiceTier;
   readonly permissionMode?: PermissionMode;
   readonly verificationCommands?: readonly string[];
 }
@@ -105,6 +126,81 @@ function exactKeys(
     "SCHEMA_INVALID",
     `${detail} has unknown or missing fields`,
   );
+}
+
+function exactKeysWithOptional(
+  value: Record<string, JsonValue>,
+  required: readonly string[],
+  optional: readonly string[],
+  detail: string,
+): void {
+  const actual = Object.keys(value);
+  const allowed = new Set([...required, ...optional]);
+  assertCondition(
+    required.every((key) => Object.hasOwn(value, key)) &&
+      actual.every((key) => allowed.has(key)),
+    "SCHEMA_INVALID",
+    `${detail} has unknown or missing fields`,
+  );
+}
+
+function optionalReasoningEffort(
+  value: JsonValue | undefined,
+  name: string,
+): ModelReasoningEffort | null {
+  if (value === undefined || value === null) return null;
+  assertCondition(
+    typeof value === "string" && isModelReasoningEffort(value),
+    "SCHEMA_INVALID",
+    `${name} is not a supported reasoning effort`,
+  );
+  return value;
+}
+
+function defaultReasoningEffort(
+  kind: ProductProviderKind,
+  model: string,
+): ModelReasoningEffort | null {
+  if (kind === "ollama") return null;
+  const capabilities = productProviderCatalogEntry(kind, model)?.reasoning;
+  return capabilities === undefined ? null : selectDefaultReasoningEffort(capabilities);
+}
+
+function resolvedReasoningEffort(input: {
+  readonly kind: ProductProviderKind;
+  readonly model: string;
+  readonly explicit: ModelReasoningEffort | null | undefined;
+  readonly prior: ProductProviderConfig | null;
+}): ModelReasoningEffort | null {
+  if (input.kind === "ollama") {
+    assertCondition(
+      input.explicit === undefined || input.explicit === null,
+      "SCHEMA_INVALID",
+      "Ollama does not expose a portable reasoning-effort control",
+    );
+    return null;
+  }
+  const sameRoute =
+    input.prior?.kind === input.kind && input.prior.model === input.model;
+  const effort =
+    input.explicit !== undefined
+      ? input.explicit
+      : sameRoute
+        ? input.prior.reasoningEffort
+        : defaultReasoningEffort(input.kind, input.model);
+  if (effort === null) return null;
+  // Direct OpenAI presets are pinned with this release. OpenRouter discovery is
+  // live and may legitimately supersede the bundled example metadata.
+  const capabilities =
+    input.kind === "openai"
+      ? productProviderCatalogEntry(input.kind, input.model)?.reasoning
+      : undefined;
+  assertCondition(
+    capabilities === undefined || reasoningEffortIsSupported(capabilities, effort),
+    "SCHEMA_INVALID",
+    `${input.kind}/${input.model} does not advertise reasoning effort ${effort}`,
+  );
+  return effort;
 }
 
 function stringValue(value: JsonValue | undefined, name: string): string {
@@ -177,10 +273,16 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
   const provider = record(value, "provider must be an object");
   const kind = provider["kind"];
   if (kind === "ollama") {
-    exactKeys(
+    exactKeysWithOptional(
       provider,
       ["kind", "model", "endpoint", "requestTimeoutMillis"],
+      ["reasoningEffort"],
       "Ollama provider",
+    );
+    assertCondition(
+      optionalReasoningEffort(provider["reasoningEffort"], "provider.reasoningEffort") === null,
+      "SCHEMA_INVALID",
+      "Ollama reasoningEffort must be null",
     );
     const endpoint = stringValue(provider["endpoint"], "provider.endpoint");
     let url: URL;
@@ -208,12 +310,14 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
         1_000,
         86_400_000,
       ),
+      reasoningEffort: null,
     };
   }
   if (kind === "openrouter") {
-    exactKeys(
+    exactKeysWithOptional(
       provider,
       ["kind", "model", "endpoint", "requestTimeoutMillis"],
+      ["reasoningEffort"],
       "OpenRouter provider",
     );
     const endpoint = stringValue(provider["endpoint"], "provider.endpoint");
@@ -233,9 +337,14 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
       "AUTHORIZATION_DENIED",
       `OpenRouter endpoint must be ${OPENROUTER_ENDPOINT}`,
     );
+    const model = stringValue(provider["model"], "provider.model");
+    const reasoningEffort = optionalReasoningEffort(
+      provider["reasoningEffort"],
+      "provider.reasoningEffort",
+    );
     return {
       kind,
-      model: stringValue(provider["model"], "provider.model"),
+      model,
       endpoint: OPENROUTER_ENDPOINT,
       requestTimeoutMillis: integerValue(
         provider["requestTimeoutMillis"],
@@ -243,10 +352,16 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
         1_000,
         86_400_000,
       ),
+      reasoningEffort,
     };
   }
   assertCondition(kind === "openai", "SCHEMA_INVALID", "Unknown provider kind");
-  exactKeys(provider, ["kind", "model", "serviceTier"], "OpenAI provider");
+  exactKeysWithOptional(
+    provider,
+    ["kind", "model", "serviceTier"],
+    ["reasoningEffort"],
+    "OpenAI provider",
+  );
   const serviceTier = provider["serviceTier"];
   assertCondition(
     serviceTier === "auto" ||
@@ -257,9 +372,31 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
     "SCHEMA_INVALID",
     "Invalid OpenAI service tier",
   );
+  const model = stringValue(provider["model"], "provider.model");
+  const reasoningEffort = optionalReasoningEffort(
+    provider["reasoningEffort"],
+    "provider.reasoningEffort",
+  );
+  const capabilities = productProviderCatalogEntry(kind, model)?.reasoning;
+  assertCondition(
+    reasoningEffort === null ||
+      capabilities === undefined ||
+      reasoningEffortIsSupported(capabilities, reasoningEffort),
+    "SCHEMA_INVALID",
+    `${kind}/${model} does not advertise reasoning effort ${reasoningEffort ?? "auto"}`,
+  );
+  const catalogEntry = productProviderCatalogEntry(kind, model);
+  assertCondition(
+    serviceTier !== "priority" ||
+      catalogEntry === null ||
+      catalogEntry.serviceTiers?.some((tier) => tier.id === "priority") === true,
+    "SCHEMA_INVALID",
+    `${kind}/${model} does not advertise priority processing`,
+  );
   return {
     kind,
-    model: stringValue(provider["model"], "provider.model"),
+    model,
+    reasoningEffort,
     serviceTier,
   };
 }
@@ -276,6 +413,18 @@ export function defaultProductConfig(
     "--endpoint is supported only for the local Ollama provider",
   );
   assertCondition(
+    overrides.serviceTier === undefined || providerKind === "openai",
+    "SCHEMA_INVALID",
+    "Service tier is supported only by the direct OpenAI provider",
+  );
+  assertCondition(
+    providerKind !== "ollama" ||
+      overrides.reasoningEffort === undefined ||
+      overrides.reasoningEffort === null,
+    "SCHEMA_INVALID",
+    "Ollama does not expose a portable reasoning-effort control",
+  );
+  assertCondition(
     providerKind === "ollama" || overrides.model !== undefined,
     "SCHEMA_INVALID",
     `${providerKind} setup requires an explicit --model`,
@@ -290,18 +439,31 @@ export function defaultProductConfig(
             model,
             endpoint: overrides.endpoint ?? DEFAULT_OLLAMA_ENDPOINT,
             requestTimeoutMillis: 10 * 60_000,
+            reasoningEffort: null,
           }
         : providerKind === "openai"
           ? {
             kind: "openai",
             model,
-            serviceTier: "default",
+            reasoningEffort: resolvedReasoningEffort({
+              kind: "openai",
+              model,
+              explicit: overrides.reasoningEffort,
+              prior: null,
+            }),
+            serviceTier: overrides.serviceTier ?? "default",
           }
           : {
               kind: "openrouter",
               model,
               endpoint: OPENROUTER_ENDPOINT,
               requestTimeoutMillis: 10 * 60_000,
+              reasoningEffort: resolvedReasoningEffort({
+                kind: "openrouter",
+                model,
+                explicit: overrides.reasoningEffort,
+                prior: null,
+              }),
             },
     permissionMode: overrides.permissionMode ?? "workspace-write",
     budget: {
@@ -337,6 +499,18 @@ export function applyProductConfigOverrides(
     "AUTHORIZATION_DENIED",
     "--endpoint is supported only for the local Ollama provider",
   );
+  assertCondition(
+    overrides.serviceTier === undefined || providerKind === "openai",
+    "SCHEMA_INVALID",
+    "Service tier is supported only by the direct OpenAI provider",
+  );
+  assertCondition(
+    providerKind !== "ollama" ||
+      overrides.reasoningEffort === undefined ||
+      overrides.reasoningEffort === null,
+    "SCHEMA_INVALID",
+    "Ollama does not expose a portable reasoning-effort control",
+  );
   let provider: ProductProviderConfig;
   if (providerKind === "ollama") {
     const prior = config.provider.kind === "ollama" ? config.provider : null;
@@ -345,6 +519,7 @@ export function applyProductConfigOverrides(
       model: overrides.model ?? prior?.model ?? DEFAULT_OLLAMA_MODEL,
       endpoint: overrides.endpoint ?? prior?.endpoint ?? DEFAULT_OLLAMA_ENDPOINT,
       requestTimeoutMillis: prior?.requestTimeoutMillis ?? 10 * 60_000,
+      reasoningEffort: null,
     };
   } else if (providerKind === "openai") {
     const prior = config.provider.kind === "openai" ? config.provider : null;
@@ -357,7 +532,15 @@ export function applyProductConfigOverrides(
     provider = {
       kind: "openai",
       model,
-      serviceTier: prior?.serviceTier ?? "default",
+      reasoningEffort: resolvedReasoningEffort({
+        kind: "openai",
+        model,
+        explicit: overrides.reasoningEffort,
+        prior: config.provider,
+      }),
+      serviceTier:
+        overrides.serviceTier ??
+        (prior?.model === model ? prior.serviceTier : "default"),
     };
   } else {
     const prior = config.provider.kind === "openrouter" ? config.provider : null;
@@ -372,6 +555,12 @@ export function applyProductConfigOverrides(
       model,
       endpoint: OPENROUTER_ENDPOINT,
       requestTimeoutMillis: prior?.requestTimeoutMillis ?? 10 * 60_000,
+      reasoningEffort: resolvedReasoningEffort({
+        kind: "openrouter",
+        model,
+        explicit: overrides.reasoningEffort,
+        prior: config.provider,
+      }),
     };
   }
   return parseProductConfig({

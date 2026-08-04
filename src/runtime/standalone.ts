@@ -14,7 +14,7 @@ import {
   SecretRedactor,
   type RuntimeEvent,
 } from "../evidence/runtime-events.js";
-import type { ModelProvider } from "../domain/model.js";
+import type { ModelProvider, ModelReasoningEffort } from "../domain/model.js";
 import type { PrincipalSigner } from "../trust/identity.js";
 import { ArtifactStore } from "../storage/artifact-store.js";
 import { registerBuiltinTools } from "../tools/builtins.js";
@@ -50,7 +50,7 @@ export interface StandaloneRuntimeOptions {
   readonly sessionId: string;
   readonly pins: SessionPins;
   readonly modelIdentity: string;
-  readonly reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  readonly reasoningEffort?: ModelReasoningEffort;
   readonly runtimeSigner: PrincipalSigner;
   readonly budgetLimits: BudgetLimits;
   readonly clock: Clock;

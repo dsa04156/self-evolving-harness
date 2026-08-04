@@ -101,6 +101,7 @@
           "enum": [
             null,
             "none",
+            "minimal",
             "low",
             "medium",
             "high",

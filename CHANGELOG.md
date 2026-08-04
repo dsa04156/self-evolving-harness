@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.0 — model execution profiles
+
+### New features
+
+- **Codex-style two-stage selection**: `/model` now leads into a second picker containing only the
+  selected route's advertised reasoning levels. Common levels stay on the first screen; `Max` is
+  behind `More reasoning…` with an explicit cost/latency warning.
+- **Reasoning and speed controls**: `/effort` changes the active model's reasoning level and `/fast`
+  toggles OpenAI priority processing only when the catalog advertises it. The same controls are
+  available as `--effort` and `--fast` flags with native shell completion.
+- **Live OpenRouter capabilities**: The public model catalog now imports each route's supported and
+  default reasoning efforts, including mandatory-reasoning semantics.
+
+### Correctness and evidence
+
+- Selected effort is persisted in project configuration, hashed into model-request evidence, passed
+  to OpenAI Responses or OpenRouter Chat Completions, and pinned in immutable session metadata.
+- OpenRouter provider-native `reasoning_details` are preserved unchanged across tool-call
+  continuations and remain bound to the same provider.
+- Unsupported known model/effort and model/priority combinations fail before inference.
+- `Ultra` is deliberately not exposed as a single-model effort because Codex maps it to `Max` plus
+  proactive multi-agent orchestration; SEH does not claim behavior it has not implemented.
+
 ## 0.5.0 — multi-provider model registry
 
 ### New features

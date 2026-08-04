@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.5.0";
+export const PRODUCT_CLI_VERSION = "0.6.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -167,6 +167,11 @@ export function interactiveBanner(input: {
     paint(color, "1;36", `SEH ${PRODUCT_CLI_VERSION}`) + "  standalone coding agent",
     `workspace    ${input.workspaceRoot}`,
     `model        ${input.config.provider.kind}/${input.config.provider.model}`,
+    `reasoning    ${input.config.provider.reasoningEffort ?? "provider default"}${
+      input.config.provider.kind === "openai" && input.config.provider.serviceTier === "priority"
+        ? " · FAST"
+        : ""
+    }`,
     `permissions  ${input.config.permissionMode} · shell network denied`,
     `verification ${verification}`,
     "",
@@ -184,6 +189,8 @@ export function interactiveHelp(): string {
     "  /sessions                 List recent sessions",
     "  /resume [ID] [guidance]   Pick or load a prior session into this thread",
     "  /model [model-id]         Search providers and 250+ tool-capable model routes",
+    "  /effort [LEVEL|auto]      Select only reasoning levels advertised by the model",
+    "  /fast [on|off]            Toggle OpenAI priority processing when supported",
     "  /permissions              Show the active permission profile",
     "  /read-only                Use read-only tools for following turns",
     "  /write                    Use workspace-write tools for following turns",
@@ -200,6 +207,7 @@ export function interactiveHelp(): string {
     "",
     "Paste directly; Shift+Enter inserts a newline. Prefix a literal slash task with // (for example: //route).",
     "Each task is a new auditable child session. /new and /resume do not evolve the harness.",
+    "SEH exposes single-model effort through max. Codex Ultra is intentionally absent because it also enables proactive multi-agent orchestration.",
   ].join("\n");
 }
 

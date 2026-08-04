@@ -84,6 +84,7 @@ export * from "./product/cli.js";
 export * from "./product/defaults.js";
 export * from "./product/interactive.js";
 export * from "./product/model-catalog.js";
+export * from "./product/model-profile.js";
 export * from "./product/provider-registry.js";
 export * from "./product/session-store.js";
 export * from "./product/terminal-ui.js";

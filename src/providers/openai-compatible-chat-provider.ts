@@ -48,6 +48,8 @@ function historyEnvelope(
   message: {
     readonly content: string | null;
     readonly tool_calls?: readonly unknown[];
+    readonly reasoning?: unknown;
+    readonly reasoning_details?: unknown;
   },
 ): ChatHistoryEnvelope {
   return {
@@ -58,6 +60,10 @@ function historyEnvelope(
         role: "assistant",
         content: message.content,
         ...(message.tool_calls === undefined ? {} : { tool_calls: message.tool_calls }),
+        ...(message.reasoning === undefined ? {} : { reasoning: message.reasoning }),
+        ...(message.reasoning_details === undefined
+          ? {}
+          : { reasoning_details: message.reasoning_details }),
       },
       "Chat completion history is not JSON",
     ),
@@ -167,13 +173,18 @@ export class OpenAICompatibleChatProvider implements ModelProvider {
       "PROTOCOL_MISMATCH",
       "Requested model identity differs from the pinned provider identity",
     );
-    const params: ChatCompletionCreateParamsNonStreaming = {
+    const params: ChatCompletionCreateParamsNonStreaming & {
+      readonly reasoning?: { readonly effort: NonNullable<ModelRequest["reasoningEffort"]> };
+    } = {
       model: this.#options.apiModel,
       messages: toMessages(request, this.providerId),
       tools: toTools(request),
       max_tokens: request.maxOutputTokens,
       parallel_tool_calls: false,
       stream: false,
+      ...(request.reasoningEffort === undefined
+        ? {}
+        : { reasoning: { effort: request.reasoningEffort } }),
     };
     let response: ChatCompletion;
     try {
@@ -196,6 +207,7 @@ export class OpenAICompatibleChatProvider implements ModelProvider {
     assertCondition(choice !== undefined, "SCHEMA_INVALID", `${this.providerId} returned no choices`);
     assertCondition(response.usage !== undefined, "SCHEMA_INVALID", `${this.providerId} omitted token usage`);
     const message = choice.message;
+    const providerMessage = message as unknown as Record<string, unknown>;
     const toolCalls = message.tool_calls ?? [];
     const output: ModelOutputItem[] = [];
     if (toolCalls.length > 0) {
@@ -209,6 +221,12 @@ export class OpenAICompatibleChatProvider implements ModelProvider {
         providerItem: historyEnvelope(this.providerId, {
           content: message.content,
           tool_calls: toolCalls,
+          ...(providerMessage["reasoning"] === undefined
+            ? {}
+            : { reasoning: providerMessage["reasoning"] }),
+          ...(providerMessage["reasoning_details"] === undefined
+            ? {}
+            : { reasoning_details: providerMessage["reasoning_details"] }),
         }) as unknown as JsonValue,
       });
       for (const call of toolCalls) {
@@ -256,6 +274,7 @@ export class OpenAICompatibleChatProvider implements ModelProvider {
         reportedModel: response.model,
         finishReason: choice.finish_reason,
         transport: "openai-chat-completions",
+        requestedReasoningEffort: request.reasoningEffort ?? null,
       },
     };
   }

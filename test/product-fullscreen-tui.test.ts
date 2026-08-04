@@ -15,10 +15,12 @@ import {
 } from "../src/index.js";
 
 const status: FullscreenTuiStatus = {
-  version: "0.5.0",
+  version: "0.6.0",
   workspaceRoot: "/workspace/example",
   provider: "openai",
   model: "test-coder",
+  reasoningEffort: "high",
+  fastMode: true,
   permissionMode: "workspace-write",
   verificationCount: 2,
   threadNumber: 3,
@@ -45,6 +47,8 @@ test("full-screen TUI exposes product status, home, and an enabled composer", as
   assert.match(frame, /SELF-EVOLVING CODING AGENT/u);
   assert.match(frame, /example/u);
   assert.match(frame, /openai\/test-coder/u);
+  assert.match(frame, /HIGH/u);
+  assert.match(frame, /FAST/u);
   assert.match(frame, /WORKSPACE WRITE/u);
   assert.match(frame, /TASK EXECUTION/u);
   assert.match(frame, /HARNESS EVOLUTION/u);
@@ -175,6 +179,7 @@ test("model catalog orders current, discovered, examples, and custom entry", () 
       model: "current-coder:latest",
       endpoint: "http://127.0.0.1:11434",
       requestTimeoutMillis: 1_000,
+      reasoningEffort: null,
     },
     discoveredModels: ["zeta:latest", "current-coder:latest", "alpha:latest"],
   });
@@ -200,6 +205,7 @@ test("OpenAI model catalog exposes role-preserving examples without claiming acc
     provider: {
       kind: "openai",
       model: "gpt-5.6-terra",
+      reasoningEffort: "medium",
       serviceTier: "default",
     },
   });

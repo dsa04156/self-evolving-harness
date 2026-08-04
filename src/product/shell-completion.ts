@@ -21,6 +21,8 @@ const COMMON_OPTIONS = [
   "--workspace",
   "--provider",
   "--model",
+  "--effort",
+  "--fast",
   "--endpoint",
   "--read-only",
   "--write",
@@ -45,6 +47,7 @@ _seh_completion() {
   case "\${previous}" in
     --workspace) COMPREPLY=( $(compgen -d -- "\${current}") ); return ;;
     --provider) COMPREPLY=( $(compgen -W 'openai openrouter ollama' -- "\${current}") ); return ;;
+    --effort) COMPREPLY=( $(compgen -W 'auto none minimal low medium high xhigh max' -- "\${current}") ); return ;;
     --read-only|--write) return ;;
   esac
 
@@ -86,7 +89,7 @@ _seh() {
       case $words[2] in
         completion) _values 'shell' bash zsh fish ;;
         memory) _values 'action' add list ;;
-        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' ;;
+        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--effort[reasoning effort]:effort:(auto none minimal low medium high xhigh max)' '--fast[OpenAI priority processing]' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' ;;
       esac
       ;;
   esac
@@ -120,6 +123,8 @@ function fishCompletion(): string {
     "complete -c seh -l workspace -r -a '(__fish_complete_directories)' -d 'Workspace path'",
     "complete -c seh -l provider -r -a 'openai openrouter ollama' -d 'Model provider'",
     "complete -c seh -l model -r -d 'Model name'",
+    "complete -c seh -l effort -r -a 'auto none minimal low medium high xhigh max' -d 'Reasoning effort'",
+    "complete -c seh -l fast -d 'OpenAI priority processing'",
     "complete -c seh -l read-only -d 'Disable mutation tools'",
     "complete -c seh -l write -d 'Enable workspace mutation tools'",
     "complete -c seh -l verify -r -d 'Verification command'",

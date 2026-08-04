@@ -16,10 +16,11 @@ import type {
   BudgetUsage,
   VerificationResult,
 } from "../domain/runtime.js";
-import type { ModelUsage } from "../domain/model.js";
+import type { ModelReasoningEffort, ModelUsage } from "../domain/model.js";
 import type {
   PermissionMode,
   ProductProviderConfig,
+  ProductServiceTier,
   ProductStatePaths,
 } from "./config.js";
 
@@ -56,6 +57,11 @@ export interface ProductSessionRecord {
   readonly provider: {
     readonly kind: ProductProviderConfig["kind"];
     readonly model: string;
+  };
+  /** Immutable per-session model execution profile. Added in CLI 0.6.0. */
+  readonly executionProfile?: {
+    readonly reasoningEffort: ModelReasoningEffort | null;
+    readonly serviceTier: ProductServiceTier | null;
   };
   readonly permissionMode: PermissionMode;
   readonly verificationCommands: readonly string[];
@@ -196,6 +202,11 @@ export class ProductSessionStore {
       runtimeTaskHash: input.runtimeTaskHash,
       contextSessionIds: [...input.contextSessionIds],
       provider: { kind: input.provider.kind, model: input.provider.model },
+      executionProfile: {
+        reasoningEffort: input.provider.reasoningEffort,
+        serviceTier:
+          input.provider.kind === "openai" ? input.provider.serviceTier : null,
+      },
       permissionMode: input.permissionMode,
       verificationCommands: [...input.verificationCommands],
       state: "created",
@@ -225,6 +236,11 @@ export class ProductSessionStore {
         core.task === previous.task &&
         core.runtimeTaskHash === previous.runtimeTaskHash &&
         JSON.stringify(core.contextSessionIds) === JSON.stringify(previous.contextSessionIds) &&
+        JSON.stringify(core.provider) === JSON.stringify(previous.provider) &&
+        JSON.stringify(core.executionProfile) === JSON.stringify(previous.executionProfile) &&
+        core.permissionMode === previous.permissionMode &&
+        JSON.stringify(core.verificationCommands) ===
+          JSON.stringify(previous.verificationCommands) &&
         core.createdAt === previous.createdAt,
       "AUTHORIZATION_DENIED",
       "Product session immutable fields cannot change",

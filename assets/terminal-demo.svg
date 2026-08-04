@@ -37,12 +37,16 @@
     <rect x="72" y="108" width="1056" height="82" rx="12" fill="#0c131f" stroke="#28364a"/>
     <rect x="72" y="108" width="5" height="82" rx="3" fill="url(#accent)"/>
     <text x="98" y="141" fill="#67e8f9" font-size="22" font-weight="700">SEH</text>
-    <text x="154" y="141" fill="#718096" font-size="13">v0.5.0</text>
+    <text x="154" y="141" fill="#718096" font-size="13">v0.6.0</text>
     <text x="223" y="141" fill="#f1f5f9" font-size="15" font-weight="700">SELF-EVOLVING CODING AGENT</text>
     <text x="98" y="170" fill="#67e8f9" font-size="13">my-project</text>
-    <text x="734" y="170" fill="#c4b5fd" font-size="13">openai/gpt-5.6-terra</text>
-    <text x="920" y="170" fill="#475569" font-size="13">·</text>
-    <text x="940" y="170" fill="#6ee7b7" font-size="13">WORKSPACE WRITE</text>
+    <text x="680" y="170" fill="#c4b5fd" font-size="12">openai/gpt-5.6-sol</text>
+    <text x="845" y="170" fill="#475569" font-size="12">·</text>
+    <text x="861" y="170" fill="#fbbf24" font-size="12">HIGH</text>
+    <text x="901" y="170" fill="#475569" font-size="12">·</text>
+    <text x="917" y="170" fill="#4ade80" font-size="12" font-weight="700">FAST</text>
+    <text x="955" y="170" fill="#475569" font-size="12">·</text>
+    <text x="971" y="170" fill="#6ee7b7" font-size="12">WORKSPACE WRITE</text>
 
     <g text-anchor="middle">
       <text x="600" y="241" fill="#67e8f9" font-size="18" font-weight="700">●  ╭────────  TASK EXECUTION  ────────╮  ·</text>
@@ -58,16 +62,16 @@
 
     <text x="600" y="490" text-anchor="middle" fill="#67e8f9" font-size="15" font-weight="700">Ready in my-project</text>
     <text x="600" y="516" text-anchor="middle" fill="#718096" font-size="12">describe a task or press  /</text>
-    <text x="300" y="549" fill="#c084fc" font-size="12">/resume</text>
-    <text x="359" y="549" fill="#8fa0b7" font-size="12">history</text>
-    <text x="445" y="549" fill="#c084fc" font-size="12">/review</text>
-    <text x="497" y="549" fill="#8fa0b7" font-size="12">diff</text>
-    <text x="555" y="549" fill="#c084fc" font-size="12">/skills</text>
-    <text x="605" y="549" fill="#8fa0b7" font-size="12">workflow</text>
-    <text x="692" y="549" fill="#c084fc" font-size="12">/tools</text>
-    <text x="737" y="549" fill="#8fa0b7" font-size="12">authority</text>
-    <text x="827" y="549" fill="#c084fc" font-size="12">/model</text>
-    <text x="880" y="549" fill="#8fa0b7" font-size="12">models</text>
+    <text x="300" y="549" fill="#c084fc" font-size="12">/model</text>
+    <text x="353" y="549" fill="#8fa0b7" font-size="12">route</text>
+    <text x="415" y="549" fill="#c084fc" font-size="12">/effort</text>
+    <text x="474" y="549" fill="#8fa0b7" font-size="12">reasoning</text>
+    <text x="560" y="549" fill="#c084fc" font-size="12">/resume</text>
+    <text x="619" y="549" fill="#8fa0b7" font-size="12">history</text>
+    <text x="684" y="549" fill="#c084fc" font-size="12">/review</text>
+    <text x="736" y="549" fill="#8fa0b7" font-size="12">diff</text>
+    <text x="780" y="549" fill="#c084fc" font-size="12">/tools</text>
+    <text x="825" y="549" fill="#8fa0b7" font-size="12">authority</text>
 
     <rect x="78" y="588" width="1044" height="72" rx="12" fill="#0d1420" stroke="#22d3ee"/>
     <text x="103" y="632" fill="#67e8f9" font-size="20" font-weight="700">❯</text>

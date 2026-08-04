@@ -4,6 +4,7 @@ import { HarnessError, asHarnessError } from "../core/errors.js";
 import type {
   ModelInputItem,
   ModelProvider,
+  ModelReasoningEffort,
   ModelResponse,
   ModelUsage,
   ToolCallOutput,
@@ -90,7 +91,7 @@ export interface AgentLoopConfiguration {
   readonly pins: SessionPins;
   readonly modelIdentity: string;
   readonly maxOutputTokensPerCall: number;
-  readonly reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  readonly reasoningEffort?: ModelReasoningEffort;
   readonly workspaceRoot: string;
   readonly prompt: PromptPayload;
   readonly skills: readonly DeclarativeSkill[];
@@ -233,6 +234,7 @@ export class AgentExecutionLoop {
               input: request.input,
               tools: request.tools,
               maxOutputTokens: request.maxOutputTokens,
+              reasoningEffort: request.reasoningEffort ?? null,
             }),
           },
           origin: {

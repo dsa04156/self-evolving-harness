@@ -179,6 +179,7 @@ export class OpenAIResponsesProvider implements ModelProvider {
         reportedModel: response.model,
         status: response.status ?? null,
         serviceTier: response.service_tier ?? null,
+        requestedReasoningEffort: request.reasoningEffort ?? null,
         store: false,
       },
     };

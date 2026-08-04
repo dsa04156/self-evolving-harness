@@ -32,6 +32,7 @@ function request(input: ModelRequest["input"]): ModelRequest {
       },
     ],
     maxOutputTokens: 512,
+    reasoningEffort: "high",
   };
 }
 
@@ -56,6 +57,10 @@ test("OpenRouter-compatible adapter preserves tool-call history inside the SEH l
                     role: "assistant",
                     content: null,
                     refusal: null,
+                    reasoning: "provider-native summary",
+                    reasoning_details: [
+                      { type: "reasoning.text", text: "provider-native detail" },
+                    ],
                     tool_calls: [
                       {
                         id: "call-read-1",
@@ -131,10 +136,17 @@ test("OpenRouter-compatible adapter preserves tool-call history inside the SEH l
   );
   assert.equal(second.output[0]?.kind, "assistant_message");
   const secondParams = observed[1] as {
-    messages: { role: string; tool_call_id?: string; tool_calls?: unknown[] }[];
+    messages: {
+      role: string;
+      tool_call_id?: string;
+      tool_calls?: unknown[];
+      reasoning?: unknown;
+      reasoning_details?: unknown;
+    }[];
     tools: { function: { strict?: boolean } }[];
     parallel_tool_calls: boolean;
     model: string;
+    reasoning: { effort: string };
   };
   assert.equal(secondParams.model, "vendor/coder");
   assert.deepEqual(secondParams.messages.map((message) => message.role), [
@@ -144,9 +156,15 @@ test("OpenRouter-compatible adapter preserves tool-call history inside the SEH l
     "tool",
   ]);
   assert.equal(secondParams.messages[2]?.tool_calls?.length, 1);
+  assert.equal(secondParams.messages[2]?.reasoning, "provider-native summary");
+  assert.deepEqual(secondParams.messages[2]?.reasoning_details, [
+    { type: "reasoning.text", text: "provider-native detail" },
+  ]);
   assert.equal(secondParams.messages[3]?.tool_call_id, "call-read-1");
   assert.equal(secondParams.tools[0]?.function.strict, undefined);
   assert.equal(secondParams.parallel_tool_calls, false);
+  assert.deepEqual(secondParams.reasoning, { effort: "high" });
+  assert.equal(second.providerMetadata["requestedReasoningEffort"], "high");
 });
 
 test("OpenRouter-compatible adapter rejects provider-state confusion", async () => {
@@ -195,6 +213,11 @@ test("OpenRouter catalog discovery returns only bounded tool-capable models", as
               name: "Vendor:\u0000 Coder",
               context_length: 1_000_000,
               supported_parameters: ["tools", "max_tokens"],
+              reasoning: {
+                supported_efforts: ["low", "high"],
+                default_effort: "high",
+                mandatory: true,
+              },
               pricing: { prompt: "0", completion: "0" },
             },
             {
@@ -215,7 +238,12 @@ test("OpenRouter catalog discovery returns only bounded tool-capable models", as
     {
       modelId: "vendor/coder",
       name: "Vendor:  Coder",
-      description: "1M ctx · tools · free",
+      description: "1M ctx · tools · reasoning low→high · default high · required · free",
+      reasoning: {
+        defaultEffort: "high",
+        supportedEfforts: ["low", "high"],
+        mandatory: true,
+      },
     },
   ]);
 });
@@ -252,6 +280,7 @@ test("product config switches to an executable OpenRouter route without persisti
     model: "anthropic/claude-sonnet-5",
     endpoint: "https://openrouter.ai/api/v1",
     requestTimeoutMillis: 600_000,
+    reasoningEffort: null,
   });
   assert.doesNotMatch(JSON.stringify(remote), /API_KEY|sk-/u);
 });

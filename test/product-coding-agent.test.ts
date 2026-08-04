@@ -13,6 +13,7 @@ import {
   RandomIdFactory,
   SystemClock,
   defaultProductConfig,
+  applyProductConfigOverrides,
   passingVerification,
   runCodingAgentTask,
   sha256,
@@ -165,4 +166,49 @@ test("product coding agent edits the bound repository and persists session memor
     (error: unknown) => error instanceof HarnessError && error.code === "SCHEMA_INVALID",
   );
   await assert.rejects(() => readFile(path.join(workspace, ".seh", "session.json"), "utf8"));
+});
+
+test("selected reasoning and service tier are pinned to a new product session", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-profile-"));
+  const workspace = path.join(root, "workspace");
+  await mkdir(workspace, { recursive: true });
+  t.after(async () => rm(root, { recursive: true, force: true }));
+
+  const config = applyProductConfigOverrides(
+    defaultProductConfig(workspace, {
+      providerKind: "openai",
+      model: "gpt-5.6-sol",
+    }),
+    { reasoningEffort: "xhigh", serviceTier: "priority" },
+  );
+  const provider = new FakeModelProvider([
+    {
+      ...response("response.product.profile", [
+        { kind: "assistant_message", text: "Profile pinned." },
+      ]),
+      modelIdentity: "openai:gpt-5.6-sol",
+    },
+  ]);
+  const statePaths = paths(path.join(root, "state"));
+  const record = await runCodingAgentTask({
+    workspaceRoot: workspace,
+    paths: statePaths,
+    config,
+    task: "Report the selected execution profile.",
+    providerOverride: provider,
+    verifierOverride: new FakeTaskVerifier(sha256({ verifier: "profile-test" }), () =>
+      passingVerification("profile verifier passed"),
+    ),
+    now: new Date("2026-08-04T03:00:00.000Z"),
+  });
+
+  assert.equal(provider.requests[0]?.reasoningEffort, "xhigh");
+  assert.deepEqual(record.executionProfile, {
+    reasoningEffort: "xhigh",
+    serviceTier: "priority",
+  });
+  assert.deepEqual(
+    (await new ProductSessionStore(statePaths).get(record.sessionId)).executionProfile,
+    record.executionProfile,
+  );
 });

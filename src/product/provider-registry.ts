@@ -1,3 +1,6 @@
+import type { ModelReasoningCapabilities } from "./model-profile.js";
+import { normalizeReasoningCapabilities } from "./model-profile.js";
+
 export const PRODUCT_PROVIDER_KINDS = [
   "openai",
   "openrouter",
@@ -8,6 +11,14 @@ export type ProductProviderKind = (typeof PRODUCT_PROVIDER_KINDS)[number];
 
 export interface ProductProviderCatalogEntry {
   readonly modelId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly reasoning?: ModelReasoningCapabilities;
+  readonly serviceTiers?: readonly ProductModelServiceTier[];
+}
+
+export interface ProductModelServiceTier {
+  readonly id: "priority";
   readonly name: string;
   readonly description: string;
 }
@@ -24,41 +35,78 @@ export interface ProductProviderDescriptor {
 
 export const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1";
 
+const GPT_56_SOL_REASONING = normalizeReasoningCapabilities({
+  defaultEffort: "low",
+  supportedEfforts: ["low", "medium", "high", "xhigh", "max"],
+});
+const GPT_56_BALANCED_REASONING = normalizeReasoningCapabilities({
+  defaultEffort: "medium",
+  supportedEfforts: ["low", "medium", "high", "xhigh", "max"],
+});
+const GPT_5_STANDARD_REASONING = normalizeReasoningCapabilities({
+  defaultEffort: "medium",
+  supportedEfforts: ["low", "medium", "high", "xhigh"],
+});
+const O_SERIES_REASONING = normalizeReasoningCapabilities({
+  defaultEffort: "medium",
+  supportedEfforts: ["low", "medium", "high"],
+});
+const PRIORITY_SERVICE_TIER: readonly ProductModelServiceTier[] = [
+  {
+    id: "priority",
+    name: "Fast",
+    description: "OpenAI priority processing · higher cost and availability dependent",
+  },
+];
+
 const OPENAI_MODELS: readonly ProductProviderCatalogEntry[] = [
   {
     modelId: "gpt-5.6-sol",
     name: "GPT-5.6 Sol",
     description: "current flagship for complex coding and agentic work",
+    reasoning: GPT_56_SOL_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.6-terra",
     name: "GPT-5.6 Terra",
     description: "current balance of intelligence, cost, and throughput",
+    reasoning: GPT_56_BALANCED_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.6-luna",
     name: "GPT-5.6 Luna",
     description: "current efficient model for high-volume workloads",
+    reasoning: GPT_56_BALANCED_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.6",
     name: "GPT-5.6",
     description: "OpenAI alias that currently routes to GPT-5.6 Sol",
+    reasoning: GPT_56_SOL_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.5",
     name: "GPT-5.5",
     description: "previous frontier coding and professional-work model",
+    reasoning: GPT_5_STANDARD_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.4",
     name: "GPT-5.4",
     description: "coding and professional work",
+    reasoning: GPT_5_STANDARD_REASONING,
+    serviceTiers: PRIORITY_SERVICE_TIER,
   },
   {
     modelId: "gpt-5.4-mini",
     name: "GPT-5.4 mini",
     description: "smaller coding, computer-use, and subagent model",
+    reasoning: GPT_5_STANDARD_REASONING,
   },
   {
     modelId: "gpt-5.4-nano",
@@ -79,6 +127,7 @@ const OPENAI_MODELS: readonly ProductProviderCatalogEntry[] = [
     modelId: "gpt-5.2",
     name: "GPT-5.2",
     description: "previous professional-work reasoning model",
+    reasoning: GPT_5_STANDARD_REASONING,
   },
   {
     modelId: "gpt-5.1-codex-max",
@@ -99,6 +148,7 @@ const OPENAI_MODELS: readonly ProductProviderCatalogEntry[] = [
     modelId: "gpt-5.1",
     name: "GPT-5.1",
     description: "coding and agentic tasks",
+    reasoning: GPT_5_STANDARD_REASONING,
   },
   {
     modelId: "gpt-5-codex",
@@ -109,6 +159,7 @@ const OPENAI_MODELS: readonly ProductProviderCatalogEntry[] = [
     modelId: "gpt-5",
     name: "GPT-5",
     description: "reasoning model for coding and agentic tasks",
+    reasoning: GPT_5_STANDARD_REASONING,
   },
   {
     modelId: "gpt-5-mini",
@@ -129,11 +180,13 @@ const OPENAI_MODELS: readonly ProductProviderCatalogEntry[] = [
     modelId: "o3",
     name: "o3",
     description: "previous full reasoning model",
+    reasoning: O_SERIES_REASONING,
   },
   {
     modelId: "o4-mini",
     name: "o4-mini",
     description: "fast previous-generation reasoning model",
+    reasoning: O_SERIES_REASONING,
   },
   {
     modelId: "gpt-4.1",
@@ -147,6 +200,7 @@ const OPENROUTER_MODELS: readonly ProductProviderCatalogEntry[] = [
     modelId: "openai/gpt-5.6-sol",
     name: "OpenAI GPT-5.6 Sol",
     description: "frontier OpenAI route; account access and pricing vary",
+    reasoning: GPT_56_SOL_REASONING,
   },
   {
     modelId: "anthropic/claude-sonnet-5",
@@ -254,6 +308,13 @@ export function productProviderDescriptor(
   const descriptor = PRODUCT_PROVIDER_REGISTRY.find((candidate) => candidate.kind === kind);
   if (descriptor === undefined) throw new Error(`Unknown product provider: ${kind}`);
   return descriptor;
+}
+
+export function productProviderCatalogEntry(
+  kind: ProductProviderKind,
+  modelId: string,
+): ProductProviderCatalogEntry | null {
+  return productProviderDescriptor(kind).examples.find((entry) => entry.modelId === modelId) ?? null;
 }
 
 export function isProductProviderKind(value: string): value is ProductProviderKind {

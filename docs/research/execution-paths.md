@@ -164,6 +164,23 @@ turn/start
 This is an inner-loop and application-server reference. No inspected event represents candidate harness
 promotion.
 
+Codex model-profile selection is an adjacent configuration path, not a separate model identity per
+effort:
+
+```text
+bundled/remote model catalog
+  → typed ModelPreset (default + supported efforts + service tiers)
+  → /model picker
+  → model-specific reasoning picker
+  → UpdateModel + UpdateReasoningEffort + PersistModelSelection
+  → turn configuration
+  → provider request (Ultra is lowered to Max)
+  → proactive multi-agent mode is enabled separately for Ultra
+```
+
+SEH follows this separation for portable single-model profiles and stops at `Max`; it does not
+represent task delegation as a provider effort.
+
 ## AHE: outer experiment loop
 
 ```text
