@@ -713,7 +713,8 @@ async fn session_info_first_event_suppresses_tooltips_and_nux() {
 
     let rendered = render_transcript(&cell).join("\n");
     assert!(!rendered.contains("Model just became available"));
-    assert!(rendered.contains("To get started"));
+    assert!(rendered.contains("GENOME OBSERVATORY"));
+    assert!(rendered.contains("/harness"));
 }
 
 #[tokio::test]

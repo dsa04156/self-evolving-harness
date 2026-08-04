@@ -1,8 +1,9 @@
 ---
 source: tui/src/history_cell/seh_home_tests.rs
-assertion_line: 18
-expression: "SehHomeHistoryCell.display_lines(40).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
+expression: "SehHomeHistoryCell::fixture().display_lines(40).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
 ---
   ◈ SEH CODE
-  Task loop × governed evolution
+  Execute · Observe · Evolve
+  model gpt-5.6-sol · high
+  harness hv-sha256:4b9961ed3758…
   / commands · /model · /harness

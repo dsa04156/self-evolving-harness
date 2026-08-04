@@ -1,16 +1,22 @@
 ---
 source: tui/src/history_cell/seh_home_tests.rs
-assertion_line: 5
-expression: "SehHomeHistoryCell.display_lines(80).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
+expression: "SehHomeHistoryCell::fixture().display_lines(120).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
 ---
-             ╭╮        ╭╮       trace
-             ╰╮╲      ╱╭╯   evidence
-               ╲╲    ╱╱    attribute
-                ╲╲  ╱╱     mutate
-                ╱╱  ╲╲    evaluate
-               ╱╱    ╲╲     promote
-             ╭╯╱      ╲╰╮    rollback
-             ╰╯        ╰╯      audit
-
-                 S E H   C O D E
-        Task loop  ×  signed evidence  ×  versioned harness
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│  SEH CODE  ·  GENOME OBSERVATORY  ·  v1.2.3                                                                          │
+│                                                                                                                      │
+│                                                             │  PROJECT PULSE  ─ runtime ready                        │
+│                             ╭╮        ╭╮                    │  ─────────────────────────────────────────             │
+│                          ·  ╰╮╲      ╱╭╯                    │  repository  self-evolving-harness                     │
+│                          ·     ╲╲    ╱╱                     │  directory   ~/code/self-evolving-harness              │
+│                                  ╲╲  ╱╱                     │  model       gpt-5.6-sol                               │
+│                                  ╱╱  ╲╲                     │  provider    openai                                    │
+│                          ·     ╱╱    ╲╲                     │  reasoning   high                                      │
+│                          ·  ╭╯╱      ╲╰╮                    │  harness     hv-sha256:4b9961ed3758… · PINNED          │
+│                             ╰╯        ╰╯                    │  evidence    signed stream ready                       │
+│                                                             │  session     019fb208697a77c3…                         │
+│                       S E H   C O D E                       │                                                        │
+│                 Execute · Observe · Evolve                  │  Evidence-backed · reproducible · bounded evolution    │
+│                                                                                                                      │
+│  / commands   /model model & reasoning   /harness pinned version   /evidence signed trail   /evolution lifecycle     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

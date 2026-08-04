@@ -213,6 +213,12 @@ pub(super) async fn make_chatwidget_manual_with_auth(
         .bottom_pane
         .set_placeholder_text(widget.normal_placeholder_text.clone());
     widget.set_model(&resolved_model);
+    // Keep status/title fixtures independent from any repository marker that may
+    // exist above the shared `/tmp/project` test path on the host running tests.
+    widget.status_line_project_root_name_cache = Some(CachedProjectRootName {
+        cwd: widget.config.cwd.to_path_buf(),
+        root_name: None,
+    });
     (widget, rx, op_rx)
 }
 

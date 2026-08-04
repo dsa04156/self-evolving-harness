@@ -57,21 +57,17 @@ event, receipt, or memory records.
 
 ## First run
 
-Opening `seh` starts the full-screen terminal UI:
+Opening `seh` starts the responsive **Genome Observatory**. The screen below is a real
+144 × 48 terminal capture, not a web mock: model, reasoning effort, repository, session pin, and
+receipt count come from the active runtime.
 
-```text
-             ╭╮        ╭╮       trace
-             ╰╮╲      ╱╭╯   evidence
-               ╲╲    ╱╱    attribute
-                ╲╲  ╱╱     mutate
-                ╱╱  ╲╲    evaluate
-               ╱╱    ╲╲     promote
-             ╭╯╱      ╲╰╮    rollback
-             ╰╯        ╰╯      audit
+<p align="center">
+  <img src="docs/design/actual-genome-observatory-144x48.png" alt="SEH Code Genome Observatory terminal home with Project Pulse and task composer" width="100%" />
+</p>
 
-                 S E H   C O D E
-        Task loop  ×  signed evidence  ×  versioned harness
-```
+Wide terminals show the two-column observatory and Project Pulse; medium and narrow terminals
+collapse to progressively smaller summaries without horizontal overflow. The large launch
+composer returns to the compact coding-agent input after the first submitted task.
 
 Describe a coding task directly. SEH owns the active context/model/tool loop, filesystem and shell
 execution, permissions, session persistence, skills, subagents, and verification through the

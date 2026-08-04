@@ -123,6 +123,7 @@ impl ChatWidget {
                 .should_show_fast_status(&model_for_header, self.effective_service_tier.as_deref());
             let show_product_home = self.show_welcome_banner || self.show_seh_home;
             self.show_seh_home = false;
+            self.bottom_pane.set_prominent_composer(show_product_home);
             let session_info_cell = history_cell::new_session_info(
                 &self.config,
                 &model_for_header,

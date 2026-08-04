@@ -191,6 +191,8 @@ use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::text::Span;
 use ratatui::widgets::Block;
+use ratatui::widgets::BorderType;
+use ratatui::widgets::Borders;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::StatefulWidgetRef;
 use ratatui::widgets::Widget;
@@ -473,6 +475,10 @@ pub(crate) struct ChatComposer {
     effort_observed: bool,
     attachments: AttachmentState,
     placeholder_text: String,
+    /// Keeps the launch composer visually paired with the Genome Observatory.
+    /// It is intentionally dismissed after the first committed user message so
+    /// ordinary conversations retain the compact upstream composer surface.
+    prominent_frame: bool,
     blocks_direct_input: bool,
     is_task_running: bool,
     queue_submissions: bool,
@@ -659,6 +665,7 @@ impl ChatComposer {
             effort_observed: false,
             attachments: AttachmentState::default(),
             placeholder_text,
+            prominent_frame: false,
             blocks_direct_input: false,
             is_task_running: false,
             queue_submissions: false,
@@ -1591,6 +1598,10 @@ impl ChatComposer {
     /// Update the placeholder text without changing input enablement.
     pub(crate) fn set_placeholder_text(&mut self, placeholder: String) {
         self.placeholder_text = placeholder;
+    }
+
+    pub(crate) fn set_prominent_frame(&mut self, visible: bool) {
+        self.prominent_frame = visible;
     }
 
     pub(crate) fn set_parent_owned_thread(&mut self) {
@@ -4416,6 +4427,12 @@ impl Renderable for ChatComposer {
 }
 
 impl ChatComposer {
+    /// Keep the launch composer visually primary until the first task is submitted.
+    ///
+    /// This includes the footer row. The surrounding bottom-pane layout can still clamp the
+    /// requested height when the terminal itself is shorter than the launch composition.
+    const PROMINENT_COMPOSER_MIN_HEIGHT: u16 = 12;
+
     pub(crate) fn desired_height_with_textarea_right_reserve(
         &self,
         width: u16,
@@ -4437,7 +4454,7 @@ impl ChatComposer {
             .try_into()
             .unwrap_or(u16::MAX);
         let remote_images_separator = u16::from(remote_images_height > 0);
-        self.draft.textarea.desired_height(inner_width)
+        let desired_height = self.draft.textarea.desired_height(inner_width)
             + remote_images_height
             + remote_images_separator
             + 2
@@ -4447,7 +4464,13 @@ impl ChatComposer {
                 ActivePopup::File(c) => c.calculate_required_height(),
                 ActivePopup::Skill(c) => c.calculate_required_height(width),
                 ActivePopup::MentionV2(c) => c.calculate_required_height(width),
-            }
+            };
+
+        if self.prominent_frame && !self.is_task_running {
+            desired_height.max(Self::PROMINENT_COMPOSER_MIN_HEIGHT)
+        } else {
+            desired_height
+        }
     }
 }
 
@@ -4738,7 +4761,24 @@ impl ChatComposer {
             }
         }
         let style = user_message_style();
-        Block::default().style(style).render(composer_rect, buf);
+        if self.prominent_frame && !self.is_task_running {
+            let border_style = if !self.draft.input_enabled {
+                Style::default().dim()
+            } else if self.has_focus {
+                Style::default().magenta()
+            } else {
+                Style::default().cyan().dim()
+            };
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(border_style)
+                .title(Line::from(vec![" TASK ".dim(), "COMPOSER ".cyan().bold()]))
+                .style(style)
+                .render(composer_rect, buf);
+        } else {
+            Block::default().style(style).render(composer_rect, buf);
+        }
         if !remote_images_rect.is_empty() {
             Paragraph::new(self.attachments.remote_image_lines())
                 .style(style)
@@ -5142,6 +5182,61 @@ mod tests {
             /*width*/ 100,
             enhanced_keys_supported,
             setup,
+        );
+    }
+
+    #[test]
+    fn prominent_launch_composer_snapshot() {
+        use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
+
+        let (tx, _rx) = unbounded_channel::<AppEvent>();
+        let sender = AppEventSender::new(tx);
+        let mut composer = ChatComposer::new(
+            /*has_input_focus*/ true,
+            sender,
+            /*enhanced_keys_supported*/ true,
+            "Describe a task, or type / for commands".to_string(),
+            /*disable_paste_burst*/ false,
+        );
+        composer.set_prominent_frame(/*visible*/ true);
+
+        let width = 100;
+        let height = composer
+            .desired_height_with_textarea_right_reserve(width, /*textarea_right_reserve*/ 0);
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|frame| composer.render(frame.area(), frame.buffer_mut()))
+            .unwrap();
+
+        insta::assert_snapshot!("prominent_launch_composer", terminal.backend());
+    }
+
+    #[test]
+    fn prominent_launch_composer_requests_a_primary_action_height() {
+        let (tx, _rx) = unbounded_channel::<AppEvent>();
+        let sender = AppEventSender::new(tx);
+        let mut composer = ChatComposer::new(
+            /*has_input_focus*/ true,
+            sender,
+            /*enhanced_keys_supported*/ true,
+            "Describe a task, or type / for commands".to_string(),
+            /*disable_paste_burst*/ false,
+        );
+
+        composer.set_prominent_frame(/*visible*/ true);
+        assert_eq!(
+            composer.desired_height_with_textarea_right_reserve(
+                /*width*/ 100, /*textarea_right_reserve*/ 0,
+            ),
+            ChatComposer::PROMINENT_COMPOSER_MIN_HEIGHT,
+        );
+
+        composer.set_task_running(/*running*/ true);
+        assert!(
+            composer.desired_height_with_textarea_right_reserve(
+                /*width*/ 100, /*textarea_right_reserve*/ 0,
+            ) < ChatComposer::PROMINENT_COMPOSER_MIN_HEIGHT,
         );
     }
 

@@ -1315,6 +1315,7 @@ impl ChatWidget {
 
     fn on_user_message_display(&mut self, display: UserMessageDisplay) {
         self.last_rendered_user_message_display = Some(display.clone());
+        self.bottom_pane.set_prominent_composer(/*visible*/ false);
         if !display.message.trim().is_empty()
             || !display.text_elements.is_empty()
             || !display.local_images.is_empty()
@@ -1970,16 +1971,7 @@ impl Drop for ChatWidget {
     }
 }
 
-const PLACEHOLDERS: [&str; 8] = [
-    "Explain this codebase",
-    "Summarize recent commits",
-    "Implement {feature}",
-    "Find and fix a bug in @filename",
-    "Write tests for @filename",
-    "Improve documentation in @filename",
-    "Run /review on my current changes",
-    "Use /skills to list available skills",
-];
+const PRIMARY_PLACEHOLDER: &str = "Describe a task, or type / for commands";
 
 const SIDE_PLACEHOLDERS: [&str; 3] = [
     "Check recently modified functions for compatibility",

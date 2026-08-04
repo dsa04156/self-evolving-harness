@@ -1,0 +1,16 @@
+---
+source: tui/src/bottom_pane/chat_composer.rs
+expression: terminal.backend()
+---
+"╭ TASK COMPOSER ───────────────────────────────────────────────────────────────────────────────────╮"
+"› Describe a task, or type / for commands                                                          │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"│                                                                                                  │"
+"╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
+"  ? for shortcuts                                                                100% context left  "

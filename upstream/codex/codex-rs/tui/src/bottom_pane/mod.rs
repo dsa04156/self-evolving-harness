@@ -479,6 +479,11 @@ impl BottomPane {
         self.request_redraw();
     }
 
+    pub(crate) fn set_prominent_composer(&mut self, visible: bool) {
+        self.composer.set_prominent_frame(visible);
+        self.request_redraw();
+    }
+
     pub(crate) fn set_parent_owned_thread(&mut self) {
         self.composer.set_parent_owned_thread();
         self.request_redraw();

@@ -146,46 +146,9 @@ pub(crate) fn new_session_info(
     let mut parts: Vec<Box<dyn HistoryCell>> = Vec::new();
 
     if is_first_event {
-        parts.push(Box::new(SehHomeHistoryCell));
-    }
-    parts.push(Box::new(header));
-
-    if is_first_event {
-        // Help lines below the header (new copy and list)
-        let help_lines: Vec<Line<'static>> = vec![
-            "  To get started, describe a task or try one of these commands:"
-                .dim()
-                .into(),
-            Line::from(""),
-            Line::from(vec![
-                "  ".into(),
-                "/model".into(),
-                " - choose a model and its reasoning effort".dim(),
-            ]),
-            Line::from(vec![
-                "  ".into(),
-                "/harness".into(),
-                " - inspect this session's pinned HarnessVersion".dim(),
-            ]),
-            Line::from(vec![
-                "  ".into(),
-                "/evidence".into(),
-                " - inspect signed runtime evidence".dim(),
-            ]),
-            Line::from(vec![
-                "  ".into(),
-                "/permissions".into(),
-                " - choose what SEH Code is allowed to do".dim(),
-            ]),
-            Line::from(vec![
-                "  ".into(),
-                "/".cyan(),
-                " - open every command with examples and shortcuts".dim(),
-            ]),
-        ];
-
-        parts.push(Box::new(PlainHistoryCell { lines: help_lines }));
+        parts.push(Box::new(new_seh_home(config, session)));
     } else {
+        parts.push(Box::new(header));
         if config.show_tooltips
             && let Some(tooltips) = tooltip_override
                 .or_else(|| tooltips::get_tooltip(auth_plan, show_fast_status))
