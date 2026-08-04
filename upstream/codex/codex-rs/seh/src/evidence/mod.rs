@@ -7,3 +7,4 @@ pub use extension::install;
 pub use model::EvidenceStatus;
 pub use store::EvidenceHandle;
 pub use store::open_evidence;
+pub use store::verify_persisted_evidence;

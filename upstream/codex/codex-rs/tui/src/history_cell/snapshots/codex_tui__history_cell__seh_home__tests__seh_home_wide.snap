@@ -1,0 +1,16 @@
+---
+source: tui/src/history_cell/seh_home_tests.rs
+assertion_line: 5
+expression: "SehHomeHistoryCell.display_lines(80).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
+---
+             ╭╮        ╭╮       trace
+             ╰╮╲      ╱╭╯   evidence
+               ╲╲    ╱╱    attribute
+                ╲╲  ╱╱     mutate
+                ╱╱  ╲╲    evaluate
+               ╱╱    ╲╲     promote
+             ╭╯╱      ╲╰╮    rollback
+             ╰╯        ╰╯      audit
+
+                 S E H   C O D E
+        Task loop  ×  signed evidence  ×  versioned harness

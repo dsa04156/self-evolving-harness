@@ -47,6 +47,9 @@ pub enum SlashCommand {
     Raw,
     Diff,
     Mention,
+    Harness,
+    Evidence,
+    Evolution,
     Status,
     Usage,
     DebugConfig,
@@ -84,7 +87,7 @@ impl SlashCommand {
         match self {
             SlashCommand::Feedback => "send logs to maintainers",
             SlashCommand::New => "start a new chat during a conversation",
-            SlashCommand::Init => "create an AGENTS.md file with instructions for Codex",
+            SlashCommand::Init => "create an AGENTS.md file with instructions for SEH Code",
             SlashCommand::Compact => "summarize conversation to prevent hitting the context limit",
             SlashCommand::Review => "review my current changes and find issues",
             SlashCommand::Rename => "rename the current thread",
@@ -94,12 +97,15 @@ impl SlashCommand {
             SlashCommand::Clear => "clear the terminal and start a new chat",
             SlashCommand::Fork => "fork the current chat",
             SlashCommand::App => "continue this session in the Desktop app",
-            SlashCommand::Quit | SlashCommand::Exit => "exit Codex",
+            SlashCommand::Quit | SlashCommand::Exit => "exit SEH Code",
             SlashCommand::Copy => "copy last response as markdown",
             SlashCommand::Raw => "toggle raw scrollback mode for copy-friendly terminal selection",
             SlashCommand::Diff => "show git diff (including untracked files)",
             SlashCommand::Mention => "mention a file",
-            SlashCommand::Skills => "use skills to improve how Codex performs specific tasks",
+            SlashCommand::Harness => "inspect the exact HarnessVersion pinned to this session",
+            SlashCommand::Evidence => "inspect signed runtime events and evidence receipts",
+            SlashCommand::Evolution => "show the separate task and harness evolution lifecycles",
+            SlashCommand::Skills => "use skills to improve how SEH Code performs specific tasks",
             SlashCommand::Import => "import setup, this project, and recent chats from Claude Code",
             SlashCommand::Hooks => "view and manage lifecycle hooks",
             SlashCommand::Status => "show current session configuration and token usage",
@@ -124,7 +130,7 @@ impl SlashCommand {
             SlashCommand::Side | SlashCommand::Btw => {
                 "start a side conversation in an ephemeral fork"
             }
-            SlashCommand::Permissions => "choose what Codex is allowed to do",
+            SlashCommand::Permissions => "choose what SEH Code is allowed to do",
             SlashCommand::Keymap => "remap TUI shortcuts",
             SlashCommand::Vim => "toggle Vim mode for the composer",
             SlashCommand::ElevateSandbox => "set up elevated agent sandbox",
@@ -137,7 +143,7 @@ impl SlashCommand {
             SlashCommand::Mcp => "list configured MCP tools; use /mcp verbose for details",
             SlashCommand::Apps => "manage apps",
             SlashCommand::Plugins => "browse plugins",
-            SlashCommand::Logout => "log out of Codex",
+            SlashCommand::Logout => "log out of SEH Code",
             SlashCommand::Rollout => "print the rollout file path",
             SlashCommand::TestApproval => "test approval request",
         }
@@ -181,6 +187,9 @@ impl SlashCommand {
                 | SlashCommand::Raw
                 | SlashCommand::Diff
                 | SlashCommand::Mention
+                | SlashCommand::Harness
+                | SlashCommand::Evidence
+                | SlashCommand::Evolution
                 | SlashCommand::Status
                 | SlashCommand::Usage
                 | SlashCommand::Ide
@@ -211,6 +220,9 @@ impl SlashCommand {
             | SlashCommand::MemoryUpdate => false,
             SlashCommand::Diff
             | SlashCommand::Resume
+            | SlashCommand::Harness
+            | SlashCommand::Evidence
+            | SlashCommand::Evolution
             | SlashCommand::Model
             | SlashCommand::Personality
             | SlashCommand::Permissions

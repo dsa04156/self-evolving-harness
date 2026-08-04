@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEH CLI"
+  short_description: "Operate and inspect the SEH coding-agent CLI"
+  default_prompt: "Use $seh-cli to inspect the active SEH harness and run the coding agent safely."

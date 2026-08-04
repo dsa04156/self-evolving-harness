@@ -120,6 +120,7 @@ mod patches;
 mod plans;
 mod request_user_input;
 mod search;
+mod seh_home;
 mod separators;
 mod session;
 
@@ -136,6 +137,7 @@ pub(crate) use patches::*;
 pub(crate) use plans::*;
 pub(crate) use request_user_input::*;
 pub(crate) use search::*;
+pub(crate) use seh_home::*;
 pub(crate) use separators::*;
 pub(crate) use session::*;
 

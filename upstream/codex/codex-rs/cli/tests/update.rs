@@ -9,16 +9,16 @@ fn codex_command(codex_home: &Path) -> Result<assert_cmd::Command> {
     Ok(cmd)
 }
 
-#[cfg(debug_assertions)]
 #[tokio::test]
-async fn update_does_not_start_interactive_prompt() -> Result<()> {
+async fn update_reports_the_explicit_source_build_flow() -> Result<()> {
     let codex_home = TempDir::new()?;
 
     codex_command(codex_home.path())?
         .arg("update")
         .assert()
-        .failure()
-        .stderr(contains("`codex update` is not available in debug builds"));
+        .success()
+        .stdout(contains("SEH Code source builds"))
+        .stdout(contains("./scripts/install-seh.sh"));
 
     Ok(())
 }

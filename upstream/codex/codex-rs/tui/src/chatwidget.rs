@@ -77,7 +77,6 @@ use crate::terminal_title::set_terminal_title;
 use crate::text_formatting::proper_join;
 use crate::token_usage::TokenUsage;
 use crate::token_usage::TokenUsageInfo;
-use crate::version::CODEX_CLI_VERSION;
 use codex_app_server_protocol::AddCreditsNudgeCreditType;
 use codex_app_server_protocol::AddCreditsNudgeEmailStatus;
 use codex_app_server_protocol::AppSummary;
@@ -409,6 +408,7 @@ use self::review::ReviewState;
 #[cfg(test)]
 pub(crate) use self::review_popups::show_review_commit_picker_with_entries;
 mod safety_buffering;
+mod seh_surfaces;
 mod service_tiers;
 mod settings;
 mod settings_popups;
@@ -674,6 +674,8 @@ pub(crate) struct ChatWidget {
     frame_requester: FrameRequester,
     // Whether to include the initial welcome banner on session configured
     show_welcome_banner: bool,
+    // Product home is rendered once for each newly constructed chat surface.
+    show_seh_home: bool,
     // One-shot tooltip override for the primary startup session.
     startup_tooltip_override: Option<String>,
     // When resuming an existing session (selected via resume picker), avoid an
@@ -1444,7 +1446,7 @@ impl ChatWidget {
                 /*reasoning_effort*/ None,
                 /*show_fast_status*/ false,
                 config.cwd.to_path_buf(),
-                CODEX_CLI_VERSION,
+                crate::version::SEH_PRODUCT_VERSION,
             )
             .with_yolo_mode(history_cell::is_yolo_mode(config)),
         )

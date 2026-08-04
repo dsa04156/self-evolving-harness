@@ -15,6 +15,7 @@ use super::CheckStatus;
 use super::DoctorCheck;
 use super::describe_install_context;
 use super::doctor_install_context;
+use super::is_seh_executable;
 use super::push_path_detail;
 
 /// Builds the process provenance row for the current Codex executable.
@@ -28,8 +29,9 @@ pub(super) fn runtime_check() -> DoctorCheck {
     let arch = env::consts::ARCH;
     let platform = format!("{os}-{arch}");
     let install_method = install_method_name(&install_context);
+    let is_seh = is_seh_executable(current_exe.as_deref());
     let mut details = vec![
-        format!("version: {}", env!("CARGO_PKG_VERSION")),
+        format!("version: {}", crate::SEH_PRODUCT_VERSION),
         format!("platform: {platform}"),
         format!(
             "install method: {}",
@@ -43,7 +45,11 @@ pub(super) fn runtime_check() -> DoctorCheck {
         "runtime.provenance",
         "runtime",
         CheckStatus::Ok,
-        format!("running {install_method} on {platform}"),
+        if is_seh {
+            format!("running SEH Code source build on {platform}")
+        } else {
+            format!("running {install_method} on {platform}")
+        },
     )
     .details(details)
 }

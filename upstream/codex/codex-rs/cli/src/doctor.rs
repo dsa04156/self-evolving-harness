@@ -1,4 +1,4 @@
-//! Implements the `codex doctor` diagnostic report.
+//! Implements the `seh doctor` diagnostic report.
 //!
 //! Doctor is intentionally read-mostly: checks inspect the current installation,
 //! configuration, authentication, terminal, state paths, and bounded reachability
@@ -301,7 +301,7 @@ impl DoctorCheck {
 
 /// Builds, renders, and exits according to the current doctor report.
 ///
-/// This is the CLI entry point for codex doctor. It does not repair issues;
+/// This is the CLI entry point for seh doctor. It does not repair issues;
 /// failures are represented in the report and cause a non-zero process exit so
 /// scripts can distinguish a clean environment from one that needs attention.
 pub async fn run_doctor(
@@ -452,7 +452,7 @@ async fn build_report(
                             "config could not be loaded",
                         )
                         .detail(err.to_string())
-                        .remediation("Fix the reported config error, then rerun codex doctor.")
+                        .remediation("Fix the reported config error, then rerun seh doctor.")
                     })
                 },
                 async { run_sync_check("network", progress.clone(), network_check) },
@@ -487,7 +487,7 @@ async fn build_report(
         schema_version: 1,
         generated_at: generated_at(),
         overall_status,
-        codex_version: env!("CARGO_PKG_VERSION").to_string(),
+        codex_version: crate::SEH_PRODUCT_VERSION.to_string(),
         checks,
     }
 }
@@ -552,7 +552,7 @@ fn config_overrides_from_interactive(
     }
 }
 
-/// JSON support report emitted by `codex doctor --json`.
+/// JSON support report emitted by `seh doctor --json`.
 ///
 /// The report is keyed by check id so support tooling can fetch paths like
 /// `checks["terminal.metadata"]` without scanning arrays. Human rendering can
@@ -778,6 +778,19 @@ fn installation_check(show_details: bool) -> DoctorCheck {
     let mut details = Vec::new();
     let current_exe = env::current_exe().ok();
     push_path_detail(&mut details, "current executable", current_exe.as_deref());
+    if is_seh_executable(current_exe.as_deref()) {
+        details.push(format!("product version: {}", crate::SEH_PRODUCT_VERSION));
+        details.push("install context: SEH Code user binary".to_string());
+        details.push("runtime lineage: Codex-derived source build".to_string());
+        details.push("update action: git pull, then ./scripts/install-seh.sh".to_string());
+        return DoctorCheck::new(
+            "installation",
+            "install",
+            CheckStatus::Ok,
+            "SEH Code user installation looks consistent",
+        )
+        .details(details);
+    }
     let inherited_managed_env = inherited_managed_env_for_cargo_binary(current_exe.as_deref());
     let install_context = doctor_install_context(current_exe.as_deref());
     details.push(format!(
@@ -871,7 +884,7 @@ fn installation_check(show_details: bool) -> DoctorCheck {
 }
 
 fn doctor_install_context(current_exe: Option<&Path>) -> InstallContext {
-    if inherited_managed_env_for_cargo_binary(current_exe) {
+    if is_seh_executable(current_exe) || inherited_managed_env_for_cargo_binary(current_exe) {
         InstallContext {
             method: InstallMethod::Other,
             package_layout: None,
@@ -883,7 +896,14 @@ fn doctor_install_context(current_exe: Option<&Path>) -> InstallContext {
 
 fn doctor_managed_by_npm(current_exe: Option<&Path>) -> bool {
     env::var_os("CODEX_MANAGED_BY_NPM").is_some()
+        && !is_seh_executable(current_exe)
         && !inherited_managed_env_for_cargo_binary(current_exe)
+}
+
+pub(super) fn is_seh_executable(current_exe: Option<&Path>) -> bool {
+    current_exe
+        .and_then(Path::file_name)
+        .is_some_and(|name| name == "seh")
 }
 
 fn inherited_managed_env_for_cargo_binary(current_exe: Option<&Path>) -> bool {
@@ -1248,7 +1268,7 @@ fn auth_check(config: &Config) -> DoctorCheck {
                 DoctorCheck::new("auth.credentials", "auth", status, summary).details(details);
             if status == CheckStatus::Fail {
                 check =
-                    check.remediation("Run codex login again or provide a supported auth env var.");
+                    check.remediation("Run seh login again or provide a supported auth env var.");
             }
             check
         }
@@ -1266,7 +1286,7 @@ fn auth_check(config: &Config) -> DoctorCheck {
             "no Codex credentials were found",
         )
         .details(details)
-        .remediation("Run codex login or provide an API key through a supported auth env var."),
+        .remediation("Run seh login or provide an API key through a supported auth env var."),
         Err(err) => DoctorCheck::new(
             "auth.credentials",
             "auth",
@@ -1274,7 +1294,7 @@ fn auth_check(config: &Config) -> DoctorCheck {
             "stored credentials could not be read",
         )
         .detail(err.to_string())
-        .remediation("Fix auth storage access or run codex login again."),
+        .remediation("Fix auth storage access or run seh login again."),
     }
 }
 

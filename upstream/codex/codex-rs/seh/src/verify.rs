@@ -66,7 +66,7 @@ pub fn verify_bundle(bundle: &HarnessBundle) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn verify_pin(pin: &HarnessPin) -> Result<()> {
+pub fn verify_pin(pin: &HarnessPin) -> Result<()> {
     require(pin.schema_version == 1, "unsupported pin schema")?;
     require(
         pin.runtime_track == "codex-derived",

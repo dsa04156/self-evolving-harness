@@ -1,0 +1,14 @@
+---
+source: tui/src/history_cell/seh_home_tests.rs
+assertion_line: 31
+expression: "new_seh_panel(\"Pinned HarnessVersion\", \"IMMUTABLE SESSION PIN\",\nvec![(\"version\".to_string(), \"hv-sha256:4b9961ed3758…\".to_string()),\n(\"model\".to_string(), \"gpt-5.6-sol · max · fast\".to_string()),\n(\"components\".to_string(), \"24 · verified\".to_string()),],\nSome(\"Retry and resume reuse this exact version.\".to_string()),).display_lines(64).iter().map(Line::to_string).collect::<Vec<_>>().join(\"\\n\")"
+---
+╭────────────────────────────────────────────────╮
+│ ◈ Pinned HarnessVersion  IMMUTABLE SESSION PIN │
+│                                                │
+│ version     hv-sha256:4b9961ed3758…            │
+│ model       gpt-5.6-sol · max · fast           │
+│ components  24 · verified                      │
+│                                                │
+│ Retry and resume reuse this exact version.     │
+╰────────────────────────────────────────────────╯

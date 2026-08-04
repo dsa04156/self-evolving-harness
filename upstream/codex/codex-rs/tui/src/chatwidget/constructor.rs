@@ -213,6 +213,7 @@ impl ChatWidget {
             chat_keymap,
             queued_message_edit_hint_binding,
             show_welcome_banner: is_first_run,
+            show_seh_home: true,
             startup_tooltip_override,
             suppress_session_configured_redraw: false,
             suppress_initial_user_message_submit: false,

@@ -95,9 +95,7 @@ pub(super) fn mcp_init_error_display(
         error,
         StartupOutcomeError::Failed { error, .. } if error.contains("Auth required")
     ) {
-        format!(
-            "The {server_name} MCP server is not logged in. Run `codex mcp login {server_name}`."
-        )
+        format!("The {server_name} MCP server is not logged in. Run `seh mcp login {server_name}`.")
     } else if matches!(
         error,
         StartupOutcomeError::Failed { error, .. }

@@ -18,6 +18,7 @@ use super::DoctorCheck;
 use super::NpmRootCheck;
 use super::doctor_install_context;
 use super::doctor_managed_by_npm;
+use super::is_seh_executable;
 use super::npm_global_root_check;
 use super::run_command;
 
@@ -32,6 +33,23 @@ const HOMEBREW_CASK_API_URL: &str = "https://formulae.brew.sh/api/cask/codex.jso
 /// support context but should not mask more direct install/config failures.
 pub(super) fn updates_check(config: &Config) -> DoctorCheck {
     let current_exe = std::env::current_exe().ok();
+    if is_seh_executable(current_exe.as_deref()) {
+        return DoctorCheck::new(
+            "updates.status",
+            "updates",
+            CheckStatus::Ok,
+            "SEH Code source updates are manual and explicit",
+        )
+        .details(vec![
+            format!("current version: {}", crate::SEH_PRODUCT_VERSION),
+            "update action: git pull, then ./scripts/install-seh.sh".to_string(),
+            "upstream Codex auto-update: disabled for this product binary".to_string(),
+            format!(
+                "upstream startup update setting: {}",
+                config.check_for_update_on_startup
+            ),
+        ]);
+    }
     let install_context = doctor_install_context(current_exe.as_deref());
     let mut details = vec![
         format!(

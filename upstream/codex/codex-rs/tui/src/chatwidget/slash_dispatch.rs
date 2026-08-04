@@ -432,6 +432,15 @@ impl ChatWidget {
             SlashCommand::Mention => {
                 self.insert_str("@");
             }
+            SlashCommand::Harness => {
+                self.add_seh_harness_output();
+            }
+            SlashCommand::Evidence => {
+                self.add_seh_evidence_output();
+            }
+            SlashCommand::Evolution => {
+                self.add_seh_evolution_output();
+            }
             SlashCommand::Skills => {
                 self.open_skills_menu();
             }
@@ -1072,6 +1081,9 @@ impl ChatWidget {
         match cmd {
             SlashCommand::Ide
             | SlashCommand::Status
+            | SlashCommand::Harness
+            | SlashCommand::Evidence
+            | SlashCommand::Evolution
             | SlashCommand::Usage
             | SlashCommand::DebugConfig
             | SlashCommand::Ps

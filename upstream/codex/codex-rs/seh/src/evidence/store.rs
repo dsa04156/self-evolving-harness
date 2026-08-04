@@ -101,6 +101,44 @@ pub fn open_evidence(codex_home: &Path, pin: &HarnessPin, resumed: bool) -> Resu
     )
 }
 
+/// Verifies a persisted evidence stream without opening a writer or appending events.
+///
+/// This is the read-only path used by diagnostics and external control surfaces.
+/// It validates event hashes, receipt coverage, the append-only audit chain, and
+/// registered signer attestations against the supplied immutable session pin.
+pub fn verify_persisted_evidence(codex_home: &Path, pin: &HarnessPin) -> Result<EvidenceStatus> {
+    validate_filename(&pin.thread_id)?;
+    validate_filename(&pin.runtime_binding_hash)?;
+    crate::verify::verify_pin(pin)?;
+    let evidence_root = codex_home
+        .join("seh/evidence/threads")
+        .join(&pin.thread_id)
+        .join(&pin.runtime_binding_hash);
+    let events = read_numbered::<RuntimeEvent>(&evidence_root.join("events"))?;
+    let envelopes = read_numbered::<ReceiptEnvelope>(&evidence_root.join("receipts"))?;
+    let protocol_id = evidence_protocol_id()?;
+    let scanner_hash = sha256_value(&json!({
+        "profile": "metadata-only-redactor-v1",
+        "storedFields": "allowlisted",
+    }))?;
+    let verifiers = load_public_verifiers(&codex_home.join("seh/trust"))?;
+    verify_events(&events, pin, &protocol_id, &scanner_hash, &verifiers)?;
+    verify_envelopes(&envelopes, &events, pin, &protocol_id, &verifiers)?;
+    Ok(EvidenceStatus {
+        protocol_id,
+        session_id: pin.thread_id.clone(),
+        harness_version_id: pin.harness_version_id.clone(),
+        event_count: events.len() as u64,
+        receipt_count: envelopes.len() as u64,
+        event_head_hash: events.last().map(|event| event.event_hash.clone()),
+        audit_head_hash: envelopes
+            .last()
+            .map(|envelope| envelope.audit_record.record_hash.clone()),
+        healthy: true,
+        failure: None,
+    })
+}
+
 fn open_evidence_with_clock(
     codex_home: &Path,
     pin: &HarnessPin,
@@ -889,6 +927,31 @@ mod tests {
                 .extension()
                 .is_some_and(|ext| ext == "key")
         }));
+    }
+
+    #[test]
+    fn read_only_verifier_checks_the_stream_without_appending() {
+        let home = TempDir::new().unwrap();
+        let pin = fixture_pin(home.path());
+        let handle = open_fixed(home.path(), &pin, false).unwrap();
+        handle.capture_observation(
+            "tool_completed",
+            json!({ "toolName": "fake-read", "success": true }),
+            EventOrigin::tool("fake-read"),
+        );
+        let expected = handle.status();
+        drop(handle);
+        let events_before = artifact_bytes(home.path(), &pin, "events");
+        let receipts_before = artifact_bytes(home.path(), &pin, "receipts");
+
+        let verified = verify_persisted_evidence(home.path(), &pin).unwrap();
+
+        assert_eq!(verified, expected);
+        assert_eq!(artifact_bytes(home.path(), &pin, "events"), events_before);
+        assert_eq!(
+            artifact_bytes(home.path(), &pin, "receipts"),
+            receipts_before
+        );
     }
 
     #[test]

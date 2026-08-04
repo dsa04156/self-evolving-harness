@@ -137,13 +137,18 @@ pub(crate) fn new_session_info(
         session.reasoning_effort.clone(),
         show_fast_status,
         config.cwd.to_path_buf(),
-        CODEX_CLI_VERSION,
+        crate::version::SEH_PRODUCT_VERSION,
     )
     .with_yolo_mode(has_yolo_permissions(
         session.approval_policy,
         &session.permission_profile,
     ));
-    let mut parts: Vec<Box<dyn HistoryCell>> = vec![Box::new(header)];
+    let mut parts: Vec<Box<dyn HistoryCell>> = Vec::new();
+
+    if is_first_event {
+        parts.push(Box::new(SehHomeHistoryCell));
+    }
+    parts.push(Box::new(header));
 
     if is_first_event {
         // Help lines below the header (new copy and list)
@@ -154,28 +159,28 @@ pub(crate) fn new_session_info(
             Line::from(""),
             Line::from(vec![
                 "  ".into(),
-                "/init".into(),
-                " - create an AGENTS.md file with instructions for Codex".dim(),
+                "/model".into(),
+                " - choose a model and its reasoning effort".dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
-                "/status".into(),
-                " - show current session configuration".dim(),
+                "/harness".into(),
+                " - inspect this session's pinned HarnessVersion".dim(),
+            ]),
+            Line::from(vec![
+                "  ".into(),
+                "/evidence".into(),
+                " - inspect signed runtime evidence".dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
                 "/permissions".into(),
-                " - choose what Codex is allowed to do".dim(),
+                " - choose what SEH Code is allowed to do".dim(),
             ]),
             Line::from(vec![
                 "  ".into(),
-                "/model".into(),
-                " - choose what model and reasoning effort to use".dim(),
-            ]),
-            Line::from(vec![
-                "  ".into(),
-                "/review".into(),
-                " - review any changes and find issues".dim(),
+                "/".cyan(),
+                " - open every command with examples and shortcuts".dim(),
             ]),
         ];
 
@@ -317,12 +322,12 @@ impl HistoryCell for SessionHeaderHistoryCell {
 
         let make_row = |spans: Vec<Span<'static>>| Line::from(spans);
 
-        // Title line rendered inside the box: ">_ OpenAI Codex (vX)"
+        // Title line rendered inside the box: "◈ SEH Code (Codex-derived vX)"
         let title_spans: Vec<Span<'static>> = vec![
-            Span::from(">_ ").dim(),
-            Span::from("OpenAI Codex").bold(),
+            Span::from("◈ ").magenta(),
+            Span::from("SEH Code").cyan().bold(),
             Span::from(" ").dim(),
-            Span::from(format!("(v{})", self.version)).dim(),
+            Span::from(format!("(Codex-derived v{})", self.version)).dim(),
         ];
 
         const CHANGE_MODEL_HINT_COMMAND: &str = "/model";
@@ -391,7 +396,7 @@ impl HistoryCell for SessionHeaderHistoryCell {
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let mut lines = vec![
-            Line::from(format!("OpenAI Codex (v{})", self.version)),
+            Line::from(format!("SEH Code (Codex-derived v{})", self.version)),
             Line::from(format!(
                 "model: {}{}",
                 self.model,

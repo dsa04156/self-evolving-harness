@@ -43,6 +43,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use supports_color::Stream;
 
+const SEH_PRODUCT_VERSION: &str = "0.10.0-alpha.1";
+const SEH_BINARY_NAME: &str = "seh";
+
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod app_cmd;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -55,14 +58,16 @@ mod plugin_cmd;
 mod remote_control_cmd;
 #[cfg(target_os = "windows")]
 mod sandbox_setup;
+mod seh_cmd;
 mod state_db_recovery;
-#[cfg(not(windows))]
-mod wsl_paths;
 
 use crate::mcp_cmd::McpCli;
 use crate::plugin_cmd::PluginCli;
 use crate::plugin_cmd::PluginSubcommand;
 use crate::remote_control_cmd::RemoteControlCommand;
+use crate::seh_cmd::EvidenceCommand as SehEvidenceCommand;
+use crate::seh_cmd::EvolutionCommand as SehEvolutionCommand;
+use crate::seh_cmd::HarnessCommand as SehHarnessCommand;
 use doctor::DoctorCommand;
 use state_db_recovery as local_state_db;
 
@@ -84,24 +89,26 @@ use codex_login::read_codex_access_token_from_env;
 use codex_memories_write::clear_memory_roots_contents;
 use codex_models_manager::bundled_models_response;
 use codex_models_manager::manager::RefreshStrategy;
+use codex_protocol::openai_models::ModelVisibility;
+use codex_protocol::openai_models::ModelsResponse;
 use codex_protocol::protocol::AskForApproval;
 use codex_protocol::user_input::UserInput;
 use codex_terminal_detection::TerminalName;
 
-/// Codex CLI
+/// SEH Code — a Codex-derived coding agent with versioned harness evidence.
 ///
 /// If no subcommand is specified, options will be forwarded to the interactive CLI.
 #[derive(Debug, Parser)]
 #[clap(
     author,
-    version,
+    name = "seh",
+    version = SEH_PRODUCT_VERSION,
     // If a sub‑command is given, ignore requirements of the default args.
     subcommand_negates_reqs = true,
-    // The executable is sometimes invoked via a platform‑specific name like
-    // `codex-x86_64-unknown-linux-musl`, but the help output should always use
-    // the generic `codex` command name that users run.
-    bin_name = "codex",
-    override_usage = "codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]"
+    // This product track is installed as `seh`; `codex` remains a compatibility
+    // binary for upstream tooling and displays the product command consistently.
+    bin_name = "seh",
+    override_usage = "seh [OPTIONS] [PROMPT]\n       seh [OPTIONS] <COMMAND> [ARGS]"
 )]
 struct MultitoolCli {
     #[clap(flatten)]
@@ -122,7 +129,7 @@ struct MultitoolCli {
 
 #[derive(Debug, clap::Subcommand)]
 enum Subcommand {
-    /// Run Codex non-interactively.
+    /// Run SEH Code non-interactively.
     #[clap(visible_alias = "e")]
     Exec(ExecCli),
 
@@ -135,13 +142,25 @@ enum Subcommand {
     /// Remove stored authentication credentials.
     Logout(LogoutCommand),
 
-    /// Manage external MCP servers for Codex.
+    /// List available models and their reasoning levels.
+    Models(ModelsCommand),
+
+    /// Inspect immutable HarnessVersion pins.
+    Harness(SehHarnessCommand),
+
+    /// Verify signed, append-only runtime evidence.
+    Evidence(SehEvidenceCommand),
+
+    /// Inspect the separate task and harness evolution lifecycles.
+    Evolution(SehEvolutionCommand),
+
+    /// Manage external MCP servers for SEH Code.
     Mcp(McpCli),
 
-    /// Manage Codex plugins.
+    /// Manage SEH Code plugins.
     Plugin(PluginCli),
 
-    /// Start Codex as an MCP server (stdio).
+    /// Start SEH Code as an MCP server (stdio).
     McpServer(McpServerCommand),
 
     /// [experimental] Run the app server or related tooling.
@@ -157,13 +176,13 @@ enum Subcommand {
     /// Generate shell completion scripts.
     Completion(CompletionCommand),
 
-    /// Update Codex to the latest version.
+    /// Show how to update this SEH Code source build.
     Update,
 
-    /// Diagnose local Codex installation, config, auth, and runtime health.
+    /// Diagnose local SEH Code installation, config, auth, and runtime health.
     Doctor(DoctorCommand),
 
-    /// Run commands within a Codex-provided sandbox.
+    /// Run commands within an SEH Code sandbox.
     Sandbox(HostSandboxArgs),
 
     /// Debugging tools.
@@ -173,7 +192,7 @@ enum Subcommand {
     #[clap(hide = true)]
     Execpolicy(ExecpolicyCommand),
 
-    /// Apply the latest diff produced by Codex agent as a `git apply` to your local working tree.
+    /// Apply the latest diff produced by SEH Code as a `git apply` to your local working tree.
     #[clap(visible_alias = "a")]
     Apply(ApplyCommand),
 
@@ -281,8 +300,19 @@ struct DebugModelsCommand {
 }
 
 #[derive(Debug, Parser)]
+struct ModelsCommand {
+    /// Skip refresh and use only the model catalog bundled with this binary.
+    #[arg(long, default_value_t = false)]
+    bundled: bool,
+
+    /// Emit the full model catalog as machine-readable JSON.
+    #[arg(long, default_value_t = false)]
+    json: bool,
+}
+
+#[derive(Debug, Parser)]
 struct ReviewCommand {
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of SEH Code.
     #[arg(long = "strict-config", default_value_t = false)]
     strict_config: bool,
 
@@ -292,7 +322,7 @@ struct ReviewCommand {
 
 #[derive(Debug, Parser)]
 struct McpServerCommand {
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of SEH Code.
     #[arg(long = "strict-config", default_value_t = false)]
     strict_config: bool,
 }
@@ -352,7 +382,7 @@ struct SessionArchiveConfigOverrides {
     #[clap(flatten)]
     shared: SharedCliOptions,
 
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of SEH Code.
     #[arg(long = "strict-config", default_value_t = false)]
     strict_config: bool,
 
@@ -520,7 +550,7 @@ struct AppServerCommand {
     #[command(flatten)]
     code_mode_host: codex_app_server::AppServerCodeModeHostArgs,
 
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of SEH Code.
     #[arg(long = "strict-config", default_value_t = false)]
     strict_config: bool,
 
@@ -565,7 +595,7 @@ struct AppServerCommand {
 
 #[derive(Debug, Parser)]
 struct ExecServerCommand {
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of SEH Code.
     #[arg(long = "strict-config", default_value_t = false)]
     strict_config: bool,
 
@@ -764,66 +794,17 @@ fn handle_app_exit(exit_info: AppExitInfo) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Run the update action and print the result.
-fn run_update_action(action: UpdateAction) -> anyhow::Result<()> {
+/// Keep product updates explicit; never invoke an upstream package installer.
+#[allow(dead_code)]
+fn run_update_action(_action: UpdateAction) -> anyhow::Result<()> {
     println!();
-    let cmd_str = action.command_str();
-    println!("Updating Codex via `{cmd_str}`...");
-
-    let status = {
-        #[cfg(windows)]
-        {
-            if action == UpdateAction::StandaloneWindows {
-                let (cmd, args) = action.command_args();
-                // Run the standalone PowerShell installer with PowerShell
-                // itself. Routing this through `cmd.exe /C` would parse
-                // PowerShell metacharacters like `|` before PowerShell sees
-                // the installer command.
-                std::process::Command::new(cmd).args(args).status()?
-            } else {
-                // On Windows, run via cmd.exe so .CMD/.BAT are correctly resolved (PATHEXT semantics).
-                std::process::Command::new("cmd")
-                    .args(["/C", &cmd_str])
-                    .status()?
-            }
-        }
-        #[cfg(not(windows))]
-        {
-            let (cmd, args) = action.command_args();
-            let command_path = crate::wsl_paths::normalize_for_wsl(cmd);
-            let normalized_args: Vec<String> = args
-                .iter()
-                .map(crate::wsl_paths::normalize_for_wsl)
-                .collect();
-            std::process::Command::new(&command_path)
-                .args(&normalized_args)
-                .status()?
-        }
-    };
-    if !status.success() {
-        anyhow::bail!("`{cmd_str}` failed with status {status}");
-    }
-    println!("\n🎉 Update ran successfully! Please restart Codex.");
-    Ok(())
+    run_update_command()
 }
 
 fn run_update_command() -> anyhow::Result<()> {
-    #[cfg(debug_assertions)]
-    {
-        anyhow::bail!(
-            "`codex update` is not available in debug builds. Install a release build of Codex to use this command."
-        );
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-        let Some(action) = codex_tui::get_update_action() else {
-            anyhow::bail!(
-                "Could not detect the Codex installation method. Please update manually: https://developers.openai.com/codex/cli/"
-            );
-        };
-        run_update_action(action)
-    }
+    println!("SEH Code source builds do not run the upstream Codex updater.");
+    println!("Update the repository, then run `./scripts/install-seh.sh` again.");
+    Ok(())
 }
 
 fn run_execpolicycheck(cmd: ExecPolicyCheckCommand) -> anyhow::Result<()> {
@@ -1390,7 +1371,7 @@ async fn cli_main(
                         .await;
                     } else if login_cli.api_key.is_some() {
                         eprintln!(
-                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`."
+                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | seh login --with-api-key`."
                         );
                         std::process::exit(1);
                     } else if login_cli.with_api_key {
@@ -1416,6 +1397,38 @@ async fn cli_main(
                 root_config_overrides.clone(),
             );
             run_logout(logout_cli.config_overrides).await;
+        }
+        Some(Subcommand::Models(models_cli)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "models",
+            )?;
+            run_models_command(models_cli, root_config_overrides.clone()).await?;
+        }
+        Some(Subcommand::Harness(command)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "harness",
+            )?;
+            seh_cmd::run_harness(command)?;
+        }
+        Some(Subcommand::Evidence(command)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "evidence",
+            )?;
+            seh_cmd::run_evidence(command)?;
+        }
+        Some(Subcommand::Evolution(command)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "evolution",
+            )?;
+            seh_cmd::run_evolution(command)?;
         }
         Some(Subcommand::Completion(completion_cli)) => {
             reject_remote_mode_for_subcommand(
@@ -1513,7 +1526,7 @@ async fn cli_main(
             #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
             {
                 let _ = loader_overrides;
-                anyhow::bail!("`codex sandbox` is not supported on this operating system");
+                anyhow::bail!("`seh sandbox` is not supported on this operating system");
             }
         }
         Some(Subcommand::Debug(DebugCommand { subcommand })) => match subcommand {
@@ -1698,7 +1711,7 @@ fn profile_v2_for_subcommand<'a>(
             subcommand: DebugSubcommand::PromptInput(_),
         }) => Ok(Some(profile_v2)),
         _ => anyhow::bail!(
-            "--profile only applies to runtime commands and `codex mcp`: `codex`, `codex exec`, `codex review`, `codex resume`, `codex archive`, `codex delete`, `codex unarchive`, `codex fork`, `codex mcp`, `codex sandbox`, and `codex debug prompt-input`."
+            "--profile only applies to runtime commands and `seh mcp`: `seh`, `seh exec`, `seh review`, `seh resume`, `seh archive`, `seh delete`, `seh unarchive`, `seh fork`, `seh mcp`, `seh sandbox`, and `seh debug prompt-input`."
         ),
     }
 }
@@ -1816,7 +1829,7 @@ async fn load_exec_server_remote_auth_provider(
 
     let auth = load_exec_server_remote_auth(
         config,
-        "remote exec-server registration requires ChatGPT authentication or API key authentication; run `codex login` or set CODEX_API_KEY",
+        "remote exec-server registration requires ChatGPT authentication or API key authentication; run `seh login` or set CODEX_API_KEY",
     )
     .await?;
 
@@ -2087,7 +2100,72 @@ async fn run_debug_models_command(
     cmd: DebugModelsCommand,
     root_config_overrides: CliConfigOverrides,
 ) -> anyhow::Result<()> {
-    let catalog = if cmd.bundled {
+    let catalog = load_model_catalog(cmd.bundled, root_config_overrides).await?;
+
+    serde_json::to_writer(std::io::stdout(), &catalog)?;
+    println!();
+    Ok(())
+}
+
+async fn run_models_command(
+    cmd: ModelsCommand,
+    root_config_overrides: CliConfigOverrides,
+) -> anyhow::Result<()> {
+    let catalog = load_model_catalog(cmd.bundled, root_config_overrides).await?;
+    if cmd.json {
+        println!("{}", serde_json::to_string_pretty(&catalog)?);
+        return Ok(());
+    }
+
+    let mut models = catalog
+        .models
+        .iter()
+        .filter(|model| model.visibility == ModelVisibility::List)
+        .collect::<Vec<_>>();
+    if models.is_empty() {
+        models = catalog.models.iter().collect();
+    }
+    println!("◈ Available Models  [{}]", models.len());
+    for model in models {
+        let efforts = model
+            .supported_reasoning_levels
+            .iter()
+            .map(|preset| format!("{:?}", preset.effort).to_lowercase())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let default = model
+            .default_reasoning_level
+            .as_ref()
+            .map(|effort| format!("{effort:?}").to_lowercase())
+            .unwrap_or_else(|| "provider default".to_string());
+        println!();
+        println!("  {}  ({})", model.display_name, model.slug);
+        println!("    reasoning  {efforts}  · default {default}");
+        if !model.service_tiers.is_empty() {
+            println!(
+                "    service    {}",
+                model
+                    .service_tiers
+                    .iter()
+                    .map(|tier| tier.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+        if let Some(description) = model.description.as_deref() {
+            println!("    {description}");
+        }
+    }
+    println!();
+    println!("Use `/model` inside SEH Code to pick a model, reasoning effort, and service tier.");
+    Ok(())
+}
+
+async fn load_model_catalog(
+    bundled: bool,
+    root_config_overrides: CliConfigOverrides,
+) -> anyhow::Result<ModelsResponse> {
+    let catalog = if bundled {
         bundled_models_response()?
     } else {
         let cli_overrides = root_config_overrides
@@ -2107,10 +2185,7 @@ async fn run_debug_models_command(
             )
             .await
     };
-
-    serde_json::to_writer(std::io::stdout(), &catalog)?;
-    println!();
-    Ok(())
+    Ok(catalog)
 }
 
 async fn run_debug_clear_memories_command(
@@ -2161,12 +2236,12 @@ fn reject_remote_mode_for_subcommand(
 ) -> anyhow::Result<()> {
     if let Some(remote) = remote {
         anyhow::bail!(
-            "`--remote {remote}` is only supported for interactive TUI commands, not `codex {subcommand}`"
+            "`--remote {remote}` is only supported for interactive TUI commands, not `seh {subcommand}`"
         );
     }
     if remote_auth_token_env.is_some() {
         anyhow::bail!(
-            "`--remote-auth-token-env` is only supported for interactive TUI commands, not `codex {subcommand}`"
+            "`--remote-auth-token-env` is only supported for interactive TUI commands, not `seh {subcommand}`"
         );
     }
     Ok(())
@@ -2226,6 +2301,10 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::App(_)) => Some("app"),
         Some(Subcommand::Login(_)) => Some("login"),
         Some(Subcommand::Logout(_)) => Some("logout"),
+        Some(Subcommand::Models(_)) => Some("models"),
+        Some(Subcommand::Harness(_)) => Some("harness"),
+        Some(Subcommand::Evidence(_)) => Some("evidence"),
+        Some(Subcommand::Evolution(_)) => Some("evolution"),
         Some(Subcommand::Completion(_)) => Some("completion"),
         Some(Subcommand::Update) => Some("update"),
         Some(Subcommand::Cloud(_)) => Some("cloud"),
@@ -2257,7 +2336,7 @@ fn reject_strict_config_for_unsupported_subcommand(
     subcommand: &str,
 ) -> anyhow::Result<()> {
     if strict_config {
-        anyhow::bail!("`--strict-config` is not supported for `codex {subcommand}`");
+        anyhow::bail!("`--strict-config` is not supported for `seh {subcommand}`");
     }
     Ok(())
 }
@@ -2607,8 +2686,7 @@ fn merge_interactive_cli_flags(interactive: &mut TuiCli, subcommand_cli: TuiCli)
 
 fn print_completion(cmd: CompletionCommand) {
     let mut app = MultitoolCli::command();
-    let name = "codex";
-    generate(cmd.shell, &mut app, name, &mut std::io::stdout());
+    generate(cmd.shell, &mut app, SEH_BINARY_NAME, &mut std::io::stdout());
 }
 
 #[cfg(test)]
@@ -2618,6 +2696,18 @@ mod tests {
     use codex_protocol::ThreadId;
     use codex_tui::TokenUsage;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn bash_completion_targets_the_seh_binary() {
+        let mut app = MultitoolCli::command();
+        let mut output = Vec::new();
+        generate(Shell::Bash, &mut app, SEH_BINARY_NAME, &mut output);
+        let script = String::from_utf8(output).expect("completion should be UTF-8");
+
+        assert!(script.contains("_seh()"));
+        assert!(script.contains("complete -F _seh"));
+        assert!(!script.contains("complete -F _codex"));
+    }
 
     #[tokio::test]
     async fn updater_http_client_factory_honors_respect_system_proxy() {
@@ -3848,7 +3938,7 @@ mod tests {
 
         assert_eq!(
             err.to_string(),
-            "`--strict-config` is not supported for `codex mcp`"
+            "`--strict-config` is not supported for `seh mcp`"
         );
 
         let cli = MultitoolCli::try_parse_from(["codex", "--strict-config", "remote-control"])
@@ -3861,7 +3951,7 @@ mod tests {
 
         assert_eq!(
             err.to_string(),
-            "`--strict-config` is not supported for `codex remote-control`"
+            "`--strict-config` is not supported for `seh remote-control`"
         );
     }
 
@@ -3877,7 +3967,7 @@ mod tests {
 
         assert_eq!(
             err.to_string(),
-            "`--strict-config` is not supported for `codex app-server proxy`"
+            "`--strict-config` is not supported for `seh app-server proxy`"
         );
     }
 

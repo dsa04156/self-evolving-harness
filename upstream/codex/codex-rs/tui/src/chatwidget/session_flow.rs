@@ -121,11 +121,13 @@ impl ChatWidget {
             let startup_tooltip_override = self.startup_tooltip_override.take();
             let show_fast_status = self
                 .should_show_fast_status(&model_for_header, self.effective_service_tier.as_deref());
+            let show_product_home = self.show_welcome_banner || self.show_seh_home;
+            self.show_seh_home = false;
             let session_info_cell = history_cell::new_session_info(
                 &self.config,
                 &model_for_header,
                 &session,
-                self.show_welcome_banner,
+                show_product_home,
                 startup_tooltip_override,
                 self.plan_type,
                 show_fast_status,
