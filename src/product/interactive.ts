@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.8.0";
+export const PRODUCT_CLI_VERSION = "0.9.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -46,6 +46,9 @@ const PRODUCT_COMMANDS: ReadonlySet<string> = new Set([
   "fork",
   "thread",
   "doctor",
+  "models",
+  "skills",
+  "tools",
   "config",
   "harness",
   "evolution",
@@ -53,6 +56,25 @@ const PRODUCT_COMMANDS: ReadonlySet<string> = new Set([
   "completion",
   "demo",
   "check-schemas",
+]);
+
+const GLOBAL_BOOLEAN_OPTIONS: ReadonlySet<string> = new Set([
+  "--json",
+  "--fast",
+  "--read-only",
+  "--write",
+  "--quiet",
+  "-q",
+]);
+
+const GLOBAL_VALUE_OPTIONS: ReadonlySet<string> = new Set([
+  "--workspace",
+  "--provider",
+  "--model",
+  "--endpoint",
+  "--effort",
+  "--verify",
+  "--skill",
 ]);
 
 const ESCAPE = "\u001B[";
@@ -135,18 +157,59 @@ export function resolveProductCliInvocation(
   if (rawArguments.length === 0) {
     return { command: interactiveTerminal ? "chat" : "run", args: [] };
   }
-  const [candidate = "help", ...rest] = rawArguments;
+  // Common options may precede a named command, matching established coding
+  // agent CLIs (`seh --workspace repo status`, `seh --json doctor`). Keep the
+  // original ordering for direct-prompt invocations and move only a proven
+  // global prefix into the selected command's argument list.
+  const prefix: string[] = [];
+  let index = 0;
+  while (index < rawArguments.length) {
+    const token = rawArguments[index] ?? "";
+    if (PRODUCT_COMMANDS.has(token)) {
+      return {
+        command: token,
+        args: [...prefix, ...rawArguments.slice(index + 1)],
+      };
+    }
+    if (GLOBAL_BOOLEAN_OPTIONS.has(token)) {
+      prefix.push(token);
+      index += 1;
+      continue;
+    }
+    const equalsIndex = token.indexOf("=");
+    const optionName = equalsIndex === -1 ? token : token.slice(0, equalsIndex);
+    if (GLOBAL_VALUE_OPTIONS.has(optionName)) {
+      prefix.push(token);
+      index += 1;
+      if (equalsIndex === -1 && index < rawArguments.length) {
+        prefix.push(rawArguments[index] ?? "");
+        index += 1;
+      }
+      continue;
+    }
+    break;
+  }
+
+  if (index === rawArguments.length) {
+    return {
+      command: interactiveTerminal ? "chat" : "run",
+      args: [...rawArguments],
+    };
+  }
+
+  const [candidate = "help", ...rest] = rawArguments.slice(index);
+  const prefixedRest = [...prefix, ...rest];
   if (candidate === "--help" || candidate === "-h" || candidate === "--version" || candidate === "-V") {
-    return { command: candidate, args: rest };
+    return { command: candidate, args: prefixedRest };
   }
   if (candidate === "--print" || candidate === "-p") {
-    return { command: "run", args: rest };
+    return { command: "run", args: prefixedRest };
   }
   if (candidate === "--continue" || candidate === "-c") {
-    return { command: "continue", args: rest };
+    return { command: "continue", args: prefixedRest };
   }
   if (candidate === "--resume" || candidate === "-r") {
-    return { command: "resume", args: rest };
+    return { command: "resume", args: prefixedRest };
   }
   if (!PRODUCT_COMMANDS.has(candidate)) {
     return {

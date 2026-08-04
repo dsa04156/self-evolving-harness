@@ -1,6 +1,6 @@
 # Deterministic MVP Acceptance Matrix
 
-Audit date: 2026-08-03
+Audit date: 2026-08-04
 Product verdict: **PASS**
 Empirical self-improvement verdict: **REVISE / unexecuted**
 
@@ -26,6 +26,8 @@ demonstrated.
 | Events/evidence | PASS | `src/evidence/` | evidence lifecycle, Unix audit, tamper tests |
 | Verification/recovery | PASS | `src/runtime/verifier.ts`, operations control plane | runtime, evidence, termination-recovery tests |
 | Managed end-to-end entry point | PASS | `src/runtime/managed.ts`, `src/cli.ts` | `test/managed-runtime.test.ts`, `npm run cli -- demo` |
+| User CLI and full-screen terminal | PASS | `src/product/cli.ts`, `fullscreen-tui.tsx`, `shell-completion.ts` | product CLI/TUI tests, installed-package cross-directory smoke |
+| Composable discovery and diagnostics | PASS | global option router; `doctor`, `models`, `skills`, `tools`; JSON error envelope | `test/product-cli.test.ts`, `test/product-interactive.test.ts` |
 
 The runtime imports no Codex, Gajae-Code, OpenCode, NexAU, DeepAgent, or other agent runtime. The OpenAI
 package is a model-provider client only.

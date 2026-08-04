@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-a78bfa?style=flat-square">
+  <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-a78bfa?style=flat-square">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-22d3ee?style=flat-square">
   <img alt="Standalone runtime" src="https://img.shields.io/badge/runtime-standalone-34d399?style=flat-square">
   <img alt="Research alpha" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
@@ -149,7 +149,18 @@ seh run "Add focused tests for the parser"
 seh run --skill tests "Add focused tests for the parser"
 seh exec --read-only "Review this repository"
 seh -p "Explain the current Git diff"
+
+# Discover the exact non-interactive surface without opening the TUI
+seh --json doctor
+seh models --provider openai --search gpt-5.6
+seh skills --read-only
+seh tools --write
 ```
+
+Common options can appear before or after a named command, so `seh --workspace ../repo status`
+and `seh status --workspace ../repo` are equivalent. Commands that support `--json` emit only one
+versioned JSON document; failures use the same `{ schemaVersion, ok, error }` envelope and never
+include credential values.
 
 Initialize explicit workspace policy when you want the model, write authority, and verifier recorded before the first task:
 

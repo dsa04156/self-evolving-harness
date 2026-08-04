@@ -811,3 +811,16 @@ any paid-provider request.
   gate in a separate clean worktree and return as Packet 08R before publication.
 - Live-provider interoperability, protected benchmarks, B0–B6, held-out performance, attribution,
   transfer, empirical evolution, self-improvement, and production security remain `NOT TESTED`.
+
+## Durable Round 08R/08S product-harness release closure
+
+- External decisions: `APPROVE` / `APPROVE`; Packet 08 is closed for exact published commit
+  `9c13755aca6028b352ce5d1390675686b0ab7d83` and tree
+  `76010b3b08f3ce1cc7fa1e16cbad12e36df74a3c`.
+- The clean pre-push and post-push release gates each passed 265/265 tests and 132 schemas. The guarded
+  fast-forward preserved exact expected-old ancestry, remote/local/tree equality, and clean status.
+- Publication and historical continuity passed with zero secret and environment-path findings;
+  trust-plane authorities remained zero and hosted CI succeeded at the same SHA.
+- Deterministic ProductExecutionConfig-to-HarnessVersion integration and publication integrity are
+  `PASS`. Live provider interoperability, B0–B6, held-out improvement, attribution benefit,
+  cross-model transfer, empirical evolution, and self-improvement remain `NOT TESTED`/`NOT ESTABLISHED`.

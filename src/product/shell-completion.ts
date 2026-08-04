@@ -14,6 +14,9 @@ export const PRODUCT_TOP_LEVEL_COMMANDS = [
   "fork",
   "thread",
   "doctor",
+  "models",
+  "skills",
+  "tools",
   "config",
   "harness",
   "evolution",
@@ -32,6 +35,7 @@ const COMMON_OPTIONS = [
   "--write",
   "--verify",
   "--skill",
+  "--json",
 ] as const;
 
 const SKILL_IDS = "debug review tests refactor docs secure-review performance parallel-research";
@@ -41,10 +45,15 @@ function bashCompletion(): string {
   const options = [...COMMON_OPTIONS, "--help", "--version"].join(" ");
   return `# SEH shell completion for bash
 _seh_completion() {
-  local current previous command
+  local current previous command index
   current="\${COMP_WORDS[COMP_CWORD]}"
   previous="\${COMP_WORDS[COMP_CWORD-1]}"
-  command="\${COMP_WORDS[1]}"
+  command=""
+  for (( index=1; index<COMP_CWORD; index++ )); do
+    case "\${COMP_WORDS[index]}" in
+      ${commands.replaceAll(" ", "|")}) command="\${COMP_WORDS[index]}"; break ;;
+    esac
+  done
 
   if [[ \${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W '${commands} ${options}' -- "\${current}") )
@@ -63,6 +72,7 @@ _seh_completion() {
   case "\${command}" in
     completion) COMPREPLY=( $(compgen -W 'bash zsh fish' -- "\${current}") ); return ;;
     memory) COMPREPLY=( $(compgen -W 'add list' -- "\${current}") ); return ;;
+    models) COMPREPLY=( $(compgen -W '${options} --search --limit --live' -- "\${current}") ); return ;;
     config) COMPREPLY=( $(compgen -W '${options} --max-descendants' -- "\${current}") ); return ;;
   esac
 
@@ -76,6 +86,7 @@ function zshCompletion(): string {
   return `#compdef seh
 _seh() {
   local -a commands
+  local selected_command word
   commands=(
     'init:Initialize the current workspace'
     'run:Run one task non-interactively'
@@ -88,6 +99,9 @@ _seh() {
     'fork:Fork a session with its pinned HarnessVersion'
     'thread:Show the Thread / Turn / Item projection'
     'doctor:Check the local runtime'
+    'models:List searchable provider and model routes'
+    'skills:List reusable workflow skills'
+    'tools:List the active model-callable tool surface'
     'config:Show project configuration'
     'harness:Show the latest pinned HarnessVersion'
     'evolution:Show trace and version evolution readiness'
@@ -100,11 +114,18 @@ _seh() {
   case $state in
     command) _describe 'command' commands ;;
     arguments)
-      case $words[2] in
+      selected_command=''
+      for word in $words; do
+        case $word in
+          (${PRODUCT_TOP_LEVEL_COMMANDS.join("|")}) selected_command=$word; break ;;
+        esac
+      done
+      case $selected_command in
         completion) _values 'shell' bash zsh fish ;;
         memory) _values 'action' add list ;;
+        models) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--search[search model catalog]:query' '--limit[maximum result count]:count' '--live[query live provider discovery]' '--json[machine-readable output]' ;;
         config) _arguments '--workspace[workspace path]:directory:_directories' '--max-descendants[bounded child/job count]:count:(0 1 2 4 8)' ;;
-        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--effort[reasoning effort]:effort:(auto none minimal low medium high xhigh max)' '--fast[OpenAI priority processing]' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' '--skill[workflow skill]:skill:(${SKILL_IDS})' ;;
+        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--effort[reasoning effort]:effort:(auto none minimal low medium high xhigh max)' '--fast[OpenAI priority processing]' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' '--skill[workflow skill]:skill:(${SKILL_IDS})' '--json[machine-readable output]' ;;
       esac
       ;;
   esac
@@ -126,6 +147,9 @@ function fishCompletion(): string {
     ["fork", "Fork a session with its pinned HarnessVersion"],
     ["thread", "Show the Thread / Turn / Item projection"],
     ["doctor", "Check the local runtime"],
+    ["models", "List provider and model routes"],
+    ["skills", "List reusable workflow skills"],
+    ["tools", "List the model-callable tool surface"],
     ["config", "Show project configuration"],
     ["harness", "Show the latest pinned HarnessVersion"],
     ["evolution", "Show evolution readiness"],
@@ -148,6 +172,10 @@ function fishCompletion(): string {
     "complete -c seh -l write -d 'Enable workspace mutation tools'",
     "complete -c seh -l verify -r -d 'Verification command'",
     `complete -c seh -l skill -r -a '${SKILL_IDS}' -d 'Workflow skill'`,
+    "complete -c seh -l json -d 'Machine-readable output'",
+    "complete -c seh -n '__fish_seen_subcommand_from models' -l search -r -d 'Search model catalog'",
+    "complete -c seh -n '__fish_seen_subcommand_from models' -l limit -r -d 'Maximum result count'",
+    "complete -c seh -n '__fish_seen_subcommand_from models' -l live -d 'Query live provider discovery'",
     "complete -c seh -n '__fish_seen_subcommand_from config' -l max-descendants -r -a '0 1 2 4 8' -d 'Bounded child and job count'",
     "complete -c seh -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish' -d 'Shell'",
     "complete -c seh -n '__fish_seen_subcommand_from memory' -a 'add list' -d 'Memory action'",

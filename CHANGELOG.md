@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 — composable CLI discovery and diagnostics
+
+### CLI contract
+
+- Common options can precede or follow named commands, including `seh --json doctor` and
+  `seh --workspace ../repo status`, without being mistaken for coding tasks.
+- JSON-capable failures now emit one stable, versioned `{ schemaVersion, ok, error }` document with
+  typed error code, safe detail, and retryability. Human mode retains concise stderr diagnostics.
+- `seh doctor` works before project initialization and reports workspace, state boundary, sandbox,
+  configuration, provider, model, and non-secret credential-presence checks with concrete next steps.
+- `seh init` and `seh config` accept the same global `--json` placement used by automation.
+
+### Discovery
+
+- Added non-interactive `seh models` with provider/search/limit filters, reasoning and service-tier
+  metadata, and optional bounded OpenRouter or Ollama live discovery.
+- Added `seh skills` and `seh tools` so scripts and external agents can inspect the exact reusable
+  workflows and permission-filtered model-callable surface without opening the full-screen UI.
+- Bash, Zsh, and Fish completion now advertise the new commands, JSON mode, and model discovery
+  options.
+
 ## 0.8.0 — product HarnessVersion execution and thread lineage
 
 ### Runtime ownership

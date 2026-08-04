@@ -17,18 +17,18 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 06S Oracle 0.16.1 dry-run positively reported attach/reuse of target
-  `4BA3B4F29D8FD1597A712A46C80CB67E` without a new process or tab. Direct CDP verified the exact URL,
-  target, empty composer, and idle state, submitted one 3,466-character closure prompt exactly once,
-  and harvested one stable Pro response.
+- last reuse preflight: Round 08S reused endpoint `127.0.0.1:9222`, exact target
+  `4BA3B4F29D8FD1597A712A46C80CB67E`, and the recorded conversation URL without a new process, tab,
+  or window. Direct CDP submitted the bounded closure packet once and the saved browser/local response
+  bytes compare exactly.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-04
-- last packet: `.codex/gpt-pro-architect/packets/packet-08-product-harness-execution.md`
-- last packet sha256: `7a618a88e226a182e9065b7e9e1183738a39014f0a1df75a9956bc4a79ba8032`
-- last response: `.codex/gpt-pro-architect/responses/response-08-product-harness-execution.md`
-- last response sha256: `109f870632e76565a335d77115134cdf68b789178cf7701ddc8104c877cf2fdf`
-- next packet: Packet 08R, exact clean-commit release seal
+- last packet: `.codex/gpt-pro-architect/packets/packet-08s-product-harness-post-publication.md`
+- last packet sha256: `771de5ccd74501b2b47c1bb8d244fd3efd1c80edaac4f2bb7d8a32bffafa0a51`
+- last response: `.codex/gpt-pro-architect/responses/response-08s-product-harness-post-publication.md`
+- last response sha256: `5f2bb92bd4f8817a06cf9bef92fcd731053e32c65bd8c60dd96688640260fa51`
+- next packet: Packet 09, exact 0.9.0 composable-CLI release seal
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -50,6 +50,12 @@
   Round 07 architecture blocker. This approval does not establish a releasable 0.8.0 commit or any
   empirical evolution claim. The exact committed candidate must now pass the complete release gate in
   a separate clean worktree and return once as Packet 08R before publication.
+- Round 08R decision: `APPROVE`. Exact candidate `9c13755aca6028b352ce5d1390675686b0ab7d83`,
+  tree `76010b3b08f3ce1cc7fa1e16cbad12e36df74a3c`, its clean 265-test/132-schema release gate,
+  package/audit checks, and bounded claims were approved for one unchanged expected-old fast-forward.
+- Round 08S decision: `APPROVE`. The guarded publication, post-push 265-test/132-schema gate, remote/
+  local/tree identity, zero secret/environment-path findings, zero granted trust authorities, and
+  hosted CI success close Packet 08. Live provider and empirical evolution remain `NOT TESTED`.
 - Round 06 decision: `APPROVE`. The typed model capability profile, model-specific two-stage picker,
   separate Fast service tier, honest omission of Ultra, persisted immutable session profile,
   provider-wire propagation, provider-bound reasoning continuation, backward compatibility, and

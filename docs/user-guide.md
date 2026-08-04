@@ -91,7 +91,10 @@ recommended first command because it records the permission and verification cho
 | `seh resume [ID] [GUIDANCE]` | Pick or load a prior session and continue interactively |
 | `seh fork [ID] [GUIDANCE]` | Branch from a prior session with its exact HarnessVersion |
 | `seh thread [ID]` | Show a derived Thread / Turn / Item projection (`--json` supported) |
-| `seh doctor` | Check the sandbox, provider endpoint, and selected model |
+| `seh doctor` | Check setup without spending provider tokens; works before initialization (`--json` supported) |
+| `seh models` | Search curated routes and optional live discovery (`--provider`, `--search`, `--live`, `--json`) |
+| `seh skills` | List reusable workflow skills under the selected authority (`--json` supported) |
+| `seh tools` | List model-callable tools and their immutable hashes (`--json` supported) |
 | `seh config` | Print the non-secret project configuration and its state path |
 | `seh harness` | Show the latest task's content-addressed HarnessVersion and runtime snapshot |
 | `seh evolution` | Show observed traces and distinct executed versions without starting a mutation |
@@ -103,6 +106,14 @@ recommended first command because it records the permission and verification cho
 Common profile flags are `--model MODEL`, `--effort auto|none|minimal|low|medium|high|xhigh|max`,
 and `--fast` for OpenAI models that advertise priority processing. Repeat `--skill ID` to add
 bundled workflow skills to a non-interactive task.
+
+Common options may appear before or after a named command. For example,
+`seh --json --workspace ../repo doctor` and `seh doctor --workspace ../repo --json` are equivalent.
+JSON-capable commands emit one versioned document to standard output. A failing JSON invocation uses
+`{ "schemaVersion": 1, "ok": false, "error": { "code", "detail", "retryable" } }`, while human mode
+keeps concise diagnostics on standard error. Credential values are excluded from both forms.
+`doctor` returns status 2 when a required setup check fails—including an uninitialized project—while
+still returning the complete report and actionable `nextSteps`.
 
 Use another workspace from any directory with `--workspace /absolute/or/relative/path`. A task may
 also arrive through standard input:
@@ -119,7 +130,7 @@ the command palette and session picker open as keyboard-driven overlays:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ SEH v0.8.0  SELF-EVOLVING CODING AGENT                                      │
+│ SEH v0.9.0  SELF-EVOLVING CODING AGENT                                      │
 │ my-project     openai/gpt-5.6-sol · HIGH · FAST · WRITE · agents 4 · skills 1│
 └──────────────────────────────────────────────────────────────────────────────┘
 

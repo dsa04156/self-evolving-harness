@@ -24,6 +24,23 @@ async function cli(
   );
 }
 
+async function failingCli(
+  args: readonly string[],
+  stateRoot: string,
+): Promise<{ stdout: string; stderr: string; code: number }> {
+  try {
+    await cli(args, stateRoot);
+    assert.fail("CLI was expected to fail");
+  } catch (error) {
+    const failure = error as { stdout?: string; stderr?: string; code?: number };
+    return {
+      stdout: failure.stdout ?? "",
+      stderr: failure.stderr ?? "",
+      code: failure.code ?? -1,
+    };
+  }
+}
+
 test("installed-style CLI initializes config and manages operator memory", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-cli-"));
   const workspace = path.join(root, "workspace");
@@ -92,7 +109,7 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.8.0\n");
+  assert.equal(version.stdout, "0.9.0\n");
 });
 
 test("product CLI generates native shell completion scripts", async () => {
@@ -103,6 +120,9 @@ test("product CLI generates native shell completion scripts", async () => {
   assert.match(bash.stdout, /auto none minimal low medium high xhigh max/u);
   assert.match(bash.stdout, /parallel-research/u);
   assert.match(bash.stdout, /fork thread/u);
+  assert.match(bash.stdout, /models skills tools/u);
+  assert.match(bash.stdout, /--json/u);
+  assert.match(bash.stdout, /--search --limit --live/u);
   const zsh = await cli(["completion", "zsh"], stateRoot);
   assert.match(zsh.stdout, /#compdef seh/u);
   const fish = await cli(["completion", "fish"], stateRoot);
@@ -147,6 +167,107 @@ test("product CLI persists a model-specific reasoning profile and Fast tier", as
     reasoningEffort: "xhigh",
     serviceTier: "priority",
   });
+});
+
+test("global options route to structured doctor and discovery commands", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-discovery-"));
+  const workspace = path.join(root, "workspace");
+  const stateRoot = path.join(root, "state");
+  await mkdir(workspace, { recursive: true });
+  t.after(async () => rm(root, { recursive: true, force: true }));
+
+  const doctorFailure = await failingCli(
+    ["--json", "--workspace", workspace, "doctor"],
+    stateRoot,
+  );
+  assert.equal(doctorFailure.code, 2);
+  assert.equal(doctorFailure.stderr, "");
+  const doctor = JSON.parse(doctorFailure.stdout) as {
+    schemaVersion: number;
+    ok: boolean;
+    provider: unknown;
+    checks: { id: string; status: string }[];
+    nextSteps: string[];
+  };
+  assert.equal(doctor.schemaVersion, 1);
+  assert.equal(doctor.ok, false);
+  assert.equal(doctor.provider, null);
+  assert.ok(doctor.checks.some((check) => check.id === "config" && check.status === "fail"));
+  assert.ok(doctor.nextSteps.some((step) => step.includes("seh init")));
+
+  const modelsResult = await cli(
+    [
+      "--json",
+      "--workspace",
+      workspace,
+      "models",
+      "--provider",
+      "openai",
+      "--search",
+      "gpt-5.6",
+      "--limit",
+      "2",
+    ],
+    stateRoot,
+  );
+  const models = JSON.parse(modelsResult.stdout) as {
+    ok: boolean;
+    configured: boolean;
+    count: number;
+    models: { provider: string; modelId: string; source: string; reasoning: { supportedEfforts: string[] } }[];
+  };
+  assert.equal(models.ok, true);
+  assert.equal(models.configured, false);
+  assert.equal(models.count, 2);
+  assert.ok(models.models.every((model) => model.provider === "openai"));
+  assert.ok(models.models.every((model) => model.source === "example"));
+  assert.ok(models.models.some((model) => model.reasoning.supportedEfforts.includes("xhigh")));
+
+  const skills = JSON.parse(
+    (await cli(["--json", "skills", "--workspace", workspace, "--read-only"], stateRoot)).stdout,
+  ) as { permissionMode: string; skills: { skillId: string }[] };
+  assert.equal(skills.permissionMode, "read-only");
+  assert.ok(skills.skills.some((skill) => skill.skillId === "debug"));
+
+  const tools = JSON.parse(
+    (await cli(["--json", "tools", "--workspace", workspace, "--read-only"], stateRoot)).stdout,
+  ) as { permissionMode: string; tools: { toolId: string }[] };
+  assert.equal(tools.permissionMode, "read-only");
+  assert.ok(tools.tools.some((tool) => tool.toolId === "filesystem.read"));
+  assert.ok(!tools.tools.some((tool) => tool.toolId === "filesystem.write"));
+
+  const initialized = JSON.parse(
+    (await cli(["--json", "init", "--workspace", workspace, "--read-only"], stateRoot)).stdout,
+  ) as {
+    schemaVersion: number;
+    ok: boolean;
+    permissionMode: string;
+    credentialEnvironmentVariable: string | null;
+  };
+  assert.equal(initialized.schemaVersion, 1);
+  assert.equal(initialized.ok, true);
+  assert.equal(initialized.permissionMode, "read-only");
+  assert.equal(initialized.credentialEnvironmentVariable, null);
+});
+
+test("JSON mode emits a stable machine-readable error envelope", async () => {
+  const stateRoot = path.join(os.tmpdir(), "seh-product-json-error-state");
+  const failure = await failingCli(
+    ["--json", "models", "--provider", "not-a-provider"],
+    stateRoot,
+  );
+  assert.equal(failure.code, 1);
+  assert.equal(failure.stderr, "");
+  const payload = JSON.parse(failure.stdout) as {
+    schemaVersion: number;
+    ok: boolean;
+    error: { code: string; detail: string; retryable: boolean };
+  };
+  assert.equal(payload.schemaVersion, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.error.code, "SCHEMA_INVALID");
+  assert.match(payload.error.detail, /provider/u);
+  assert.equal(payload.error.retryable, false);
 });
 
 test("product CLI rejects authority state inside the writable workspace", async (t) => {

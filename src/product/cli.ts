@@ -46,6 +46,7 @@ import { projectProductThread } from "./thread-projection.js";
 import { renderShellCompletion } from "./shell-completion.js";
 import {
   buildProductModelChoices,
+  type DiscoveredProductModel,
   type ProductModelChoice,
 } from "./model-catalog.js";
 import {
@@ -324,6 +325,7 @@ async function initCommand(args: readonly string[]): Promise<number> {
       write: { type: "boolean" },
       verify: { type: "string", multiple: true },
       force: { type: "boolean" },
+      json: { type: "boolean" },
     },
     allowPositionals: false,
   });
@@ -341,6 +343,30 @@ async function initCommand(args: readonly string[]): Promise<number> {
   const { workspaceRoot, paths } = await workspaceAndPaths(common.workspace);
   const config = defaultProductConfig(workspaceRoot, configOverrides(common));
   await saveProductConfig(paths, config, { overwrite: parsed.values.force === true });
+  if (parsed.values.json === true) {
+    const descriptor = productProviderDescriptor(config.provider.kind);
+    out(`${JSON.stringify({
+      schemaVersion: 1,
+      ok: true,
+      workspaceRoot,
+      configFile: paths.configFile,
+      provider: {
+        kind: config.provider.kind,
+        model: config.provider.model,
+        reasoningEffort: config.provider.reasoningEffort,
+        ...(config.provider.kind === "openai"
+          ? { serviceTier: config.provider.serviceTier }
+          : {}),
+      },
+      permissionMode: config.permissionMode,
+      credentialEnvironmentVariable: descriptor.credentialEnvironmentVariable,
+      nextSteps:
+        config.provider.kind === "ollama"
+          ? ["Start Ollama", `Install ${config.provider.model}`, "Run seh doctor"]
+          : [`Set ${descriptor.credentialEnvironmentVariable} in the environment`, "Run seh doctor"],
+    }, null, 2)}\n`);
+    return 0;
+  }
   out(`Initialized Self-Evolving Harness\n`);
   out(`Workspace: ${workspaceRoot}\n`);
   out(`Config: ${paths.configFile}\n`);
@@ -761,68 +787,490 @@ async function forkCommand(args: readonly string[]): Promise<number> {
   return lineageCommand(args, "fork");
 }
 
+type DoctorCheckStatus = "pass" | "fail" | "warn" | "skip";
+
+interface DoctorCheck {
+  readonly id: string;
+  readonly status: DoctorCheckStatus;
+  readonly summary: string;
+  readonly detail?: string;
+}
+
+interface DoctorProviderSummary {
+  readonly kind: ProductProviderKind;
+  readonly model: string;
+  readonly endpoint: string | null;
+  readonly credentialEnvironmentVariable: string | null;
+  readonly credentialPresent: boolean | null;
+}
+
+interface DoctorReport {
+  readonly schemaVersion: 1;
+  readonly ok: boolean;
+  readonly workspaceRoot: string;
+  readonly configFile: string;
+  readonly stateRoot: string;
+  readonly provider: DoctorProviderSummary | null;
+  readonly checks: readonly DoctorCheck[];
+  readonly nextSteps: readonly string[];
+}
+
+function renderDoctorReport(report: DoctorReport): void {
+  for (const check of report.checks) {
+    const marker =
+      check.status === "pass"
+        ? "✓"
+        : check.status === "fail"
+          ? "✗"
+          : check.status === "warn"
+            ? "!"
+            : "-";
+    out(`${marker} ${check.summary}\n`);
+    if (check.detail !== undefined) out(`  ${check.detail}\n`);
+  }
+  if (report.nextSteps.length > 0) {
+    out("\nNext:\n");
+    for (const step of report.nextSteps) out(`  ${step}\n`);
+  }
+}
+
 async function doctorCommand(args: readonly string[]): Promise<number> {
   const parsed = parseArgs({
     args: [...args],
-    options: { workspace: { type: "string" } },
+    options: {
+      workspace: { type: "string" },
+      json: { type: "boolean" },
+    },
     allowPositionals: false,
   });
   const { workspaceRoot, paths } = await workspaceAndPaths(parsed.values.workspace);
-  const config = await loadProductConfig(paths, workspaceRoot);
+  const checks: DoctorCheck[] = [
+    { id: "workspace", status: "pass", summary: `workspace ${workspaceRoot}` },
+    {
+      id: "state_boundary",
+      status: "pass",
+      summary: `state is outside the workspace at ${paths.projectRoot}`,
+    },
+  ];
+  const nextSteps: string[] = [];
   let healthy = true;
-  out(`✓ workspace ${workspaceRoot}\n`);
-  out(`✓ config ${paths.configFile}\n`);
   try {
     await access("/usr/bin/bwrap");
-    out("✓ sandbox /usr/bin/bwrap\n");
+    checks.push({ id: "sandbox", status: "pass", summary: "sandbox /usr/bin/bwrap" });
   } catch {
     healthy = false;
-    out("✗ sandbox: /usr/bin/bwrap is unavailable\n");
+    checks.push({
+      id: "sandbox",
+      status: "fail",
+      summary: "sandbox /usr/bin/bwrap is unavailable",
+    });
+    nextSteps.push("Install Bubblewrap at /usr/bin/bwrap.");
   }
+
+  if (!(await productConfigExists(paths))) {
+    healthy = false;
+    checks.push({
+      id: "config",
+      status: "fail",
+      summary: `project is not initialized (${paths.configFile})`,
+    });
+    nextSteps.push(`Run seh init --workspace ${JSON.stringify(workspaceRoot)}.`);
+    const report: DoctorReport = {
+      schemaVersion: 1,
+      ok: healthy,
+      workspaceRoot,
+      configFile: paths.configFile,
+      stateRoot: paths.stateRoot,
+      provider: null,
+      checks,
+      nextSteps,
+    };
+    if (parsed.values.json === true) out(`${JSON.stringify(report, null, 2)}\n`);
+    else renderDoctorReport(report);
+    return 2;
+  }
+
+  const config = await loadProductConfig(paths, workspaceRoot);
+  checks.push({ id: "config", status: "pass", summary: `config ${paths.configFile}` });
+  const descriptor = productProviderDescriptor(config.provider.kind);
+  const credentialEnvironmentVariable = descriptor.credentialEnvironmentVariable;
+  const credentialPresent =
+    credentialEnvironmentVariable === null
+      ? null
+      : (process.env[credentialEnvironmentVariable] ?? "").length > 0;
+  const provider: DoctorProviderSummary = {
+    kind: config.provider.kind,
+    model: config.provider.model,
+    endpoint:
+      config.provider.kind === "openai"
+        ? descriptor.endpoint
+        : config.provider.endpoint,
+    credentialEnvironmentVariable,
+    credentialPresent,
+  };
+
   if (config.provider.kind === "ollama") {
     try {
       const models = await listOllamaModels(config.provider.endpoint);
-      out(`✓ Ollama ${config.provider.endpoint}\n`);
+      checks.push({
+        id: "provider",
+        status: "pass",
+        summary: `Ollama ${config.provider.endpoint}`,
+        detail: `${models.length} installed model${models.length === 1 ? "" : "s"}`,
+      });
       const installed = models.includes(config.provider.model);
       if (installed) {
-        out(`✓ model ${config.provider.model}\n`);
+        checks.push({
+          id: "model",
+          status: "pass",
+          summary: `model ${config.provider.model}`,
+        });
       } else {
         healthy = false;
-        out(`✗ model ${config.provider.model} is not installed\n`);
-        out(`  Run: ollama pull ${config.provider.model}\n`);
+        checks.push({
+          id: "model",
+          status: "fail",
+          summary: `model ${config.provider.model} is not installed`,
+        });
+        nextSteps.push(`Run ollama pull ${config.provider.model}.`);
       }
     } catch (error) {
       healthy = false;
-      const failure = error instanceof HarnessError ? error.safeDetail : "Ollama probe failed";
-      out(`✗ provider: ${failure}\n`);
-      out("  Install/start Ollama, then run `ollama serve`.\n");
+      checks.push({
+        id: "provider",
+        status: "fail",
+        summary: "Ollama provider probe failed",
+        detail: asHarnessError(error).safeDetail,
+      });
+      nextSteps.push("Install or start Ollama, then run ollama serve.");
     }
   } else {
-    const descriptor = productProviderDescriptor(config.provider.kind);
-    const credential = descriptor.credentialEnvironmentVariable;
-    assertCondition(credential !== null, "SCHEMA_INVALID", "Remote provider has no credential slot");
-    if ((process.env[credential] ?? "").length > 0) {
-      out(`✓ ${credential} is present (value not read or displayed)\n`);
+    assertCondition(
+      credentialEnvironmentVariable !== null && credentialPresent !== null,
+      "SCHEMA_INVALID",
+      "Remote provider has no credential slot",
+    );
+    if (credentialPresent) {
+      checks.push({
+        id: "credential",
+        status: "pass",
+        summary: `${credentialEnvironmentVariable} is present`,
+        detail: "The value is not retained or displayed.",
+      });
     } else {
       healthy = false;
-      out(`✗ ${credential} is absent\n`);
+      checks.push({
+        id: "credential",
+        status: "fail",
+        summary: `${credentialEnvironmentVariable} is absent`,
+      });
+      nextSteps.push(`Set ${credentialEnvironmentVariable} in the environment.`);
     }
     if (config.provider.kind === "openrouter") {
       try {
         const models = await listOpenRouterModels({ timeoutMillis: 2_500 });
-        out(`✓ OpenRouter catalog ${models.length} tool-capable models\n`);
+        checks.push({
+          id: "provider_catalog",
+          status: "pass",
+          summary: `OpenRouter catalog ${models.length} tool-capable models`,
+        });
         if (!models.some((model) => model.modelId === config.provider.model)) {
-          out(`! model ${config.provider.model} was not found in the live catalog\n`);
+          checks.push({
+            id: "model",
+            status: "warn",
+            summary: `model ${config.provider.model} was not found in the live catalog`,
+          });
         }
       } catch (error) {
         healthy = false;
-        const failure = error instanceof HarnessError ? error.safeDetail : "OpenRouter catalog probe failed";
-        out(`✗ provider catalog: ${failure}\n`);
+        checks.push({
+          id: "provider_catalog",
+          status: "fail",
+          summary: "OpenRouter catalog probe failed",
+          detail: asHarnessError(error).safeDetail,
+        });
       }
+    } else {
+      checks.push({
+        id: "provider",
+        status: "skip",
+        summary: "OpenAI inference probe not sent",
+        detail: "Doctor validates configuration and credential presence without spending provider tokens.",
+      });
     }
   }
-  out(`✓ state is outside the workspace at ${paths.projectRoot}\n`);
+
+  const report: DoctorReport = {
+    schemaVersion: 1,
+    ok: healthy,
+    workspaceRoot,
+    configFile: paths.configFile,
+    stateRoot: paths.stateRoot,
+    provider,
+    checks,
+    nextSteps,
+  };
+  if (parsed.values.json === true) out(`${JSON.stringify(report, null, 2)}\n`);
+  else renderDoctorReport(report);
   return healthy ? 0 : 2;
+}
+
+async function catalogConfig(
+  workspace: string | undefined,
+  requestedProvider: ProductProviderKind | undefined,
+): Promise<{
+  readonly workspaceRoot: string;
+  readonly config: ProductConfig;
+  readonly configured: boolean;
+}> {
+  const { workspaceRoot, paths } = await workspaceAndPaths(workspace);
+  const configured = await productConfigExists(paths);
+  const stored = configured
+    ? await loadProductConfig(paths, workspaceRoot)
+    : defaultProductConfig(workspaceRoot);
+  if (requestedProvider === undefined || requestedProvider === stored.provider.kind) {
+    return { workspaceRoot, config: stored, configured };
+  }
+  const example = productProviderDescriptor(requestedProvider).examples[0];
+  assertCondition(
+    example !== undefined,
+    "ARTIFACT_UNAVAILABLE",
+    `${requestedProvider} has no bundled model examples`,
+  );
+  return {
+    workspaceRoot,
+    config: defaultProductConfig(workspaceRoot, {
+      providerKind: requestedProvider,
+      model: example.modelId,
+    }),
+    configured: false,
+  };
+}
+
+async function modelsCommand(args: readonly string[]): Promise<number> {
+  const parsed = parseArgs({
+    args: [...args],
+    options: {
+      workspace: { type: "string" },
+      provider: { type: "string" },
+      model: { type: "string" },
+      search: { type: "string", short: "s" },
+      limit: { type: "string", short: "n" },
+      live: { type: "boolean" },
+      json: { type: "boolean" },
+    },
+    allowPositionals: false,
+  });
+  const requestedProvider = providerKind(parsed.values.provider);
+  const { config, configured } = await catalogConfig(
+    parsed.values.workspace,
+    requestedProvider,
+  );
+  const liveProvider = requestedProvider ?? config.provider.kind;
+  const discoveredByProvider: Partial<
+    Record<ProductProviderKind, readonly DiscoveredProductModel[]>
+  > = {};
+  let discoveryStatus: "not_requested" | "success" | "failed" | "not_supported" =
+    "not_requested";
+  let discoveryDetail: string | null = null;
+  if (parsed.values.live === true) {
+    try {
+      if (liveProvider === "openrouter") {
+        discoveredByProvider.openrouter = await listOpenRouterModels({ timeoutMillis: 5_000 });
+        discoveryStatus = "success";
+      } else if (liveProvider === "ollama") {
+        const endpoint =
+          config.provider.kind === "ollama"
+            ? config.provider.endpoint
+            : productProviderDescriptor("ollama").endpoint;
+        assertCondition(endpoint !== null, "SCHEMA_INVALID", "Ollama endpoint is missing");
+        discoveredByProvider.ollama = (await listOllamaModels(endpoint)).map((modelId) => ({
+          modelId,
+        }));
+        discoveryStatus = "success";
+      } else {
+        discoveryStatus = "not_supported";
+        discoveryDetail =
+          "Direct OpenAI discovery is not queried without an authenticated inference-plane request.";
+      }
+    } catch (error) {
+      discoveryStatus = "failed";
+      discoveryDetail = asHarnessError(error).safeDetail;
+    }
+  }
+
+  const choices = buildProductModelChoices({
+    provider: config.provider,
+    discoveredByProvider,
+  }).filter(
+    (choice): choice is ProductModelChoice & { readonly modelId: string } =>
+      choice.modelId !== null &&
+      (requestedProvider === undefined || choice.providerKind === requestedProvider),
+  );
+  const query = (parsed.values.search ?? parsed.values.model ?? "").trim().toLocaleLowerCase();
+  const filtered = choices.filter((choice) =>
+    query.length === 0
+      ? true
+      : `${choice.providerKind} ${choice.modelId} ${choice.label} ${choice.description}`
+          .toLocaleLowerCase()
+          .includes(query),
+  );
+  const limit = parsed.values.limit === undefined ? 50 : Number(parsed.values.limit);
+  assertCondition(
+    Number.isSafeInteger(limit) && limit >= 1 && limit <= 500,
+    "SCHEMA_INVALID",
+    "--limit must be an integer from 1 to 500",
+  );
+  const selected = filtered.slice(0, limit);
+  const models = selected.map((choice) => ({
+    provider: choice.providerKind,
+    modelId: choice.modelId,
+    label: choice.label.replace(/^[●✓○]\s*/u, "").replace(/\s{2,}/gu, " "),
+    description:
+      !configured && choice.source === "current"
+        ? choice.description.replace(/^current ·/u, "catalog ·")
+        : choice.description,
+    source: !configured && choice.source === "current" ? "example" : choice.source,
+    reasoning: choice.reasoning,
+    serviceTiers: choice.serviceTiers,
+  }));
+  const result = {
+    schemaVersion: 1,
+    ok: true,
+    configured,
+    provider: requestedProvider ?? null,
+    query,
+    liveDiscovery: {
+      requested: parsed.values.live === true,
+      provider: liveProvider,
+      status: discoveryStatus,
+      detail: discoveryDetail,
+    },
+    total: filtered.length,
+    count: models.length,
+    models,
+  };
+  if (parsed.values.json === true) {
+    out(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
+  }
+  out(`SEH model catalog · ${models.length} of ${filtered.length}\n`);
+  for (const model of models) {
+    const efforts = model.reasoning.supportedEfforts.join("/");
+    out(
+      `${model.provider.padEnd(10)} ${model.modelId}${
+        efforts.length === 0 ? "" : `  [${efforts}]`
+      }\n  ${model.description}\n`,
+    );
+  }
+  if (models.length === 0) out("No matching models.\n");
+  if (parsed.values.live === true) {
+    out(`\nLive discovery: ${liveProvider} · ${discoveryStatus}\n`);
+    if (discoveryDetail !== null) out(`  ${discoveryDetail}\n`);
+  }
+  return 0;
+}
+
+async function capabilityCatalogProfile(input: {
+  readonly workspace: string | undefined;
+  readonly readOnly: boolean | undefined;
+  readonly write: boolean | undefined;
+}): Promise<{
+  readonly permissionMode: PermissionMode;
+  readonly coordinationEnabled: boolean;
+}> {
+  assertCondition(
+    !(input.readOnly === true && input.write === true),
+    "SCHEMA_INVALID",
+    "--read-only and --write are mutually exclusive",
+  );
+  const { workspaceRoot, paths } = await workspaceAndPaths(input.workspace);
+  const config = (await productConfigExists(paths))
+    ? await loadProductConfig(paths, workspaceRoot)
+    : defaultProductConfig(workspaceRoot);
+  return {
+    permissionMode:
+      input.readOnly === true
+        ? "read-only"
+        : input.write === true
+          ? "workspace-write"
+          : config.permissionMode,
+    coordinationEnabled: config.budget.maxDescendants > 0,
+  };
+}
+
+async function skillsCommand(args: readonly string[]): Promise<number> {
+  const parsed = parseArgs({
+    args: [...args],
+    options: {
+      workspace: { type: "string" },
+      "read-only": { type: "boolean" },
+      write: { type: "boolean" },
+      json: { type: "boolean" },
+    },
+    allowPositionals: false,
+  });
+  const profile = await capabilityCatalogProfile({
+    workspace: parsed.values.workspace,
+    readOnly: parsed.values["read-only"],
+    write: parsed.values.write,
+  });
+  const skills = productSkillCatalog(
+    profile.permissionMode,
+    profile.coordinationEnabled,
+  );
+  if (parsed.values.json === true) {
+    out(`${JSON.stringify({
+      schemaVersion: 1,
+      ok: true,
+      ...profile,
+      count: skills.length,
+      skills,
+    }, null, 2)}\n`);
+    return 0;
+  }
+  out(`SEH skills · ${profile.permissionMode} · ${skills.length}\n`);
+  for (const skill of skills) {
+    out(`${skill.skillId.padEnd(20)} ${skill.summary}\n`);
+  }
+  return 0;
+}
+
+async function toolsCommand(args: readonly string[]): Promise<number> {
+  const parsed = parseArgs({
+    args: [...args],
+    options: {
+      workspace: { type: "string" },
+      "read-only": { type: "boolean" },
+      write: { type: "boolean" },
+      json: { type: "boolean" },
+    },
+    allowPositionals: false,
+  });
+  const profile = await capabilityCatalogProfile({
+    workspace: parsed.values.workspace,
+    readOnly: parsed.values["read-only"],
+    write: parsed.values.write,
+  });
+  const tools = codingToolDescriptions(
+    profile.permissionMode,
+    profile.coordinationEnabled,
+  );
+  if (parsed.values.json === true) {
+    out(`${JSON.stringify({
+      schemaVersion: 1,
+      ok: true,
+      ...profile,
+      count: tools.length,
+      tools,
+    }, null, 2)}\n`);
+    return 0;
+  }
+  out(`SEH tools · ${profile.permissionMode} · ${tools.length}\n`);
+  for (const tool of tools) {
+    out(`${tool.name.padEnd(16)} ${tool.toolId}\n  ${tool.description}\n`);
+  }
+  return 0;
 }
 
 async function configCommand(args: readonly string[]): Promise<number> {
@@ -831,6 +1279,7 @@ async function configCommand(args: readonly string[]): Promise<number> {
     options: {
       workspace: { type: "string" },
       "max-descendants": { type: "string" },
+      json: { type: "boolean" },
     },
     allowPositionals: false,
   });
@@ -1855,7 +2304,10 @@ export function productUsage(): string {
     "  seh resume [SESSION_ID] [guidance] [--last]",
     "  seh fork [SESSION_ID] [guidance] [--last]",
     "  seh thread [SESSION_ID] [--json]",
-    "  seh doctor",
+    "  seh doctor [--json]",
+    "  seh models [--provider NAME] [--search QUERY] [--live] [--json]",
+    "  seh skills [--read-only|--write] [--json]",
+    "  seh tools [--read-only|--write] [--json]",
     "  seh config [--max-descendants N]",
     "  seh harness [--json]",
     "  seh evolution [--json]",
@@ -1897,6 +2349,9 @@ export async function runProductCommand(
   if (command === "fork") return forkCommand(args);
   if (command === "thread") return threadCommand(args);
   if (command === "doctor") return doctorCommand(args);
+  if (command === "models") return modelsCommand(args);
+  if (command === "skills") return skillsCommand(args);
+  if (command === "tools") return toolsCommand(args);
   if (command === "config") return configCommand(args);
   if (command === "harness") return harnessStatusCommand(args, false);
   if (command === "evolution") return harnessStatusCommand(args, true);

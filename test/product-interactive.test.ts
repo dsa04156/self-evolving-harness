@@ -68,6 +68,25 @@ test("top-level CLI follows interactive prompt and explicit print routing", () =
     command: "thread",
     args: ["session.1"],
   });
+  assert.deepEqual(resolveProductCliInvocation(["--json", "doctor"], false), {
+    command: "doctor",
+    args: ["--json"],
+  });
+  assert.deepEqual(
+    resolveProductCliInvocation(["--workspace", "/repo", "models", "--limit", "5"], false),
+    {
+      command: "models",
+      args: ["--workspace", "/repo", "--limit", "5"],
+    },
+  );
+  assert.deepEqual(resolveProductCliInvocation(["--write", "fix", "the", "tests"], false), {
+    command: "run",
+    args: ["--write", "fix", "the", "tests"],
+  });
+  assert.deepEqual(resolveProductCliInvocation(["--workspace", "/repo"], true), {
+    command: "chat",
+    args: ["--workspace", "/repo"],
+  });
 });
 
 test("conversation context is bounded, newest-first selected, and explicitly untrusted", () => {
@@ -102,7 +121,7 @@ test("interactive banner reports runtime authority without requiring color", () 
     verificationCommands: ["npm test"],
   });
   const banner = interactiveBanner({ workspaceRoot: "/workspace", config, color: false });
-  assert.match(banner, /SEH 0\.8\.0/u);
+  assert.match(banner, /SEH 0\.9\.0/u);
   assert.match(banner, /reasoning\s+provider default/u);
   assert.match(banner, /read-only · shell network denied/u);
   assert.match(banner, /verification 1 command/u);

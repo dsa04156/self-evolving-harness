@@ -1495,3 +1495,36 @@ response path, interpreted decision, required revisions, and the commit containi
 - still `NOT RUN`/`NOT TESTED`: live provider, protected benchmark, B0–B6, held-out improvement,
   attribution benefit, evidence efficiency, cross-model transfer, empirical evolution, and production
   security
+
+## Round 08R — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-08r-product-harness-release-seal.md`
+- packet SHA-256/size: `d5475f9b9a5a23ba5aa4622d0d62ad378784bb04a87de846c73130f3a0da0a9b` /
+  6,955 bytes
+- transport: exact existing direct-CDP architect tab; no new tab/window, upload, screenshot,
+  credential, sealed data, or repository dump
+- topic id / conversation: `self-evolving-harness-architecture` /
+  `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- browser endpoint / tab: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- response SHA-256/size: `c05a39fcd026ea8687200fb5fb93da42e99bd70975724b538cc82d4464d16628` /
+  7,441 bytes; browser and local content compare exactly
+- architect decision: `APPROVE`
+- accepted: exact `0.8.0` candidate `9c13755a...`, tree `76010b3b...`, clean release/package/audit
+  evidence, standalone authority boundary, and an unchanged expected-old fast-forward
+- next: publish only the exact candidate, rerun the complete release gate, then submit Packet 08S
+
+## Round 08S — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-08s-product-harness-post-publication.md`
+- packet SHA-256/size: `771de5ccd74501b2b47c1bb8d244fd3efd1c80edaac4f2bb7d8a32bffafa0a51` /
+  3,082 bytes
+- transport: exact existing direct-CDP architect tab and conversation; no new tab/window or upload
+- browser endpoint / tab: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- response SHA-256/size: `5f2bb92bd4f8817a06cf9bef92fcd731053e32c65bd8c60dd96688640260fa51` /
+  3,660 bytes; browser and local content compare exactly
+- architect decision: `APPROVE`
+- accepted: expected-old guarded fast-forward to exact `9c13755a...`, post-push 265/265 tests,
+  132 schemas, remote/local/tree equality, hosted CI, secrets=0, environment paths=0, authorities=0
+- next: none for Packet 08; every later byte or ancestry change is a new release identity

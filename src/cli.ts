@@ -345,12 +345,26 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  const message =
+  const jsonRequested = process.argv.slice(2).includes("--json");
+  const code = error instanceof HarnessError ? error.code : "INTERNAL_ERROR";
+  const detail =
     error instanceof HarnessError
-      ? `${error.code}: ${error.safeDetail}`
+      ? error.safeDetail
       : error instanceof Error
-        ? error.message
+        ? error.message.slice(0, 1000)
         : "Unknown CLI failure";
-  process.stderr.write(`${message}\n`);
+  if (jsonRequested) {
+    process.stdout.write(`${JSON.stringify({
+      schemaVersion: 1,
+      ok: false,
+      error: {
+        code,
+        detail,
+        retryable: error instanceof HarnessError ? error.retryable : false,
+      },
+    }, null, 2)}\n`);
+  } else {
+    process.stderr.write(`${code}: ${detail}\n`);
+  }
   process.exitCode = 1;
 });
