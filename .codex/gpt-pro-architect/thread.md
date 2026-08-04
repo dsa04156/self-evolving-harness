@@ -8,9 +8,8 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: `self-evolving-harness-model-registry-2` failed before transmission because
-  Oracle attach metadata did not recognize the pinned browser; the approved direct-CDP fallback then
-  submitted Packet 05S once in the exact tab
+- oracle latest session id: no live Round 06 Oracle session; Round 06/06R/06S slugs were dry-run only,
+  then the approved direct-CDP fallback submitted each packet once in the exact tab
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet, self-evolving-harness-final-evidence
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -18,18 +17,18 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 05S Oracle 0.16.1 dry-run positively reported attach/reuse of target
-  `4BA3B4F29D8FD1597A712A46C80CB67E` without a new process or tab. Live Oracle attach failed before
-  transmission. Direct CDP verified the exact URL, target, empty composer, and idle state, then
-  submitted the 3,511-character prompt exactly once and harvested one stable Pro response.
+- last reuse preflight: Round 06S Oracle 0.16.1 dry-run positively reported attach/reuse of target
+  `4BA3B4F29D8FD1597A712A46C80CB67E` without a new process or tab. Direct CDP verified the exact URL,
+  target, empty composer, and idle state, submitted one 3,466-character closure prompt exactly once,
+  and harvested one stable Pro response.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-04
-- last packet: `.codex/gpt-pro-architect/packets/packet-05s-model-registry-post-publication.md`
-- last packet sha256: `cb1498e018b25cbabb5b19558a03597318ed6e938f660cb8492b187e73440959`
-- last response: `.codex/gpt-pro-architect/responses/response-05s-model-registry-post-publication.md`
-- last response sha256: `b229b95206ba268dc9ec29471464142679a9a06f04138c6196383771fdc0651f`
-- next packet: none for the Packet 05 provider-aware model registry or its publication closure
+- last packet: `.codex/gpt-pro-architect/packets/packet-06s-model-execution-profile-post-publication.md`
+- last packet sha256: `5588d623e88b44b832789bfc40a1c8ef045fe10c81c84d05627d185407bbdb35`
+- last response: `.codex/gpt-pro-architect/responses/response-06s-model-execution-profile-post-publication.md`
+- last response sha256: `911899a3dbb3bed3cf007eab3dee1d064ef40210ac48cfb718f2c7b957561ba1`
+- next packet: none for Packet 06 model execution profiles or their publication closure
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -39,6 +38,22 @@
 - model evidence: Oracle 0.16.1; the same topic originally requested `gpt-5-pro` and resolved the existing
   target. Manual fallback reused the same prior Pro-selected project tab, but did not independently
   expose the picker label; server-side generation identity remains vendor-opaque.
+- Round 06 decision: `APPROVE`. The typed model capability profile, model-specific two-stage picker,
+  separate Fast service tier, honest omission of Ultra, persisted immutable session profile,
+  provider-wire propagation, provider-bound reasoning continuation, backward compatibility, and
+  claim discipline were accepted. Release sealing requires an exact candidate commit, complete
+  identity record, clean committed-worktree full/focused verification, audit/package/version evidence,
+  and one narrow same-tab packet before an unchanged expected-old fast-forward push.
+- Round 06R decision: `APPROVE`. Exact candidate `e3d793ebd7192c04c73b19b300feb2f155f91e3b`,
+  tree `1fd7755a3fade3e39084d21e15c3b3f14d974047`, its linear two-commit remote ancestry, identity
+  hashes, clean 257-test/131-schema release gate, focused 47-test suite, audit/package/version/status,
+  and bounded claims closed release sealing. Publication was authorized only as the unchanged
+  expected-old fast-forward from `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`.
+- Round 06S decision: `APPROVE`. The expected-old lease published exact candidate `e3d793e...` as a
+  normal fast-forward; remote and clean-worktree local identities match, the post-push 257-test and
+  131-schema release gate passed, historical scans found zero secrets/environment paths, trust-plane
+  authority remained zero, and hosted CI succeeded at the same SHA. No further Packet 06 work is
+  requested; live provider and empirical research claims remain `NOT TESTED`.
 - Round 05S decision: `APPROVE`. The exact approved candidate was published by expected-old fast-forward;
   local and remote equal `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`. A separate clean worktree then
   passed the complete 247-test/131-schema release gate with secrets=0, environment paths=0, and

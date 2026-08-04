@@ -1365,3 +1365,71 @@ response path, interpreted decision, required revisions, and the commit containi
 - closure: provider-aware executable registry implementation PASS; post-publication integrity PASS;
   live paid-provider interoperability and empirical research/self-evolution claims remain `NOT TESTED`
 - next: none for Packet 05 or its post-publication release closure
+
+## Round 06 — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-06-model-execution-profiles.md`
+- packet SHA-256/size: `c996f379f506501c16156a2dd9a39c13dbab9a3fc68bfebb8d9493245dc4b9ca` /
+  9,321 bytes
+- transport: Oracle 0.16.1 dry-run positively proved exact endpoint/tab reuse; direct CDP reused target
+  `4BA3B4F29D8FD1597A712A46C80CB67E` and the existing conversation. Long insertion timed out only
+  after the full prompt entered the composer; inspection proved no send, then `send-existing` submitted
+  it exactly once. No new tab, window, upload, screenshot, resend, cookie, or storage access.
+- topic id: `self-evolving-harness-architecture`
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- archive policy: never
+- model evidence: requested Oracle alias `gpt-5-pro` in the dry run; existing Pro-selected tab reused;
+  server-side generation remains vendor-opaque
+- response: `.codex/gpt-pro-architect/responses/response-06-model-execution-profiles.md`
+- response SHA-256/size: `a8660951850e305832c2aceb54b7de01a99ee9b300c94100549cd85eaeb92172` /
+  7,000 bytes; matches the browser digest exactly
+- architect decision: `APPROVE`
+- accepted: clean-room Codex-style model/effort/service-tier separation; model-specific defaults and
+  validation; two-stage picker; provider-wire mapping; session evidence; provider-bound history;
+  backward compatibility; Ultra omission; complete worktree release evidence and bounded claims
+- required next: exact candidate identity, clean committed-tree full/focused release evidence,
+  audit/package/version/status/remote observations, and one narrow Packet 06R before push
+- next: `.codex/gpt-pro-architect/packets/packet-06r-model-execution-profile-release-seal.md`
+
+## Round 06R — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-06r-model-execution-profile-release-seal.md`
+- packet SHA-256/size: `86a99b07285e86448306d2d63539200b15a1b104865eec753936c9386e508500` /
+  7,096 bytes
+- exact candidate: `e3d793ebd7192c04c73b19b300feb2f155f91e3b`; tree
+  `1fd7755a3fade3e39084d21e15c3b3f14d974047`; feature parent
+  `13361322bd225c0076d5a40b34792c5533d6d086`; remote expected old
+  `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`
+- transport: Oracle 0.16.1 exact-tab dry-run passed; direct CDP reused the exact target. Long insertion
+  completed before its command acknowledgment, inspection proved the full 7,507-character composer
+  and no send, then the existing composer was submitted exactly once. No new tab/window/upload/resend.
+- response: `.codex/gpt-pro-architect/responses/response-06r-model-execution-profile-release-seal.md`
+- response SHA-256/size: `92064753485744c5c2f2a8133328421e55aae95b2a541d8a3182d6379be94d6c` /
+  5,629 bytes; matches the browser digest exactly
+- architect decision: `APPROVE`
+- accepted: exact identity hashes and inventory; linear two-commit continuity; clean committed-tree
+  257/257 release and 47/47 focused suite; audit/package/version/status; deterministic model-profile,
+  provider-history, and tool-loop evidence; bounded claim discipline
+- authorized publication: unchanged atomic expected-old fast-forward only
+- next: push exact candidate, rerun full release at that commit, submit only Packet 06S closure
+
+## Round 06S — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-06s-model-execution-profile-post-publication.md`
+- packet SHA-256/size: `5588d623e88b44b832789bfc40a1c8ef045fe10c81c84d05627d185407bbdb35` /
+  3,270 bytes
+- publication: atomic expected-old lease from `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad` to exact approved
+  candidate `e3d793ebd7192c04c73b19b300feb2f155f91e3b`; observed normal fast-forward
+- post-push validation: remote = clean-worktree local = `e3d793e...`, tree `1fd7755...`; full release
+  PASS; 257/257 tests; 131 schemas; secrets=0; environment paths=0; authorities granted=0; status and
+  diff clean
+- hosted CI: run `30875110330`, completed/success at exact candidate SHA
+- transport: Oracle 0.16.1 exact-tab dry-run passed; direct CDP reused the pinned target and submitted
+  one 3,466-character prompt. No new tab/window/upload/screenshot/resend.
+- response: `.codex/gpt-pro-architect/responses/response-06s-model-execution-profile-post-publication.md`
+- response SHA-256/size: `911899a3dbb3bed3cf007eab3dee1d064ef40210ac48cfb718f2c7b957561ba1` /
+  3,085 bytes; matches the browser digest exactly
+- architect decision: `APPROVE`
+- closure: model execution-profile implementation PASS; post-publication integrity PASS; live provider
+  interoperability and empirical research/self-evolution claims remain `NOT TESTED`
+- next: none for Packet 06 or its post-publication closure

@@ -722,3 +722,50 @@ any paid-provider request.
   `NOT TESTED`.
 - No further packet is requested for the Packet 05 increment. Any later byte change is a new candidate
   and does not inherit this exact approval.
+
+## Durable Round 06 model execution-profile decision
+
+- External decision: `APPROVE`; no product, architecture, provider, schema, or UX correction was
+  required for the model execution-profile increment.
+- The accepted separation is `model identity ≠ reasoning effort ≠ service tier`. Each catalog model
+  owns its ordered efforts/default, `/model` opens a model-specific second picker, `Max` stays behind
+  `More reasoning…`, and Fast is direct-OpenAI `priority` processing.
+- `Ultra` is deliberately absent because the inspected Codex path lowers it to provider-wire `Max`
+  while separately enabling proactive multi-agent behavior. SEH does not claim that orchestration.
+- Configuration persistence, immutable per-session `executionProfile`, request-evidence hashing,
+  OpenAI/OpenRouter wire construction, same-provider opaque reasoning continuation, provider-switch
+  isolation, and legacy provider-default behavior were accepted on 47/47 focused and 257/257 full
+  deterministic tests.
+- Exact candidate `e3d793ebd7192c04c73b19b300feb2f155f91e3b`, tree
+  `1fd7755a3fade3e39084d21e15c3b3f14d974047`, must receive one narrow clean-commit release-seal ruling
+  before an unchanged expected-old fast-forward from public head `fa0dec6a...`.
+- Live provider entitlement/acceptance, alias stability, model quality, Ultra orchestration, empirical
+  harness evolution, self-improvement, and generalization remain `NOT TESTED`.
+
+## Durable Round 06R execution-profile release-seal decision
+
+- External decision: `APPROVE`; exact candidate `e3d793ebd7192c04c73b19b300feb2f155f91e3b`,
+  tree `1fd7755a3fade3e39084d21e15c3b3f14d974047`, is approved for an unchanged expected-old guarded
+  fast-forward from public head `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`.
+- The separate detached clean worktree passed 257/257 tests, 131 schemas, 47/47 focused profile tests,
+  zero-vulnerability production audit, package/version checks, empty status, and clean diff check.
+- Model-specific effort and Fast validation, immutable session evidence, request-evidence hashing,
+  OpenAI/OpenRouter wire mapping, same-provider reasoning continuation, provider-switch isolation, and
+  registry-to-tool-loop completion are all covered deterministically.
+- After the unchanged push, only exact remote/local/tree identity, another full release run,
+  historical secret/continuity result, trust authority state, status, and diff check are required.
+- Live provider and empirical research claims remain `NOT TESTED`.
+
+## Durable Round 06S execution-profile post-publication decision
+
+- External decision: `APPROVE`; Packet 06 model execution profiles and publication integrity are
+  closed for exact commit `e3d793ebd7192c04c73b19b300feb2f155f91e3b`, tree
+  `1fd7755a3fade3e39084d21e15c3b3f14d974047`.
+- The guarded expected-old push advanced remote main normally from `fa0dec6a...` to `e3d793e...`.
+  Post-push remote and clean-worktree local identities match exactly.
+- The post-push full release gate again passed 257/257 tests and 131 schemas; publication continuity
+  reported secrets=0 and environment paths=0; trust-plane authority remained zero; status/diff were
+  clean. Hosted CI run `30875110330` also succeeded at the same SHA.
+- Deterministic model-profile implementation and post-publication integrity are `PASS`. Live provider
+  interoperability and empirical research/self-evolution claims remain `NOT TESTED`.
+- No further packet is requested for Packet 06. Any later byte or ancestry change is a new candidate.
