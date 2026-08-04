@@ -147,6 +147,7 @@ pub enum PinSelection {
     Current,
     Inherited,
     Resumed,
+    ConfigurationDerived,
     LegacyCurrent,
 }
 

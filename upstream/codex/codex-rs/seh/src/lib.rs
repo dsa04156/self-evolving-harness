@@ -4,6 +4,8 @@ mod model;
 mod store;
 mod verify;
 
+pub use bootstrap::INTEGRATION_VERSION;
+pub use bootstrap::UPSTREAM_COMMIT;
 pub use bootstrap::runtime_contract_hash;
 pub use model::HarnessBundle;
 pub use model::HarnessPin;

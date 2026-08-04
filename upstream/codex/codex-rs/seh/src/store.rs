@@ -38,11 +38,16 @@ pub fn resolve_and_pin(codex_home: &Path, request: PinRequest) -> Result<Resolve
     validate_runtime_binding(&request)?;
     let store = SehStore::new(codex_home);
     store.ensure_layout()?;
+    let binding_hash = sha256_serialized(&request.runtime_binding)?;
 
-    if let Some(pin) = store.load_pin(&request.thread_id)? {
+    if let Some(pin) = store.load_pin(&request.thread_id, &binding_hash)? {
         let bundle = store.load_pinned_bundle(&pin, &request)?;
         return Ok(ResolvedHarness {
-            instructions: instructions_for(&bundle, request.is_subagent)?,
+            instructions: instructions_for(
+                &bundle,
+                request.is_subagent,
+                &request.base_instructions,
+            )?,
             pin,
         });
     }
@@ -52,7 +57,7 @@ pub fn resolve_and_pin(codex_home: &Path, request: PinRequest) -> Result<Resolve
         .as_deref()
         .or(request.forked_from_thread_id.as_deref());
     if let Some(source_thread_id) = inherited_from
-        && let Some(source_pin) = store.load_pin(source_thread_id)?
+        && let Some(source_pin) = store.load_pin(source_thread_id, &binding_hash)?
     {
         let bundle = store.load_pinned_bundle(&source_pin, &request)?;
         let pin = create_pin(
@@ -63,12 +68,15 @@ pub fn resolve_and_pin(codex_home: &Path, request: PinRequest) -> Result<Resolve
         )?;
         store.save_pin(&pin)?;
         return Ok(ResolvedHarness {
-            instructions: instructions_for(&bundle, request.is_subagent)?,
+            instructions: instructions_for(
+                &bundle,
+                request.is_subagent,
+                &request.base_instructions,
+            )?,
             pin,
         });
     }
 
-    let binding_hash = sha256_serialized(&request.runtime_binding)?;
     let bundle = if let Some(active) = store.load_active(&binding_hash)? {
         store.load_bundle(&active.harness_version_id, Some(&active.bundle_hash))?
     } else {
@@ -82,7 +90,14 @@ pub fn resolve_and_pin(codex_home: &Path, request: PinRequest) -> Result<Resolve
         bundle.runtime_binding_hash == binding_hash,
         "active harness runtime binding mismatch",
     )?;
-    let selection = if request.resumed || inherited_from.is_some() {
+    let thread_had_another_binding = store.has_any_pin(&request.thread_id)?;
+    let source_had_another_binding = match inherited_from {
+        Some(thread_id) => store.has_any_pin(thread_id)?,
+        None => false,
+    };
+    let selection = if thread_had_another_binding || source_had_another_binding {
+        PinSelection::ConfigurationDerived
+    } else if request.resumed {
         PinSelection::LegacyCurrent
     } else {
         PinSelection::Current
@@ -90,7 +105,7 @@ pub fn resolve_and_pin(codex_home: &Path, request: PinRequest) -> Result<Resolve
     let pin = create_pin(&request.thread_id, None, &bundle, selection)?;
     store.save_pin(&pin)?;
     Ok(ResolvedHarness {
-        instructions: instructions_for(&bundle, request.is_subagent)?,
+        instructions: instructions_for(&bundle, request.is_subagent, &request.base_instructions)?,
         pin,
     })
 }
@@ -229,11 +244,14 @@ impl SehStore {
 
     fn save_pin(&self, pin: &HarnessPin) -> Result<()> {
         verify_pin(pin)?;
-        save_immutable_json(&self.pin_path(&pin.thread_id)?, pin)
+        save_immutable_json(
+            &self.pin_path(&pin.thread_id, &pin.runtime_binding_hash)?,
+            pin,
+        )
     }
 
-    fn load_pin(&self, thread_id: &str) -> Result<Option<HarnessPin>> {
-        let path = self.pin_path(thread_id)?;
+    fn load_pin(&self, thread_id: &str, runtime_binding_hash: &str) -> Result<Option<HarnessPin>> {
+        let path = self.pin_path(thread_id, runtime_binding_hash)?;
         if !path.exists() {
             return Ok(None);
         }
@@ -244,6 +262,25 @@ impl SehStore {
             "pin filename and thread ID differ",
         )?;
         Ok(Some(pin))
+    }
+
+    fn has_any_pin(&self, thread_id: &str) -> Result<bool> {
+        let directory = self.thread_pin_dir(thread_id)?;
+        if !directory.exists() {
+            return Ok(false);
+        }
+        let mut entries = fs::read_dir(&directory).map_err(|source| SehError::Io {
+            path: directory.clone(),
+            source,
+        })?;
+        Ok(entries
+            .next()
+            .transpose()
+            .map_err(|source| SehError::Io {
+                path: directory,
+                source,
+            })?
+            .is_some())
     }
 
     fn load_pinned_bundle(&self, pin: &HarnessPin, request: &PinRequest) -> Result<HarnessBundle> {
@@ -292,9 +329,16 @@ impl SehStore {
             .join(format!("{runtime_binding_hash}.json")))
     }
 
-    fn pin_path(&self, thread_id: &str) -> Result<PathBuf> {
+    fn thread_pin_dir(&self, thread_id: &str) -> Result<PathBuf> {
         validate_filename(thread_id)?;
-        Ok(self.thread_dir().join(format!("{thread_id}.json")))
+        Ok(self.thread_dir().join(thread_id))
+    }
+
+    fn pin_path(&self, thread_id: &str, runtime_binding_hash: &str) -> Result<PathBuf> {
+        validate_filename(runtime_binding_hash)?;
+        Ok(self
+            .thread_pin_dir(thread_id)?
+            .join(format!("{runtime_binding_hash}.json")))
     }
 }
 
@@ -486,16 +530,38 @@ mod tests {
             Some("thread-parent")
         );
         assert!(child.instructions.contains("bounded Codex child agent"));
+        assert!(child.instructions.contains("Pinned system prompt"));
     }
 
     #[test]
     fn tampered_pin_is_rejected() {
         let home = TempDir::new().unwrap();
         resolve_and_pin(home.path(), request("thread-a")).unwrap();
-        let pin_path = home.path().join("seh/threads/thread-a.json");
+        let binding_hash = sha256_serialized(&request("thread-a").runtime_binding).unwrap();
+        let pin_path = home
+            .path()
+            .join("seh/threads/thread-a")
+            .join(format!("{binding_hash}.json"));
         let mut value: Value = serde_json::from_slice(&fs::read(&pin_path).unwrap()).unwrap();
         value["harnessVersionId"] = Value::String(format!("hv-sha256:{}", "f".repeat(64)));
         fs::write(&pin_path, serde_json::to_vec(&value).unwrap()).unwrap();
         assert!(resolve_and_pin(home.path(), request("thread-a")).is_err());
+    }
+
+    #[test]
+    fn child_model_override_creates_a_configuration_version_instead_of_false_inheritance() {
+        let home = TempDir::new().unwrap();
+        let parent = resolve_and_pin(home.path(), request("thread-parent")).unwrap();
+        let mut child_request = request("thread-child");
+        child_request.parent_thread_id = Some("thread-parent".to_string());
+        child_request.is_subagent = true;
+        child_request.runtime_binding.model = "other-model".to_string();
+        let child = resolve_and_pin(home.path(), child_request).unwrap();
+        assert_ne!(child.pin.harness_version_id, parent.pin.harness_version_id);
+        assert_eq!(child.pin.selection, PinSelection::ConfigurationDerived);
+        assert_eq!(
+            child.pin.inherited_from_thread_id, None,
+            "configuration versions must not claim exact inheritance"
+        );
     }
 }

@@ -42,6 +42,20 @@
       "securityReviewed": false
     },
     {
+      "path": "upstream/codex/codex-rs/core/Cargo.toml",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/Cargo.toml",
+      "description": "Links the Codex session kernel to the internal SEH registry.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/core/src/session/session.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/src/session/session.rs",
+      "description": "Pins and applies a verified HarnessVersion before session persistence or model execution.",
+      "securityReviewed": false
+    },
+    {
       "path": "upstream/codex/codex-rs/seh/BUILD.bazel",
       "classification": "new-derivative-file",
       "upstreamPath": null,

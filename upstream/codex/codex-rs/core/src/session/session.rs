@@ -23,6 +23,8 @@ use codex_protocol::protocol::MultiAgentVersion;
 use codex_protocol::protocol::ThreadHistoryMode;
 use codex_protocol::protocol::ThreadSource;
 use codex_protocol::protocol::TurnEnvironmentSelections;
+use codex_seh::PinRequest as SehPinRequest;
+use codex_seh::RuntimeBinding as SehRuntimeBinding;
 use std::sync::OnceLock;
 use tokio::sync::Semaphore;
 
@@ -588,6 +590,35 @@ impl Session {
                 .effective_agent_max_threads(MultiAgentVersion::V2)
                 .unwrap_or(usize::MAX),
         );
+        let seh_codex_home = config.codex_home.clone();
+        let seh_request = SehPinRequest {
+            thread_id: thread_id.to_string(),
+            parent_thread_id: parent_thread_id.map(|id| id.to_string()),
+            forked_from_thread_id: forked_from_id.map(|id| id.to_string()),
+            resumed: matches!(&initial_history, InitialHistory::Resumed(_)),
+            is_subagent: session_configuration.session_source.is_non_root_agent(),
+            runtime_binding: SehRuntimeBinding {
+                integration_version: codex_seh::INTEGRATION_VERSION.to_string(),
+                upstream_commit: codex_seh::UPSTREAM_COMMIT.to_string(),
+                model: session_configuration.collaboration_mode.model().to_string(),
+                model_provider: config.model_provider_id.clone(),
+                approval_policy: session_configuration.approval_policy.value().to_string(),
+                sandbox_policy: format!("{:?}", session_configuration.sandbox_policy()),
+            },
+            base_instructions: session_configuration.base_instructions.clone(),
+        };
+        let seh_resolved = tokio::task::spawn_blocking(move || {
+            codex_seh::resolve_and_pin(seh_codex_home.as_path(), seh_request)
+        })
+        .await??;
+        info!(
+            seh_harness_version_id = seh_resolved.pin.harness_version_id,
+            seh_harness_closure_hash = seh_resolved.pin.harness_closure_hash,
+            seh_pin_hash = seh_resolved.pin.pin_hash,
+            "pinned SEH HarnessVersion before session execution"
+        );
+        session_configuration.base_instructions = seh_resolved.instructions;
+        thread_extension_init.insert(seh_resolved.pin);
         let time_provider = crate::current_time::resolve_time_provider(
             config.current_time_reminder.as_ref(),
             external_time_provider,

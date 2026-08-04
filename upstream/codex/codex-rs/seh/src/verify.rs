@@ -90,7 +90,11 @@ pub(crate) fn pin_identity_value(pin: &HarnessPin) -> Result<Value> {
     Ok(Value::Object(value))
 }
 
-pub(crate) fn instructions_for(bundle: &HarnessBundle, is_subagent: bool) -> Result<String> {
+pub(crate) fn instructions_for(
+    bundle: &HarnessBundle,
+    is_subagent: bool,
+    runtime_instructions: &str,
+) -> Result<String> {
     let slot = if is_subagent {
         "subagent_prompt"
     } else {
@@ -127,7 +131,16 @@ pub(crate) fn instructions_for(bundle: &HarnessBundle, is_subagent: bool) -> Res
         })
         .collect::<Result<Vec<_>>>()?;
     require(!contents.is_empty(), &format!("{slot} is empty"))?;
-    Ok(contents.join("\n\n"))
+    let instructions = contents.join("\n\n");
+    if !is_subagent {
+        return Ok(instructions);
+    }
+    const RUNTIME_SUBAGENT_INSTRUCTIONS: &str = "{{runtime_subagent_instructions}}";
+    require(
+        instructions.matches(RUNTIME_SUBAGENT_INSTRUCTIONS).count() == 1,
+        "subagent prompt must contain one runtime instruction binding",
+    )?;
+    Ok(instructions.replace(RUNTIME_SUBAGENT_INSTRUCTIONS, runtime_instructions))
 }
 
 pub(crate) fn expected_component_closure(

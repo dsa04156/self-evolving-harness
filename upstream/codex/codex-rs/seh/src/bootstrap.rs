@@ -316,7 +316,7 @@ fn component_specs(
             payload: prompt_payload(
                 "bounded_subagent",
                 "subagent_role",
-                "You are a bounded Codex child agent. Work only on the delegated task, preserve the parent HarnessVersion and permissions, and return evidence to the parent.",
+                "{{runtime_subagent_instructions}}\n\nYou are a bounded Codex child agent. Work only on the delegated task, preserve the parent HarnessVersion and permissions, and return evidence to the parent.",
             ),
             capabilities: &["prompt.instruct.subagent"],
             dependency_slots: &[],
