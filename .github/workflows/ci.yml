@@ -21,7 +21,15 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install Bubblewrap
-        run: sudo apt-get update && sudo apt-get install --yes bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap
+          # Ubuntu 24.04's AppArmor default denies the user namespace that
+          # Bubblewrap must create. This only changes the disposable CI VM;
+          # the runtime test still executes through the real bwrap sandbox.
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
       - run: npm ci
       - run: npm run check
       - run: npm run test:product

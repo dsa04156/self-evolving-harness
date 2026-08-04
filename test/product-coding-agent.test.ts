@@ -277,7 +277,11 @@ test("product runtime delegates a bounded subtask and returns child evidence to 
           },
         ]);
       }
-      assert.equal(output["state"], "completed");
+      assert.equal(
+        output["state"],
+        "completed",
+        `backend job evidence: ${JSON.stringify(output)}`,
+      );
       const childResult = output["result"] as Record<string, unknown>;
       assert.equal(childResult["finalText"], "Child inspected the delegated scope and found no blocking issue.");
       return response("response.parent.done", [
