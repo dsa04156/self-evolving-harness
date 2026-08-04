@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.6.0";
+export const PRODUCT_CLI_VERSION = "0.7.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -45,6 +45,8 @@ const PRODUCT_COMMANDS: ReadonlySet<string> = new Set([
   "resume",
   "doctor",
   "config",
+  "harness",
+  "evolution",
   "memory",
   "completion",
   "demo",
@@ -198,8 +200,13 @@ export function interactiveHelp(): string {
     "  /diff [--staged]          Show a sandboxed Git diff",
     "  /review [focus]           Review current changes with read-only authority",
     "  /tools                    Show currently available tools",
-    "  /skills                   Inspect the active workflow skill",
+    "  /agent TASK               Delegate a bounded child-agent task",
+    "  /job COMMAND              Run a no-network backend shell job",
+    "  /agents, /jobs            Show descendant authority and lifecycle",
+    "  /skills [ID|off]          Search and toggle workflow skills",
     "  /context                  Show bounded thread and model context",
+    "  /harness                  Show the pinned HarnessVersion identity",
+    "  /evolution                Show trace/version evolution readiness",
     "  /memory                   Show persistent project memory",
     "  /paste                    Show the direct paste and multiline shortcut",
     "  /clear, /home             Clear and redraw the workspace home",

@@ -11,6 +11,20 @@ import type { WorkspacePathGuard } from "./path-guard.js";
 
 export type JsonObject = { readonly [key: string]: JsonValue };
 
+/**
+ * Narrow capability surface exposed to immutable coordination tools.
+ * The concrete descendant manager remains owned by the runtime kernel; tools
+ * cannot replace it or widen the budget/permission slice selected by the
+ * parent runtime.
+ */
+export interface CoordinationToolRuntime {
+  spawnAgent(task: string, abortSignal?: AbortSignal): Promise<JsonValue>;
+  startJob(command: string, abortSignal?: AbortSignal): Promise<JsonValue>;
+  wait(descendantId: string, abortSignal?: AbortSignal): Promise<JsonValue>;
+  list(): Promise<JsonValue>;
+  cancel(descendantId: string): Promise<JsonValue>;
+}
+
 function assertToolAuthority(abortSignal?: AbortSignal): void {
   if (abortSignal?.aborted === true) {
     throw new HarnessError("DEADLINE_EXCEEDED", "Tool authority was revoked");
@@ -20,6 +34,7 @@ function assertToolAuthority(abortSignal?: AbortSignal): void {
 export interface ToolExecutionContext {
   readonly workspace: WorkspacePathGuard;
   readonly processRunner: BubblewrapProcessRunner;
+  readonly coordination?: CoordinationToolRuntime;
   readonly abortSignal?: AbortSignal;
 }
 

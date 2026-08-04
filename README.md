@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <img alt="Version 0.6.0" src="https://img.shields.io/badge/version-0.6.0-a78bfa?style=flat-square">
+  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-a78bfa?style=flat-square">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-22d3ee?style=flat-square">
   <img alt="Standalone runtime" src="https://img.shields.io/badge/runtime-standalone-34d399?style=flat-square">
   <img alt="Research alpha" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
@@ -72,6 +72,8 @@ Type `/` and the command palette appears immediately:
   installed local models, curated examples, and exact custom IDs;
 - a second model-specific reasoning picker (`Low`, `Medium`, `High`, `Extra high`, then advanced
   `Max`) plus `/effort` and an OpenAI `/fast` toggle;
+- a searchable `/skills` catalog whose selections become versioned model context;
+- bounded child agents and no-network backend jobs with visible lifecycle and shared accounting;
 - `Shift+Enter` multiline editing and native bracketed paste;
 - `PageUp` / `PageDown` transcript navigation;
 - Korean and wide-character-aware cursor positioning;
@@ -88,7 +90,13 @@ Common interactive commands:
 | `/status` | Show lifecycle, usage, and verification evidence |
 | `/diff` | Inspect the sandboxed workspace diff |
 | `/review` | Review current changes through a temporary read-only turn |
-| `/tools` / `/skills` | Inspect the active runtime surface |
+| `/tools` | Inspect the active model-callable runtime surface |
+| `/skills` | Search and toggle reusable workflow skills |
+| `/agent TASK` | Delegate an independent task to a reduced-authority child agent |
+| `/job COMMAND` | Start and wait for a sandboxed backend command |
+| `/agents` | Inspect descendant limits, inheritance, and cleanup behavior |
+| `/harness` | Show the exact HarnessVersion and runtime snapshot pinned to the latest task |
+| `/evolution` | Compare task traces and executed versions without mislabelling retries as evolution |
 | `/context` | Show bounded thread and model context limits |
 | `/model` | Search providers and 250+ tool-capable model routes |
 | `/effort` | Select a reasoning level advertised by the active model |
@@ -111,6 +119,10 @@ source <(seh completion zsh)
 seh completion fish | source
 ```
 
+New configurations allow four child-agent or backend-job starts per task. Existing configurations
+preserve their prior budget; opt in or change the cap explicitly with
+`seh config --max-descendants 4`.
+
 ## Use it
 
 Interactive work:
@@ -121,12 +133,15 @@ seh "Fix the authentication regression"  # open with an initial task
 seh continue                             # continue the latest thread
 seh resume                               # choose a durable session
 seh resume --last                        # resume the newest session
+seh harness                              # inspect the latest execution identity
+seh evolution                            # inspect trace/version readiness
 ```
 
 Automation and one-shot work:
 
 ```bash
 seh run "Add focused tests for the parser"
+seh run --skill tests "Add focused tests for the parser"
 seh exec --read-only "Review this repository"
 seh -p "Explain the current Git diff"
 ```
@@ -149,10 +164,10 @@ This is an independent coding-agent runtime, not a controller around someone els
 | --- | --- |
 | Model | Provider contract, request loop, model identity, usage accounting |
 | Context | System prompt, bounded history, memory, skills, tools, overflow policy |
-| Tools | Guarded `read`, `write`, exact `edit`, `bash`, Git status and diff |
+| Tools | Guarded files, shell, Git, child-agent, and backend-job coordination |
 | Sessions | Durable lineage, interrupt, resume, recovery, validation, retirement |
 | Memory | Filesystem persistence with explicit namespace and authority |
-| Workflow | Routing, skills, subagents, backend jobs, inherited budgets |
+| Workflow | Searchable skills, subagents, backend jobs, inherited budgets and cleanup |
 | Permissions | Read-only/workspace-write modes and Bubblewrap process isolation |
 | Evidence | Structured runtime events, receipts, artifacts, and append-only audit chains |
 | Verification | External sandboxed commands and deterministic fake verifiers |
@@ -211,7 +226,7 @@ SEH is a working research alpha, not a finished empirical claim.
 
 | Area | Status |
 | --- | --- |
-| User coding-agent CLI | Implemented: home, command palette, model/effort/fast profiles, sessions, memory, tools, permissions, verification |
+| User coding-agent CLI | Implemented: home, palette, model profiles, searchable skills, child agents/jobs, sessions, memory, permissions, verification |
 | Deterministic standalone runtime | Implemented and covered by fake-model/fake-tool tests |
 | Versioned harness registry | Implemented |
 | Worktree-isolated bounded mutation | Implemented prototype |

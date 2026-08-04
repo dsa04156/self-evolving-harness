@@ -13,6 +13,8 @@ export const PRODUCT_TOP_LEVEL_COMMANDS = [
   "resume",
   "doctor",
   "config",
+  "harness",
+  "evolution",
   "memory",
   "completion",
 ] as const;
@@ -27,7 +29,10 @@ const COMMON_OPTIONS = [
   "--read-only",
   "--write",
   "--verify",
+  "--skill",
 ] as const;
+
+const SKILL_IDS = "debug review tests refactor docs secure-review performance parallel-research";
 
 function bashCompletion(): string {
   const commands = PRODUCT_TOP_LEVEL_COMMANDS.join(" ");
@@ -48,12 +53,15 @@ _seh_completion() {
     --workspace) COMPREPLY=( $(compgen -d -- "\${current}") ); return ;;
     --provider) COMPREPLY=( $(compgen -W 'openai openrouter ollama' -- "\${current}") ); return ;;
     --effort) COMPREPLY=( $(compgen -W 'auto none minimal low medium high xhigh max' -- "\${current}") ); return ;;
+    --skill) COMPREPLY=( $(compgen -W '${SKILL_IDS}' -- "\${current}") ); return ;;
+    --max-descendants) COMPREPLY=( $(compgen -W '0 1 2 4 8' -- "\${current}") ); return ;;
     --read-only|--write) return ;;
   esac
 
   case "\${command}" in
     completion) COMPREPLY=( $(compgen -W 'bash zsh fish' -- "\${current}") ); return ;;
     memory) COMPREPLY=( $(compgen -W 'add list' -- "\${current}") ); return ;;
+    config) COMPREPLY=( $(compgen -W '${options} --max-descendants' -- "\${current}") ); return ;;
   esac
 
   COMPREPLY=( $(compgen -W '${options}' -- "\${current}") )
@@ -77,6 +85,8 @@ _seh() {
     'resume:Resume a durable session'
     'doctor:Check the local runtime'
     'config:Show project configuration'
+    'harness:Show the latest pinned HarnessVersion'
+    'evolution:Show trace and version evolution readiness'
     'memory:Manage persistent project memory'
     'completion:Generate shell completion'
   )
@@ -89,7 +99,8 @@ _seh() {
       case $words[2] in
         completion) _values 'shell' bash zsh fish ;;
         memory) _values 'action' add list ;;
-        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--effort[reasoning effort]:effort:(auto none minimal low medium high xhigh max)' '--fast[OpenAI priority processing]' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' ;;
+        config) _arguments '--workspace[workspace path]:directory:_directories' '--max-descendants[bounded child/job count]:count:(0 1 2 4 8)' ;;
+        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--effort[reasoning effort]:effort:(auto none minimal low medium high xhigh max)' '--fast[OpenAI priority processing]' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' '--skill[workflow skill]:skill:(${SKILL_IDS})' ;;
       esac
       ;;
   esac
@@ -110,6 +121,8 @@ function fishCompletion(): string {
     ["resume", "Resume a durable session"],
     ["doctor", "Check the local runtime"],
     ["config", "Show project configuration"],
+    ["harness", "Show the latest pinned HarnessVersion"],
+    ["evolution", "Show evolution readiness"],
     ["memory", "Manage persistent project memory"],
     ["completion", "Generate shell completion"],
   ] as const;
@@ -128,6 +141,8 @@ function fishCompletion(): string {
     "complete -c seh -l read-only -d 'Disable mutation tools'",
     "complete -c seh -l write -d 'Enable workspace mutation tools'",
     "complete -c seh -l verify -r -d 'Verification command'",
+    `complete -c seh -l skill -r -a '${SKILL_IDS}' -d 'Workflow skill'`,
+    "complete -c seh -n '__fish_seen_subcommand_from config' -l max-descendants -r -a '0 1 2 4 8' -d 'Bounded child and job count'",
     "complete -c seh -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish' -d 'Shell'",
     "complete -c seh -n '__fish_seen_subcommand_from memory' -a 'add list' -d 'Memory action'",
     "",

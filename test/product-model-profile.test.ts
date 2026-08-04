@@ -38,17 +38,22 @@ test("OpenAI catalog pins model-specific reasoning defaults and supported levels
   );
 });
 
-test("legacy provider config loads without inventing an explicit effort", () => {
+test("legacy provider config loads without inventing effort or widening budget", () => {
   const current = defaultProductConfig("/workspace", {
     providerKind: "openai",
     model: "gpt-5.6-terra",
   });
   const legacy = JSON.parse(JSON.stringify(current)) as Record<string, unknown> & {
     provider: Record<string, unknown>;
+    budget: Record<string, unknown>;
   };
+  legacy["schemaVersion"] = 1;
   delete legacy.provider["reasoningEffort"];
+  legacy.budget["maxDescendants"] = 0;
   const parsed = parseProductConfig(legacy as never);
   assert.equal(parsed.provider.reasoningEffort, null);
+  assert.equal(parsed.schemaVersion, 2);
+  assert.equal(parsed.budget.maxDescendants, 0);
 });
 
 test("OpenRouter null capability expands to gateway efforts while mandatory removes none", () => {

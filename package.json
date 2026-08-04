@@ -1,6 +1,6 @@
 {
   "name": "self-evolving-harness",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "A standalone coding agent with a first-class, governed harness-evolution lifecycle.",

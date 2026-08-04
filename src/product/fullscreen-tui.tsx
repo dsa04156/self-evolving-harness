@@ -58,6 +58,8 @@ export interface FullscreenTuiStatus {
   readonly fastMode: boolean;
   readonly permissionMode: PermissionMode;
   readonly verificationCount: number;
+  readonly coordinationLimit: number;
+  readonly activeSkillIds: readonly string[];
   readonly threadNumber: number;
   readonly recentSessions: readonly HomeSessionSummary[];
 }
@@ -285,6 +287,12 @@ function Header({ status, compact }: { readonly status: FullscreenTuiStatus; rea
           {status.fastMode && <Text bold color="green"> · FAST</Text>}
           <Text dimColor> · </Text>
           <Text color={accessColor}>{permissionText(status.permissionMode)}</Text>
+          {!compact && status.coordinationLimit > 0 && (
+            <Text dimColor> · agents {status.coordinationLimit}</Text>
+          )}
+          {!compact && status.activeSkillIds.length > 0 && (
+            <Text color="blue"> · skills {status.activeSkillIds.length}</Text>
+          )}
           {!compact && <Text dimColor> · verify {status.verificationCount || "advisory"}</Text>}
         </Text>
       </Box>
@@ -361,7 +369,7 @@ function Home({
         <Text bold color="magenta">/</Text>
       </Box>
       <Box justifyContent="center">
-        <Text><Text color="magenta">/model</Text><Text dimColor> route  </Text><Text color="magenta">/effort</Text><Text dimColor> reasoning  </Text><Text color="magenta">/resume</Text><Text dimColor> history  </Text><Text color="magenta">/review</Text><Text dimColor> diff  </Text><Text color="magenta">/tools</Text><Text dimColor> authority</Text></Text>
+        <Text><Text color="magenta">/model</Text><Text dimColor> route  </Text><Text color="magenta">/agent</Text><Text dimColor> delegate  </Text><Text color="magenta">/resume</Text><Text dimColor> history  </Text><Text color="magenta">/review</Text><Text dimColor> diff  </Text><Text color="magenta">/tools</Text><Text dimColor> authority</Text></Text>
       </Box>
       <Box marginTop={1} flexDirection="column" alignItems="center">
         {status.recentSessions.length === 0 ? (

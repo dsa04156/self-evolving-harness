@@ -61,7 +61,7 @@ export type ProductProviderConfig =
 export type PermissionMode = "read-only" | "workspace-write";
 
 export interface ProductConfig {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly workspaceRoot: string;
   readonly provider: ProductProviderConfig;
   readonly permissionMode: PermissionMode;
@@ -430,7 +430,7 @@ export function defaultProductConfig(
     `${providerKind} setup requires an explicit --model`,
   );
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     workspaceRoot,
     provider:
       providerKind === "ollama"
@@ -473,7 +473,7 @@ export function defaultProductConfig(
       maxToolCalls: 64,
       maxWallClockMillis: 30 * 60_000,
       maxRetries: 2,
-      maxDescendants: 0,
+      maxDescendants: 4,
     },
     contextTokenLimit: 24_000,
     process: {
@@ -593,7 +593,12 @@ export function parseProductConfig(value: JsonValue): ProductConfig {
     ],
     "config",
   );
-  assertCondition(config["schemaVersion"] === 1, "SCHEMA_INVALID", "Unsupported config version");
+  const schemaVersion = config["schemaVersion"];
+  assertCondition(
+    schemaVersion === 1 || schemaVersion === 2,
+    "SCHEMA_INVALID",
+    "Unsupported config version",
+  );
   const permissionMode = config["permissionMode"];
   assertCondition(
     permissionMode === "read-only" || permissionMode === "workspace-write",
@@ -629,12 +634,16 @@ export function parseProductConfig(value: JsonValue): ProductConfig {
     );
     return command;
   });
+  const parsedBudget = parseBudget(config["budget"] ?? null);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     workspaceRoot: stringValue(config["workspaceRoot"], "workspaceRoot"),
     provider: parseProvider(config["provider"] ?? null),
     permissionMode,
-    budget: parseBudget(config["budget"] ?? null),
+    // A schema migration may normalize representation, but it must never widen
+    // an existing user's frozen execution budget. New v2 configs default to
+    // four descendants; legacy configs retain their explicit value.
+    budget: parsedBudget,
     contextTokenLimit: integerValue(
       config["contextTokenLimit"],
       "contextTokenLimit",

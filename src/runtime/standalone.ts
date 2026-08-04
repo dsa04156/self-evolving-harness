@@ -1,8 +1,8 @@
 import path from "node:path";
 
-import { sha256 } from "../core/canonical.js";
+import { parseStrictJson, sha256, type JsonValue } from "../core/canonical.js";
 import type { Clock, IdFactory } from "../core/determinism.js";
-import { assertCondition } from "../core/errors.js";
+import { HarnessError, assertCondition } from "../core/errors.js";
 import type { SchemaRegistry } from "../contracts/schema-registry.js";
 import type {
   AgentRunResult,
@@ -18,6 +18,7 @@ import type { ModelProvider, ModelReasoningEffort } from "../domain/model.js";
 import type { PrincipalSigner } from "../trust/identity.js";
 import { ArtifactStore } from "../storage/artifact-store.js";
 import { registerBuiltinTools } from "../tools/builtins.js";
+import { COORDINATION_TOOL_IDS } from "../tools/coordination.js";
 import { AgentExecutionLoop } from "./agent-loop.js";
 import { BudgetAccount } from "./budget.js";
 import { ContextBuilder, type ContextPolicy, type PromptPayload } from "./context.js";
@@ -34,6 +35,7 @@ import type { DeclarativeSkill } from "./skills.js";
 import {
   ToolExecutor,
   ToolRegistry,
+  type CoordinationToolRuntime,
   type ToolDescriptionBinding,
 } from "./tools.js";
 import type { TaskVerifier } from "./verifier.js";
@@ -89,6 +91,24 @@ export interface StandaloneRuntime {
   readonly budget: BudgetAccount;
   readonly descendants: DescendantManager;
   run(task: string, abortSignal?: AbortSignal): Promise<AgentRunResult>;
+}
+
+function descendantBudgetSlice(parent: BudgetLimits): BudgetLimits {
+  return {
+    maxModelCalls: Math.min(parent.maxModelCalls, 8),
+    maxInputTokens: Math.min(parent.maxInputTokens, 128_000),
+    maxOutputTokens: Math.min(parent.maxOutputTokens, 16_384),
+    maxToolCalls: Math.min(parent.maxToolCalls, 24),
+    maxWallClockMillis: Math.min(parent.maxWallClockMillis, 10 * 60_000),
+    maxRetries: Math.min(parent.maxRetries, 1),
+    // The first product release deliberately forbids recursive delegation.
+    maxDescendants: 0,
+  };
+}
+
+function withoutCoordination(toolIds: readonly string[]): readonly string[] {
+  const coordinationIds = new Set<string>(COORDINATION_TOOL_IDS);
+  return toolIds.filter((toolId) => !coordinationIds.has(toolId));
 }
 
 export async function createStandaloneRuntime(
@@ -148,17 +168,6 @@ export async function createStandaloneRuntime(
   // Bind descriptions before a model request so a mismatched description,
   // implementation, or input schema fails during construction.
   tools.modelCatalog(descriptions);
-  const executor = new ToolExecutor({
-    registry: tools,
-    permissions: {
-      policyHash: input.pins.permissionPolicyHash,
-      allowedToolIds,
-    },
-    budget,
-    artifacts,
-    context: { workspace, processRunner },
-    clock: input.clock,
-  });
   const memory = new FilesystemMemory(
     path.resolve(input.memoryRoot ?? path.join(root, "memory")),
     input.clock,
@@ -202,6 +211,151 @@ export async function createStandaloneRuntime(
     recordSigner: input.runtimeSigner,
   });
   await descendants.recoverOrphans();
+
+  const observeDescendant = async (
+    descendantId: string,
+  ): Promise<JsonValue> => {
+    const records = await descendants.records(descendantId);
+    const latest = records.at(-1);
+    if (latest === undefined) {
+      throw new HarnessError("ARTIFACT_UNAVAILABLE", `Unknown descendant ${descendantId}`);
+    }
+    let result: JsonValue = null;
+    if (latest.artifactHash !== null) {
+      result = parseStrictJson((await artifacts.get(latest.artifactHash)).toString("utf8"));
+    }
+    return {
+      id: latest.descendantId,
+      kind: latest.kind,
+      state: latest.state,
+      taskHash: latest.taskHash,
+      artifactHash: latest.artifactHash,
+      failureCode: latest.failureCode,
+      result,
+    };
+  };
+
+  const coordination: CoordinationToolRuntime = {
+    async spawnAgent(task, abortSignal): Promise<JsonValue> {
+      if (abortSignal?.aborted === true) {
+        throw new HarnessError("DEADLINE_EXCEEDED", "Subagent authority was revoked");
+      }
+      const childToolIds = withoutCoordination(allowedToolIds);
+      const childDescriptions = descriptions.filter((description) =>
+        childToolIds.includes(description.toolId),
+      );
+      const handle = await descendants.spawnSubagent({
+        task,
+        budgetSlice: descendantBudgetSlice(input.budgetLimits),
+        permissionToolIds: childToolIds,
+        executor: async (delegation, childAbortSignal) => {
+          const child = await createStandaloneRuntime({
+            root: path.join(root, "descendant-runtimes", delegation.descendantId),
+            workspaceRoot,
+            memoryRoot: path.resolve(input.memoryRoot ?? path.join(root, "memory")),
+            schemas: input.schemas,
+            provider: input.provider,
+            verifier: input.verifier,
+            sessionId: delegation.descendantId,
+            pins: delegation.pins,
+            modelIdentity: input.modelIdentity,
+            ...(input.reasoningEffort === undefined
+              ? {}
+              : { reasoningEffort: input.reasoningEffort }),
+            runtimeSigner: input.runtimeSigner,
+            budgetLimits: delegation.budgetSlice,
+            clock: input.clock,
+            ids: input.ids,
+            prompt: {
+              sections: [
+                ...input.prompt.sections,
+                {
+                  sectionId: "subagent-role",
+                  purpose: "subagent_role",
+                  content:
+                    "You are a bounded child agent. Solve only the delegated task, use the inherited reduced authority, and return concise evidence to the parent. You cannot delegate again.",
+                },
+              ],
+            },
+            contextPolicy: input.contextPolicy,
+            skills: input.skills ?? [],
+            toolDescriptions: childDescriptions,
+            allowedToolIds: delegation.permissionToolIds,
+            ...(input.memoryPolicy === undefined
+              ? {}
+              : { memoryPolicy: input.memoryPolicy }),
+            secrets: input.secrets ?? {},
+            ...(input.onEvent === undefined ? {} : { onEvent: input.onEvent }),
+            ...(input.processLimits === undefined
+              ? {}
+              : { processLimits: input.processLimits }),
+            parentBudgetAccount: budget,
+          });
+          return child.run(delegation.task, childAbortSignal);
+        },
+      });
+      return { id: handle.descendantId, kind: handle.kind, state: handle.state };
+    },
+
+    async startJob(command, abortSignal): Promise<JsonValue> {
+      if (abortSignal?.aborted === true) {
+        throw new HarnessError("DEADLINE_EXCEEDED", "Backend-job authority was revoked");
+      }
+      const handle = await descendants.startBackendJob({
+        command,
+        budgetSlice: descendantBudgetSlice(input.budgetLimits),
+        permissionToolIds: ["shell.bash"],
+      });
+      return { id: handle.descendantId, kind: handle.kind, state: handle.state };
+    },
+
+    async wait(descendantId, abortSignal): Promise<JsonValue> {
+      const onAbort = (): void => {
+        void descendants.cancel(descendantId);
+      };
+      abortSignal?.addEventListener("abort", onAbort, { once: true });
+      try {
+        await descendants.wait(descendantId);
+        return observeDescendant(descendantId);
+      } finally {
+        abortSignal?.removeEventListener("abort", onAbort);
+      }
+    },
+
+    async list(): Promise<JsonValue> {
+      const latest = new Map<string, (Awaited<ReturnType<typeof descendants.records>>)[number]>();
+      for (const record of await descendants.records()) latest.set(record.descendantId, record);
+      return {
+        descendants: [...latest.values()]
+          .sort((left, right) => left.descendantId.localeCompare(right.descendantId))
+          .map((record) => ({
+            id: record.descendantId,
+            kind: record.kind,
+            state: record.state,
+            taskHash: record.taskHash,
+            artifactHash: record.artifactHash,
+            failureCode: record.failureCode,
+          })),
+      };
+    },
+
+    async cancel(descendantId): Promise<JsonValue> {
+      await descendants.cancel(descendantId);
+      return observeDescendant(descendantId);
+    },
+  };
+
+  const executor = new ToolExecutor({
+    registry: tools,
+    permissions: {
+      policyHash: input.pins.permissionPolicyHash,
+      allowedToolIds,
+    },
+    budget,
+    artifacts,
+    context: { workspace, processRunner, coordination },
+    clock: input.clock,
+  });
   const loop = new AgentExecutionLoop({
     configuration: {
       sessionId: input.sessionId,
@@ -243,8 +397,14 @@ export async function createStandaloneRuntime(
     tools,
     budget,
     descendants,
-    run(task, abortSignal) {
-      return loop.run(task, abortSignal);
+    async run(task, abortSignal) {
+      try {
+        return await loop.run(task, abortSignal);
+      } finally {
+        // A parent turn owns its descendants. No live model call or shell
+        // process may escape the session/budget lifecycle.
+        await descendants.terminateAll();
+      }
     },
   };
 }

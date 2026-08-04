@@ -26,7 +26,7 @@ import {
   type ProductStatePaths,
 } from "./config.js";
 import { runCodingAgentTask } from "./coding-agent.js";
-import { codingSkill, codingToolDescriptions } from "./defaults.js";
+import { codingToolDescriptions } from "./defaults.js";
 import {
   INTERACTIVE_CONTEXT_LIMIT_BYTES,
   RuntimeEventView,
@@ -52,6 +52,7 @@ import {
   productProviderDescriptor,
   type ProductProviderKind,
 } from "./provider-registry.js";
+import { productSkillCatalog, selectProductSkills } from "./skill-catalog.js";
 import {
   ADVANCED_REASONING_CHOICE_ID,
   NO_REASONING_CAPABILITIES,
@@ -183,6 +184,7 @@ interface InteractiveShellStartup {
   readonly resumeSessionId?: string;
   readonly resumeLatest?: boolean;
   readonly resumePicker?: boolean;
+  readonly skillIds?: readonly string[];
 }
 
 function terminalColorEnabled(): boolean {
@@ -234,6 +236,7 @@ async function executeTask(input: {
   readonly json: boolean;
   readonly quiet: boolean;
   readonly showProjectHeader?: boolean;
+  readonly skillIds?: readonly string[];
   readonly onRuntimeEvent?: (event: RuntimeEvent) => void | Promise<void>;
   readonly abortSignal?: AbortSignal;
 }): Promise<ProductSessionRecord> {
@@ -270,6 +273,11 @@ async function executeTask(input: {
       paths: input.project.paths,
       config: input.project.config,
       task: input.task,
+      additionalSkills: selectProductSkills(
+        input.skillIds ?? [],
+        input.project.config.permissionMode,
+        input.project.config.budget.maxDescendants > 0,
+      ),
       ...(input.executionTask === undefined
         ? {}
         : { executionTask: input.executionTask }),
@@ -353,6 +361,7 @@ async function runCommand(args: readonly string[]): Promise<number> {
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
       verify: { type: "string", multiple: true },
+      skill: { type: "string", multiple: true },
       json: { type: "boolean" },
       quiet: { type: "boolean", short: "q" },
     },
@@ -377,6 +386,7 @@ async function runCommand(args: readonly string[]): Promise<number> {
   const record = await executeTask({
     project,
     task,
+    ...(parsed.values.skill === undefined ? {} : { skillIds: parsed.values.skill }),
     json: parsed.values.json === true,
     quiet: parsed.values.quiet === true,
   });
@@ -396,6 +406,7 @@ function statusText(record: ProductSessionRecord): string {
       ? []
       : [`Service tier: ${serviceTier}`]),
     `Permissions: ${record.permissionMode}`,
+    `Skills: ${(record.activeSkillIds?.length ?? 0) === 0 ? "repository_task" : `repository_task, ${record.activeSkillIds?.join(", ") ?? ""}`}`,
     `Workspace: ${record.workspaceRoot}`,
     `Task: ${record.task}`,
   ];
@@ -406,9 +417,15 @@ function statusText(record: ProductSessionRecord): string {
   }
   if (record.result !== null) {
     lines.push(`Lifecycle: ${record.result.lifecycleState}`);
+    if (record.result.harnessVersionId !== undefined) {
+      lines.push(`HarnessVersion: ${record.result.harnessVersionId}`);
+    }
+    if (record.result.runtimeStateSnapshotId !== undefined) {
+      lines.push(`Runtime snapshot: ${record.result.runtimeStateSnapshotId}`);
+    }
     lines.push(`Events: ${record.result.eventCount}`);
     lines.push(
-      `Usage: ${record.result.usage.modelCalls} model / ${record.result.usage.toolCalls} tool / ${record.result.modelUsage.totalTokens} tokens`,
+      `Usage: ${record.result.usage.modelCalls} model / ${record.result.usage.toolCalls} tool / ${record.result.usage.descendants} descendant / ${record.result.modelUsage.totalTokens} tokens`,
     );
     lines.push(
       `Verification: ${record.result.verification?.passed === true ? "passed" : "not passed"}`,
@@ -469,6 +486,103 @@ async function statusCommand(args: readonly string[]): Promise<number> {
   assertCondition(record !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
   out(parsed.values.json === true ? `${JSON.stringify(record, null, 2)}\n` : statusText(record));
   return record.state === "completed" ? 0 : 2;
+}
+
+interface ProductHarnessStatus {
+  readonly workspaceRoot: string;
+  readonly observedTaskTraces: number;
+  readonly completedTraces: number;
+  readonly unsuccessfulTraces: number;
+  readonly harnessVersionIds: readonly string[];
+  readonly latest: {
+    readonly sessionId: string;
+    readonly harnessVersionId: string | null;
+    readonly runtimeStateSnapshotId: string | null;
+    readonly activeSkillIds: readonly string[];
+  } | null;
+}
+
+async function productHarnessStatus(
+  workspaceRoot: string,
+  paths: ProductStatePaths,
+): Promise<ProductHarnessStatus> {
+  const records = await new ProductSessionStore(paths).list();
+  const harnessVersionIds = [...new Set(
+    records.flatMap((record) =>
+      record.result?.harnessVersionId === undefined
+        ? []
+        : [record.result.harnessVersionId],
+    ),
+  )].sort();
+  const latest = records[0] ?? null;
+  return {
+    workspaceRoot,
+    observedTaskTraces: records.length,
+    completedTraces: records.filter((record) => record.state === "completed").length,
+    unsuccessfulTraces: records.filter((record) => record.state !== "completed").length,
+    harnessVersionIds,
+    latest:
+      latest === null
+        ? null
+        : {
+            sessionId: latest.sessionId,
+            harnessVersionId: latest.result?.harnessVersionId ?? null,
+            runtimeStateSnapshotId: latest.result?.runtimeStateSnapshotId ?? null,
+            activeSkillIds: latest.activeSkillIds ?? [],
+          },
+  };
+}
+
+function renderHarnessStatus(status: ProductHarnessStatus, evolution: boolean): string {
+  if (status.latest === null) {
+    return evolution
+      ? "No task traces exist. Run tasks before constructing an evolution evidence packet.\n"
+      : "No HarnessVersion has been executed in this workspace.\n";
+  }
+  if (!evolution) {
+    return [
+      `Session: ${status.latest.sessionId}`,
+      `HarnessVersion: ${status.latest.harnessVersionId ?? "unavailable (legacy or failed before runtime initialization)"}`,
+      `Runtime snapshot: ${status.latest.runtimeStateSnapshotId ?? "unavailable"}`,
+      `Skills: ${status.latest.activeSkillIds.length === 0 ? "repository_task" : `repository_task, ${status.latest.activeSkillIds.join(", ")}`}`,
+      `Observed versions: ${status.harnessVersionIds.length}`,
+      "",
+    ].join("\n");
+  }
+  return [
+    "Task Execution traces and Harness Evolution are separate lifecycles.",
+    `Observed task traces: ${status.observedTaskTraces}`,
+    `Completed / unsuccessful: ${status.completedTraces} / ${status.unsuccessfulTraces}`,
+    `Distinct executed HarnessVersions: ${status.harnessVersionIds.length}`,
+    `Latest HarnessVersion: ${status.latest.harnessVersionId ?? "unavailable"}`,
+    "Resume, retry, reflection, and memory writes are not promotion decisions.",
+    "A real evolution run must mine multiple traces, attribute a component, create a candidate HarnessVersion, evaluate it independently under matched budgets, and append promote/reject/rollback evidence.",
+    "This public-development trace set is diagnostic and is not sealed held-out research evidence.",
+    "",
+  ].join("\n");
+}
+
+async function harnessStatusCommand(
+  args: readonly string[],
+  evolution: boolean,
+): Promise<number> {
+  const parsed = parseArgs({
+    args: [...args],
+    options: {
+      workspace: { type: "string" },
+      json: { type: "boolean" },
+    },
+    allowPositionals: false,
+  });
+  const { workspaceRoot, paths } = await workspaceAndPaths(parsed.values.workspace);
+  await loadProductConfig(paths, workspaceRoot);
+  const status = await productHarnessStatus(workspaceRoot, paths);
+  out(
+    parsed.values.json === true
+      ? `${JSON.stringify(status, null, 2)}\n`
+      : renderHarnessStatus(status, evolution),
+  );
+  return 0;
 }
 
 async function resumeCommand(args: readonly string[]): Promise<number> {
@@ -621,11 +735,27 @@ async function doctorCommand(args: readonly string[]): Promise<number> {
 async function configCommand(args: readonly string[]): Promise<number> {
   const parsed = parseArgs({
     args: [...args],
-    options: { workspace: { type: "string" } },
+    options: {
+      workspace: { type: "string" },
+      "max-descendants": { type: "string" },
+    },
     allowPositionals: false,
   });
   const { workspaceRoot, paths } = await workspaceAndPaths(parsed.values.workspace);
-  const config = await loadProductConfig(paths, workspaceRoot);
+  let config = await loadProductConfig(paths, workspaceRoot);
+  if (parsed.values["max-descendants"] !== undefined) {
+    const maxDescendants = Number(parsed.values["max-descendants"]);
+    assertCondition(
+      Number.isSafeInteger(maxDescendants) && maxDescendants >= 0 && maxDescendants <= 32,
+      "SCHEMA_INVALID",
+      "--max-descendants must be an integer from 0 to 32",
+    );
+    config = {
+      ...config,
+      budget: { ...config.budget, maxDescendants },
+    };
+    await saveProductConfig(paths, config, { overwrite: true });
+  }
   out(`${JSON.stringify({ configFile: paths.configFile, ...config }, null, 2)}\n`);
   return 0;
 }
@@ -882,6 +1012,12 @@ async function runInteractiveShell(
   let latest: ProductSessionRecord | null = null;
   let turns: ConversationTurn[] = [];
   let threadNumber = 1;
+  let activeSkillIds = [...new Set(startup.skillIds ?? [])];
+  selectProductSkills(
+    activeSkillIds,
+    activeProject.config.permissionMode,
+    activeProject.config.budget.maxDescendants > 0,
+  );
   let activeReasoningCapabilities = bundledReasoningCapabilities(
     activeProject.config.provider.kind,
     activeProject.config.provider.model,
@@ -904,6 +1040,8 @@ async function runInteractiveShell(
         activeProject.config.provider.serviceTier === "priority",
       permissionMode: activeProject.config.permissionMode,
       verificationCount: activeProject.config.verification.commands.length,
+      coordinationLimit: activeProject.config.budget.maxDescendants,
+      activeSkillIds,
       threadNumber,
       recentSessions,
     };
@@ -915,6 +1053,15 @@ async function runInteractiveShell(
   }
   const loadPrior = (prior: ProductSessionRecord): void => {
     latest = prior;
+    const availableSkills = new Set(
+      productSkillCatalog(
+        activeProject.config.permissionMode,
+        activeProject.config.budget.maxDescendants > 0,
+      ).map((skill) => skill.skillId),
+    );
+    activeSkillIds = (prior.activeSkillIds ?? []).filter((skillId) =>
+      availableSkills.has(skillId),
+    );
     turns = [{
       sessionId: prior.sessionId,
       user: prior.task,
@@ -988,6 +1135,7 @@ async function runInteractiveShell(
         showProjectHeader: false,
         onRuntimeEvent: renderRuntimeEvent,
         abortSignal: abortController.signal,
+        skillIds: activeSkillIds,
       });
       latest = record;
       turns = [
@@ -1007,6 +1155,7 @@ async function runInteractiveShell(
             verification == null ? "verify advisory" : `verify ${verification.passed ? "passed" : "failed"}`,
             `${usage.usage.modelCalls} model`,
             `${usage.usage.toolCalls} tools`,
+            `${usage.usage.descendants} agents/jobs`,
             `${usage.modelUsage.totalTokens.toLocaleString("en-US")} tokens`,
           ].join(" · ");
       terminal.appendMessage(
@@ -1044,7 +1193,10 @@ async function runInteractiveShell(
         terminal.setNotice("Resume cancelled");
       }
     }
-    if (startupPrior !== null) loadPrior(startupPrior);
+    if (startupPrior !== null) {
+      loadPrior(startupPrior);
+      await refreshStatus();
+    }
     if ((startup.initialPrompt?.trim().length ?? 0) > 0) {
       await safelyRunTurn(startup.initialPrompt as string);
     }
@@ -1097,6 +1249,7 @@ async function runInteractiveShell(
           }
           if (prior !== null) {
             loadPrior(prior);
+            await refreshStatus();
             if (guidance.length > 0) await safelyRunTurn(guidance);
           }
         } else if (name === "model" || name === "models") {
@@ -1336,20 +1489,99 @@ async function runInteractiveShell(
         } else if (name === "tools") {
           terminal.appendMessage(
             "system",
-            codingToolDescriptions(activeProject.config.permissionMode)
+            codingToolDescriptions(
+              activeProject.config.permissionMode,
+              activeProject.config.budget.maxDescendants > 0,
+            )
               .map((tool) => `${tool.name.padEnd(12)} ${tool.description}`)
               .join("\n"),
             { title: "TOOLS" },
           );
-        } else if (name === "skills") {
-          const skill = codingSkill(activeProject.config.permissionMode);
+        } else if (name === "agents" || name === "jobs") {
+          const limit = activeProject.config.budget.maxDescendants;
+          terminal.appendMessage(
+            "system",
+            limit === 0
+              ? "Child-agent and backend-job authority is disabled for following sessions."
+              : [
+                  `${limit} descendant start(s) are available per task session.`,
+                  "Child agents inherit the pinned model, harness version, workspace boundary, and a reduced budget.",
+                  activeProject.config.permissionMode === "read-only"
+                    ? "Read-only child agents are enabled; backend shell jobs are disabled."
+                    : "Backend jobs run in the same workspace-only, no-network shell sandbox.",
+                  "Every required result must be collected with wait_job; unfinished descendants are cancelled when the parent session ends.",
+                ].join("\n"),
+            { title: "AGENTS & JOBS" },
+          );
+        } else if (name === "agent") {
+          assertCondition(
+            activeProject.config.budget.maxDescendants > 0,
+            "AUTHORIZATION_DENIED",
+            "Child-agent authority is disabled by the active budget",
+          );
+          assertCondition(argument.length > 0, "SCHEMA_INVALID", "/agent requires a task");
+          await safelyRunTurn(
+            `Delegate the following independent subtask with spawn_agent, wait for its result, and integrate the evidence:\n\n${argument}`,
+          );
+        } else if (name === "job") {
+          assertCondition(
+            activeProject.config.permissionMode === "workspace-write",
+            "AUTHORIZATION_DENIED",
+            "Backend jobs require workspace-write authority",
+          );
+          assertCondition(
+            activeProject.config.budget.maxDescendants > 0,
+            "AUTHORIZATION_DENIED",
+            "Backend-job authority is disabled by the active budget",
+          );
+          assertCondition(argument.length > 0, "SCHEMA_INVALID", "/job requires a command");
+          await safelyRunTurn(
+            `Start this exact command as a backend job with start_job, wait for it, and report its sandboxed result:\n\n${argument}`,
+          );
+        } else if (name === "skills" || name === "skill") {
+          const catalog = productSkillCatalog(
+            activeProject.config.permissionMode,
+            activeProject.config.budget.maxDescendants > 0,
+          );
+          let selectedId = argument;
+          if (selectedId.length === 0) {
+            selectedId = (await terminal.select(
+              `Skill catalog · ${catalog.length} reusable workflows`,
+              catalog.map((skill) => ({
+                id: skill.skillId,
+                label: `${activeSkillIds.includes(skill.skillId) ? "✓" : "○"} ${skill.skillId}`,
+                description: skill.summary,
+              })),
+              "type to filter · Enter toggle · Esc cancel · use /skills off to clear",
+            )) ?? "";
+            if (selectedId.length === 0) {
+              terminal.setNotice("Skill selection cancelled");
+              continue;
+            }
+          }
+          if (selectedId === "off" || selectedId === "none") {
+            activeSkillIds = [];
+            await refreshStatus();
+            terminal.setNotice("Workflow skills cleared · repository_task remains active");
+            continue;
+          }
+          const selected = catalog.find((skill) => skill.skillId === selectedId);
+          assertCondition(selected !== undefined, "SCHEMA_INVALID", `Unknown skill ${selectedId}`);
+          activeSkillIds = activeSkillIds.includes(selectedId)
+            ? activeSkillIds.filter((skillId) => skillId !== selectedId)
+            : [...activeSkillIds, selectedId];
+          await refreshStatus();
           terminal.appendMessage(
             "system",
             [
-              `${skill.skillId}\n${skill.summary}`,
-              ...skill.steps.map((step) => `${step.stepId.padEnd(10)} ${step.instruction}`),
+              `${selected?.skillId}\n${selected?.summary}`,
+              ...((selected?.steps ?? []).map(
+                (step) => `${step.stepId.padEnd(10)} ${step.instruction}`,
+              )),
+              "",
+              `Active: ${activeSkillIds.length === 0 ? "repository_task only" : activeSkillIds.join(", ")}`,
             ].join("\n"),
-            { title: "SKILLS" },
+            { title: activeSkillIds.includes(selectedId) ? "SKILL ENABLED" : "SKILL DISABLED" },
           );
         } else if (name === "context") {
           terminal.appendMessage(
@@ -1361,6 +1593,16 @@ async function runInteractiveShell(
               "Prior turns are untrusted context and cannot widen authority.",
             ].join("\n"),
             { title: "CONTEXT" },
+          );
+        } else if (name === "harness" || name === "evolution") {
+          const status = await productHarnessStatus(
+            activeProject.workspaceRoot,
+            activeProject.paths,
+          );
+          terminal.appendMessage(
+            "system",
+            renderHarnessStatus(status, name === "evolution").trimEnd(),
+            { title: name === "evolution" ? "EVOLUTION" : "HARNESS VERSION" },
           );
         } else if (name === "memory") {
           terminal.appendMessage("system", await interactiveMemoryText(activeProject.paths), {
@@ -1403,6 +1645,7 @@ async function chatCommand(
       "read-only": { type: "boolean" },
       write: { type: "boolean" },
       verify: { type: "string", multiple: true },
+      skill: { type: "string", multiple: true },
       quiet: { type: "boolean", short: "q" },
     },
     allowPositionals: true,
@@ -1427,6 +1670,9 @@ async function chatCommand(
   const prompt = parsed.positionals.join(" ").trim();
   return runInteractiveShell(project, parsed.values.quiet === true, {
     ...startup,
+    ...((parsed.values.skill ?? startup.skillIds) === undefined
+      ? {}
+      : { skillIds: parsed.values.skill ?? startup.skillIds }),
     ...(startup.initialPrompt !== undefined || prompt.length === 0
       ? {}
       : { initialPrompt: prompt }),
@@ -1460,7 +1706,9 @@ export function productUsage(): string {
     "  seh status [SESSION_ID]",
     "  seh resume [SESSION_ID] [guidance] [--last]",
     "  seh doctor",
-    "  seh config",
+    "  seh config [--max-descendants N]",
+    "  seh harness [--json]",
+    "  seh evolution [--json]",
     "  seh memory add [-n NAMESPACE] \"fact\"",
     "  seh memory list",
     "  seh completion bash|zsh|fish",
@@ -1475,6 +1723,7 @@ export function productUsage(): string {
     "  --read-only          Disable write/edit/bash tools",
     "  --write              Enable workspace write tools",
     "  --verify COMMAND     External sandboxed verification command; repeatable",
+    "  --skill ID           Activate a bundled workflow skill; repeatable",
     "  --json               Machine-readable output where supported",
     "",
     "Legacy/research commands:",
@@ -1497,6 +1746,8 @@ export async function runProductCommand(
   if (command === "resume") return resumeCommand(args);
   if (command === "doctor") return doctorCommand(args);
   if (command === "config") return configCommand(args);
+  if (command === "harness") return harnessStatusCommand(args, false);
+  if (command === "evolution") return harnessStatusCommand(args, true);
   if (command === "memory") return memoryCommand(args);
   if (command === "completion") return completionCommand(args);
   throw new HarnessError("SCHEMA_INVALID", `Unknown command ${command}`);

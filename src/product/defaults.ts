@@ -5,7 +5,7 @@ import type { ToolDescriptionBinding } from "../runtime/tools.js";
 import { registerBuiltinTools } from "../tools/builtins.js";
 import type { PermissionMode } from "./config.js";
 
-export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v2";
+export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v3";
 
 const TOOL_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
   "filesystem.read":
@@ -20,10 +20,23 @@ const TOOL_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
     "Show machine-readable Git status for the workspace without modifying the repository.",
   "git.diff":
     "Show the staged or unstaged Git diff without external diff drivers or color.",
+  "agent.spawn":
+    "Start a bounded child coding agent for an independent subtask. It inherits this session's model and pinned harness with a smaller budget, cannot widen tools, and cannot delegate again. Use wait_job to collect its evidence.",
+  "backend-job.start":
+    "Start a long-running non-interactive shell command in the same workspace-only, no-network sandbox. Use wait_job before relying on its result.",
+  "descendant.wait":
+    "Wait for a child agent or backend job and return its terminal state plus content-addressed result evidence.",
+  "descendant.list":
+    "List child agents and backend jobs owned by this task session without waiting for them.",
+  "descendant.cancel":
+    "Cancel a child agent or backend job owned by this task session and return its final recorded state.",
 });
 
-export function allowedToolIds(permissionMode: PermissionMode): readonly string[] {
-  return permissionMode === "read-only"
+export function allowedToolIds(
+  permissionMode: PermissionMode,
+  coordinationEnabled = false,
+): readonly string[] {
+  const base = permissionMode === "read-only"
     ? ["filesystem.read", "git.status", "git.diff"]
     : [
         "filesystem.read",
@@ -33,12 +46,23 @@ export function allowedToolIds(permissionMode: PermissionMode): readonly string[
         "git.status",
         "git.diff",
       ];
+  if (!coordinationEnabled) return base;
+  const commonCoordination = [
+    "agent.spawn",
+    "descendant.wait",
+    "descendant.list",
+    "descendant.cancel",
+  ];
+  return permissionMode === "read-only"
+    ? [...base, ...commonCoordination]
+    : [...base, ...commonCoordination, "backend-job.start"];
 }
 
 export function codingToolDescriptions(
   permissionMode: PermissionMode,
+  coordinationEnabled = false,
 ): readonly ToolDescriptionBinding[] {
-  const allowed = new Set(allowedToolIds(permissionMode));
+  const allowed = new Set(allowedToolIds(permissionMode, coordinationEnabled));
   return registerBuiltinTools(() => undefined)
     .filter((tool) => allowed.has(tool.toolId))
     .map((tool) => ({
@@ -50,7 +74,10 @@ export function codingToolDescriptions(
     }));
 }
 
-export function codingPrompt(permissionMode: PermissionMode): PromptPayload {
+export function codingPrompt(
+  permissionMode: PermissionMode,
+  coordinationEnabled = false,
+): PromptPayload {
   const writeRule =
     permissionMode === "read-only"
       ? "This is a read-only session. Diagnose and explain; do not claim that files were changed."
@@ -85,6 +112,12 @@ export function codingPrompt(permissionMode: PermissionMode): PromptPayload {
           "3. Apply bounded edits using edit/write or a non-interactive shell command.",
           "4. Run the most relevant available checks in the sandbox.",
           "5. Review git status and diff before finishing.",
+          ...(coordinationEnabled
+            ? [
+                "Delegate only independent, useful subtasks. Track every returned child ID, wait for required results, and integrate their evidence before finishing.",
+                "Backend jobs and child agents belong to this task lifecycle; they are not harness evolution.",
+              ]
+            : []),
           "If a tool fails, use its structured error to recover instead of repeating blindly.",
         ].join("\n"),
       },
@@ -92,7 +125,11 @@ export function codingPrompt(permissionMode: PermissionMode): PromptPayload {
         sectionId: "tool-guidance",
         purpose: "tool_guidance",
         content: [
-          "Invoke tools by their exposed function names exactly: read, write, edit, bash, git_status, or git_diff.",
+          `Invoke tools by their exposed function names exactly: read, write, edit, bash, git_status, git_diff${
+            coordinationEnabled
+              ? ", spawn_agent, start_job, wait_job, list_jobs, or cancel_job"
+              : ""
+          }.`,
           "Component IDs such as filesystem.read are metadata, not function names.",
           "Prefer read and exact edit for small changes. Use bash for discovery, builds, tests, formatting, directory creation, or changes that exact edit cannot express. Keep command output bounded.",
         ].join("\n"),
@@ -110,8 +147,11 @@ export function codingPrompt(permissionMode: PermissionMode): PromptPayload {
   };
 }
 
-export function codingSkill(permissionMode: PermissionMode): DeclarativeSkill {
-  const tools = allowedToolIds(permissionMode);
+export function codingSkill(
+  permissionMode: PermissionMode,
+  coordinationEnabled = false,
+): DeclarativeSkill {
+  const tools = allowedToolIds(permissionMode, coordinationEnabled);
   return {
     schemaVersion: 1,
     language: "seh.skill.v1",
@@ -140,6 +180,17 @@ export function codingSkill(permissionMode: PermissionMode): DeclarativeSkill {
               toolId: "shell.bash",
             },
           ]),
+      ...(coordinationEnabled
+        ? [
+            {
+              stepId: "delegate",
+              kind: "tool_guidance" as const,
+              instruction:
+                "Use a child agent only for an independent subtask, then wait for and critically integrate its evidence.",
+              toolId: "agent.spawn",
+            },
+          ]
+        : []),
       {
         stepId: "review",
         kind: "tool_guidance",

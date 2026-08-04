@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.7.0 — owned subagents, backend jobs, and workflow skills
+
+### New features
+
+- **First-class child-agent tools**: The SEH model loop now exposes `spawn_agent`, `wait_job`,
+  `list_jobs`, and `cancel_job`. A child runs the same pinned provider and HarnessVersion with a
+  reduced inherited budget and tool ceiling; recursive delegation is denied.
+- **Owned backend jobs**: `start_job` launches a command through SEH's existing workspace-only,
+  no-network Bubblewrap runner. Results are content-addressed, returned through `wait_job`, and
+  unfinished processes are cancelled when the parent task ends.
+- **Terminal collaboration UX**: `/agent TASK`, `/job COMMAND`, and `/agents` make coordination
+  discoverable from the slash palette. The header and session usage show the active descendant cap.
+- **Searchable skill catalog**: `/skills` opens a searchable picker for debugging, review, tests,
+  refactoring, docs, secure review, performance work, and parallel research. `--skill ID` activates
+  the same workflows for non-interactive runs.
+- **Visible version identities**: `seh harness`, `/harness`, `seh evolution`, and `/evolution` expose
+  pinned HarnessVersion/runtime-snapshot IDs and keep trace retry status separate from candidate
+  evolution decisions.
+
+### Correctness and evidence
+
+- Active skills are recorded in immutable session metadata and included in the content-addressed
+  HarnessVersion, rather than being UI-only labels.
+- Child model/tool/token usage is charged to both the reduced child account and the shared parent
+  account. Descendants inherit model, harness, permissions, workspace, verifier, and memory policy.
+- New v2 product configs allow four descendant starts. Legacy configs retain their frozen cap and
+  can opt in explicitly with `seh config --max-descendants 4`; zero disables coordination.
+- Deterministic fake-provider tests cover parent→child→wait evidence flow, skill context injection,
+  backend shell jobs, permission reduction, and non-recursive delegation.
+
 ## 0.6.0 — model execution profiles
 
 ### New features

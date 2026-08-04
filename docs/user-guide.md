@@ -91,13 +91,16 @@ recommended first command because it records the permission and verification cho
 | `seh resume [ID] [GUIDANCE]` | Pick or load a prior session and continue interactively |
 | `seh doctor` | Check the sandbox, provider endpoint, and selected model |
 | `seh config` | Print the non-secret project configuration and its state path |
+| `seh harness` | Show the latest task's content-addressed HarnessVersion and runtime snapshot |
+| `seh evolution` | Show observed traces and distinct executed versions without starting a mutation |
 | `seh memory add` | Add an operator-approved project fact, preference, or lesson |
 | `seh memory list` | Show persistent memory and generated session summaries |
 | `seh completion bash\|zsh\|fish` | Generate native shell completion |
 | `seh demo` | Run the deterministic fake-provider end-to-end demo |
 
 Common profile flags are `--model MODEL`, `--effort auto|none|minimal|low|medium|high|xhigh|max`,
-and `--fast` for OpenAI models that advertise priority processing.
+and `--fast` for OpenAI models that advertise priority processing. Repeat `--skill ID` to add
+bundled workflow skills to a non-interactive task.
 
 Use another workspace from any directory with `--workspace /absolute/or/relative/path`. A task may
 also arrive through standard input:
@@ -114,8 +117,8 @@ the command palette and session picker open as keyboard-driven overlays:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ SEH v0.6.0  SELF-EVOLVING CODING AGENT                                      │
-│ my-project              openai/gpt-5.6-sol · HIGH · FAST · WORKSPACE WRITE   │
+│ SEH v0.7.0  SELF-EVOLVING CODING AGENT                                      │
+│ my-project     openai/gpt-5.6-sol · HIGH · FAST · WRITE · agents 4 · skills 1│
 └──────────────────────────────────────────────────────────────────────────────┘
 
                        ● ╭────── TASK EXECUTION ──────╮ ·
@@ -126,7 +129,7 @@ the command palette and session picker open as keyboard-driven overlays:
              ◆ IMMUTABLE TRUST · evaluator · policy · audit · LOCKED ◆
 
                 Ready in my-project · describe a task or press /
-       /resume history  /review diff  /skills workflow  /tools authority
+       /model route  /agent delegate  /resume history  /review diff  /tools authority
 
  ╭────────────────────────────────────────────────────────────────────────────╮
  │ ❯                                                                          │
@@ -158,8 +161,14 @@ moving the cursor.
 | `/verify` | Show the external verifier commands |
 | `/diff [--staged]` | Show Git diff through the no-network sandbox |
 | `/review [focus]` | Run a focused review turn with temporary read-only authority |
-| `/tools`, `/skills` | Inspect the active tools and repository workflow skill |
+| `/tools` | Inspect every model-callable tool under the active authority |
+| `/skills [id\|off]`, `/skill` | Search, enable, disable, or clear workflow skills |
+| `/agent TASK` | Ask the parent loop to spawn, wait for, and integrate a bounded child agent |
+| `/job COMMAND` | Start and wait for a backend command in the no-network shell sandbox |
+| `/agents`, `/jobs` | Show descendant limits, inherited authority, and cleanup behavior |
 | `/context` | Show bounded thread and model context limits |
+| `/harness` | Show the latest pinned HarnessVersion and runtime snapshot IDs |
+| `/evolution` | Show task-trace/version readiness and the separate evolution contract |
 | `/memory` | Show persistent memory records |
 | `/paste` | Show the direct-paste and `Shift+Enter` multiline shortcut |
 | `/clear`, `/home`, `/exit` | Redraw the workspace home or close the shell |
@@ -210,6 +219,41 @@ and exact model ID. A selected entry may still need provider access or local ins
 model-profile changes are visible in the fixed header, `seh config`, and every new session's
 immutable `executionProfile` evidence.
 
+### Skills, child agents, and backend jobs
+
+New v2 configurations allow four descendant starts per task by default. Existing configurations
+preserve their prior frozen budget; enable or change the cap explicitly with
+`seh config --max-descendants 4`.
+
+`/skills` opens a searchable catalog of bundled workflows: `debug`, `review`, `tests`, `refactor`,
+`docs`, `secure-review`, `performance`, and `parallel-research`. A selected skill applies to
+following turns in the current terminal thread. It is inserted into model context, recorded in the
+session's `activeSkillIds`, and included in that session's content-addressed HarnessVersion. Resume
+restores the selected skills that remain available under the current authority.
+
+```bash
+seh run --skill debug --skill tests "Fix the parser crash and add a regression test"
+```
+
+The default config permits four descendant starts per task. `spawn_agent` creates a one-shot child
+with the same pinned provider, model profile, HarnessVersion, workspace, verifier, and memory policy.
+Its model/tool/token use is charged to both its reduced slice and the parent budget. Its tool grant
+can only shrink, and its descendant cap is zero, so it cannot recursively spawn another agent.
+
+`start_job` runs a shell command asynchronously in the same workspace-only, empty-environment,
+no-network Bubblewrap sandbox as `bash`. Both kinds return an ID immediately. The parent must use
+`wait_job` before relying on the result. Terminal results are stored as content-addressed artifacts;
+any still-running child or command is cancelled and reaped when the parent task ends. `/agent` and
+`/job` are convenient prompt-level shortcuts for these model tools; they do not bypass the task
+session, permissions, budget, or evidence lifecycle.
+
+`seh harness` and `/harness` expose the exact content-addressed execution identities saved after a
+task. `seh evolution` and `/evolution` are read-only projections: they count observed traces and
+distinct HarnessVersions and restate the candidate gate. They intentionally do not turn one failed
+task into an automatic prompt rewrite. Candidate mutation remains in the separate governed
+Evolution Control Plane, where attribution, isolated evaluation, matched budgets, and an append-only
+promote/reject/rollback decision are mandatory.
+
 ### Shell completion
 
 ```bash
@@ -230,6 +274,7 @@ The default `workspace-write` profile exposes:
 - UTF-8 `read`, `write`, and exact `edit`
 - sandboxed `bash`
 - read-only `git status` and `git diff`
+- bounded `spawn_agent` and backend-job coordination (four starts by default)
 
 The shell sees the selected workspace at `/workspace`, a read-only host system, an empty environment,
 a temporary home, and no network. It can still make broad or destructive changes inside the selected

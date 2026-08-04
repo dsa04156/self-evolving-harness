@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { sha256, type JsonValue } from "../core/canonical.js";
 import { RandomIdFactory, SystemClock } from "../core/determinism.js";
-import { HarnessError, asHarnessError } from "../core/errors.js";
+import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
 import { SchemaRegistry } from "../contracts/schema-registry.js";
 import type { ModelProvider } from "../domain/model.js";
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
@@ -13,6 +13,7 @@ import { OpenAICompatibleChatProvider } from "../providers/openai-compatible-cha
 import { OpenAIResponsesProvider } from "../providers/openai-responses-provider.js";
 import { createManagedStandaloneRuntime } from "../runtime/managed.js";
 import { CodingTaskVerifier } from "../runtime/coding-verifier.js";
+import type { DeclarativeSkill } from "../runtime/skills.js";
 import type { TaskVerifier } from "../runtime/verifier.js";
 import { PrincipalSigner } from "../trust/identity.js";
 import type { ProductConfig, ProductStatePaths } from "./config.js";
@@ -41,6 +42,7 @@ export interface CodingAgentRunOptions {
   readonly parentSessionId?: string | null;
   readonly providerOverride?: ModelProvider;
   readonly verifierOverride?: TaskVerifier;
+  readonly additionalSkills?: readonly DeclarativeSkill[];
   readonly onEvent?: (event: RuntimeEvent) => void | Promise<void>;
   readonly abortSignal?: AbortSignal;
   readonly now?: Date;
@@ -218,6 +220,7 @@ export async function runCodingAgentTask(
     runtimeTaskHash: sha256({ task: executionTask }),
     contextSessionIds: options.contextSessionIds ?? [],
     provider: options.config.provider,
+    activeSkillIds: (options.additionalSkills ?? []).map((skill) => skill.skillId),
     permissionMode: options.config.permissionMode,
     verificationCommands: options.config.verification.commands,
     createdAt: (options.now ?? new Date()).toISOString(),
@@ -233,11 +236,31 @@ export async function runCodingAgentTask(
             secrets: {},
           };
     const modelIdentityHash = sha256({ modelIdentity: binding.modelIdentity });
-    const prompt = codingPrompt(options.config.permissionMode);
-    const skill = codingSkill(options.config.permissionMode);
-    const toolDescriptions = codingToolDescriptions(options.config.permissionMode);
+    const coordinationEnabled = options.config.budget.maxDescendants > 0;
+    const prompt = codingPrompt(options.config.permissionMode, coordinationEnabled);
+    const skill = codingSkill(options.config.permissionMode, coordinationEnabled);
+    const toolDescriptions = codingToolDescriptions(
+      options.config.permissionMode,
+      coordinationEnabled,
+    );
     const contextPolicy = codingContextPolicy(options.config.contextTokenLimit);
-    const grantedToolIds = allowedToolIds(options.config.permissionMode);
+    const grantedToolIds = allowedToolIds(
+      options.config.permissionMode,
+      coordinationEnabled,
+    );
+    const skills = [skill, ...(options.additionalSkills ?? [])];
+    assertCondition(
+      new Set(skills.map((candidate) => candidate.skillId)).size === skills.length,
+      "CONFLICT",
+      "Active skills contain a duplicate skill ID",
+    );
+    assertCondition(
+      skills.every((candidate) =>
+        candidate.allowedToolIds.every((toolId) => grantedToolIds.includes(toolId)),
+      ),
+      "AUTHORIZATION_DENIED",
+      "An active skill requests a tool outside the session grant",
+    );
     const protocolId = contentId("protocol-sha256", {
       protocol: PRODUCT_RUNTIME_VERSION,
       sessionContract: 1,
@@ -245,7 +268,7 @@ export async function runCodingAgentTask(
     const harnessVersionId = contentId("hv-sha256", {
       productRuntime: PRODUCT_RUNTIME_VERSION,
       prompt,
-      skill,
+      skills,
       toolDescriptions,
       contextPolicy,
       provider: options.config.provider,
@@ -312,7 +335,7 @@ export async function runCodingAgentTask(
       ids,
       prompt,
       contextPolicy,
-      skills: [skill],
+      skills,
       toolDescriptions,
       allowedToolIds: grantedToolIds,
       memoryPolicy: {
@@ -375,6 +398,9 @@ export async function runCodingAgentTask(
         eventCount: execution.result.eventCount,
         lifecycleState,
         terminationReason: execution.result.terminationReason ?? null,
+        protocolId,
+        harnessVersionId,
+        runtimeStateSnapshotId,
       },
       failure:
         execution.result.state === "completed" ? null : safeFailureFromEvents(events),

@@ -7,6 +7,7 @@ import type {
   JsonObject,
   ToolExecutionContext,
 } from "../runtime/tools.js";
+import { createCoordinationTools } from "./coordination.js";
 
 const MAX_FILE_BYTES = 1024 * 1024;
 const IMPLEMENTATION_PREFIX = "sha256:";
@@ -271,6 +272,7 @@ export function registerBuiltinTools(
     createBashTool(),
     createGitStatusTool(),
     createGitDiffTool(),
+    ...createCoordinationTools(),
   ];
   tools.forEach(register);
   return tools;

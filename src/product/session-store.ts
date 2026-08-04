@@ -42,6 +42,10 @@ export interface ProductSessionResult {
   readonly eventCount: number;
   readonly lifecycleState: string;
   readonly terminationReason: string | null;
+  /** Content-addressed execution identities pinned before the first model call. */
+  readonly protocolId?: string;
+  readonly harnessVersionId?: string;
+  readonly runtimeStateSnapshotId?: string;
 }
 
 export interface ProductSessionRecord {
@@ -63,6 +67,8 @@ export interface ProductSessionRecord {
     readonly reasoningEffort: ModelReasoningEffort | null;
     readonly serviceTier: ProductServiceTier | null;
   };
+  /** Operator-selected workflow skills included in this session's HarnessVersion. */
+  readonly activeSkillIds?: readonly string[];
   readonly permissionMode: PermissionMode;
   readonly verificationCommands: readonly string[];
   readonly state: ProductSessionState;
@@ -140,6 +146,7 @@ export class ProductSessionStore {
     readonly runtimeTaskHash: string;
     readonly contextSessionIds: readonly string[];
     readonly provider: ProductProviderConfig;
+    readonly activeSkillIds?: readonly string[];
     readonly permissionMode: PermissionMode;
     readonly verificationCommands: readonly string[];
     readonly createdAt: string;
@@ -159,6 +166,13 @@ export class ProductSessionStore {
       "Thread context may reference at most 8 sessions",
     );
     input.contextSessionIds.forEach(assertSessionId);
+    const activeSkillIds = [...new Set(input.activeSkillIds ?? [])].sort();
+    assertCondition(
+      activeSkillIds.length <= 16 &&
+        activeSkillIds.every((skillId) => /^[a-z0-9][a-z0-9._-]{0,63}$/u.test(skillId)),
+      "SCHEMA_INVALID",
+      "Active skill IDs are invalid",
+    );
     assertCondition(
       new Set(input.contextSessionIds).size === input.contextSessionIds.length,
       "SCHEMA_INVALID",
@@ -207,6 +221,7 @@ export class ProductSessionStore {
         serviceTier:
           input.provider.kind === "openai" ? input.provider.serviceTier : null,
       },
+      activeSkillIds,
       permissionMode: input.permissionMode,
       verificationCommands: [...input.verificationCommands],
       state: "created",
@@ -238,6 +253,7 @@ export class ProductSessionStore {
         JSON.stringify(core.contextSessionIds) === JSON.stringify(previous.contextSessionIds) &&
         JSON.stringify(core.provider) === JSON.stringify(previous.provider) &&
         JSON.stringify(core.executionProfile) === JSON.stringify(previous.executionProfile) &&
+        JSON.stringify(core.activeSkillIds) === JSON.stringify(previous.activeSkillIds) &&
         core.permissionMode === previous.permissionMode &&
         JSON.stringify(core.verificationCommands) ===
           JSON.stringify(previous.verificationCommands) &&

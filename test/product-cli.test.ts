@@ -49,6 +49,20 @@ test("installed-style CLI initializes config and manages operator memory", async
   assert.ok(parsed.configFile.startsWith(stateRoot));
   assert.ok(!parsed.configFile.startsWith(workspace));
 
+  const configuredDescendants = await cli(
+    ["config", "--workspace", workspace, "--max-descendants", "2"],
+    stateRoot,
+  );
+  const descendantConfig = JSON.parse(configuredDescendants.stdout) as {
+    budget: { maxDescendants: number };
+  };
+  assert.equal(descendantConfig.budget.maxDescendants, 2);
+  const persistedConfiguration = await cli(["config", "--workspace", workspace], stateRoot);
+  assert.equal(
+    (JSON.parse(persistedConfiguration.stdout) as { budget: { maxDescendants: number } }).budget.maxDescendants,
+    2,
+  );
+
   await cli(
     [
       "memory",
@@ -67,6 +81,10 @@ test("installed-style CLI initializes config and manages operator memory", async
 
   const sessions = await cli(["sessions", "--workspace", workspace], stateRoot);
   assert.equal(sessions.stdout, "No sessions.\n");
+  const harness = await cli(["harness", "--workspace", workspace], stateRoot);
+  assert.match(harness.stdout, /No HarnessVersion/u);
+  const evolution = await cli(["evolution", "--workspace", workspace], stateRoot);
+  assert.match(evolution.stdout, /No task traces/u);
 });
 
 test("product CLI exposes top-level and command-local help plus a version", async () => {
@@ -74,7 +92,7 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.6.0\n");
+  assert.equal(version.stdout, "0.7.0\n");
 });
 
 test("product CLI generates native shell completion scripts", async () => {
@@ -83,6 +101,7 @@ test("product CLI generates native shell completion scripts", async () => {
   assert.match(bash.stdout, /complete -F _seh_completion seh/u);
   assert.match(bash.stdout, /openai openrouter ollama/u);
   assert.match(bash.stdout, /auto none minimal low medium high xhigh max/u);
+  assert.match(bash.stdout, /parallel-research/u);
   const zsh = await cli(["completion", "zsh"], stateRoot);
   assert.match(zsh.stdout, /#compdef seh/u);
   const fish = await cli(["completion", "fish"], stateRoot);

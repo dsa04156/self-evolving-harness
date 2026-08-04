@@ -14,6 +14,10 @@ demonstrate general harness self-improvement.
   workspace observation. This proves neither task correctness nor test success.
 - `workspace-write` grants the sandboxed shell broad write authority inside the selected workspace.
   Network and host paths are isolated, but destructive changes inside that workspace remain possible.
+- Child agents are one-shot and non-recursive in the current product runtime. They share the parent
+  workspace and provider, so they are useful for independent analysis but are not isolated coding
+  branches or Codex Ultra-equivalent proactive orchestration. Backend jobs live only for the owning
+  task session and are cancelled if the parent finishes without waiting.
 - The process boundary depends on a trusted Linux host, kernel, root, namespace/bootstrap code, and
   protocol author.
 - The eight-principal prototype is local and development-only; it is not a production deployment

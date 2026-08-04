@@ -15,7 +15,7 @@ import {
 } from "../src/index.js";
 
 const status: FullscreenTuiStatus = {
-  version: "0.6.0",
+  version: "0.7.0",
   workspaceRoot: "/workspace/example",
   provider: "openai",
   model: "test-coder",
@@ -23,6 +23,8 @@ const status: FullscreenTuiStatus = {
   fastMode: true,
   permissionMode: "workspace-write",
   verificationCount: 2,
+  coordinationLimit: 4,
+  activeSkillIds: ["review"],
   threadNumber: 3,
   recentSessions: [
     {
