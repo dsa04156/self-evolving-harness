@@ -694,3 +694,31 @@ any paid-provider request.
 - Seal the final bytes as one commit, rerun the complete release gate from its clean tree, record exact
   commit/tree/diff/lock identities and focused/audit/package evidence, and obtain a narrow same-tab
   ruling before push. Live route counts remain operational observations, not thresholds.
+
+## Durable Round 05R model-registry release-seal decision
+
+- External decision: `APPROVE`; all Round 05 release-sealing blockers are closed for exact candidate
+  `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`, tree
+  `677f76624a8bb9d294288b3e250a71558db36f69`.
+- The deterministic tests establish that `/model` affects only a newly created task session, rejects
+  provider-native history replay, and carries at most bounded untrusted plain-text prior context.
+- A fake-transport integration test establishes live-style registry row → fixed OpenRouter config →
+  actual adapter → SEH-owned model/tool loop → external verifier → completed persisted session.
+- The exact committed candidate passed the full 247/247 test and 131-schema release gate, focused
+  35/35 suite, zero-vulnerability production audit, package dry run, and version check.
+- Publication was authorized only as an unchanged expected-old fast-forward. No paid inference,
+  provider credential, GUI, cache, new SDK, benchmark access, or empirical claim was required.
+
+## Durable Round 05S model-registry post-publication decision
+
+- External decision: `APPROVE`; Packet 05 model-registry implementation and publication are closed.
+- The expected-old lease advanced remote main from `d7310d7e...` to exact approved candidate
+  `fa0dec6a...` as a normal fast-forward; post-push local and remote identities match.
+- A separate clean worktree at the published commit passed the complete release gate: 247/247 tests,
+  131 schemas, publication continuity, secrets=0, environment paths=0, trust-plane conformance, and
+  authorities granted=0. GitHub CI run `30871163981` also succeeded at the same SHA.
+- Accepted scope is deliberately bounded: executable provider-aware registry and release integrity
+  are `PASS`; paid-provider interoperability and empirical research/self-evolution claims remain
+  `NOT TESTED`.
+- No further packet is requested for the Packet 05 increment. Any later byte change is a new candidate
+  and does not inherit this exact approval.

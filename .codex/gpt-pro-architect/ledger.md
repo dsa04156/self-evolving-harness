@@ -1320,3 +1320,48 @@ response path, interpreted decision, required revisions, and the commit containi
   narrow same-tab release-seal review before push
 - next: implement only the two tests and documentation clarification, commit exact bytes, run the full
   clean-candidate gate, and submit Packet 05R
+
+## Round 05R — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-05r-model-registry-release-seal.md`
+- packet SHA-256/size: `9e1dde30ff163b31b0050370d9cac7559e34c48e2746604d4268ecc2351fcdc9` /
+  7,133 bytes
+- exact candidate: `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`; tree
+  `677f76624a8bb9d294288b3e250a71558db36f69`; parent
+  `d7310d7e1eca24d5c6cdcb2d4558a7a27c3f9ae8`
+- transport: Oracle 0.16.1 exact-tab dry-run passed; live Oracle attach failed before transmission;
+  approved direct-CDP fallback reused target `4BA3B4F29D8FD1597A712A46C80CB67E` and the existing
+  `self-evolving-harness-architecture` conversation
+- continuation: one packet submitted and one stable response harvested; no resend, upload, screenshot,
+  new tab, or new window
+- response: `.codex/gpt-pro-architect/responses/response-05r-model-registry-release-seal.md`
+- response SHA-256/size: `8ef0a34d0648d2fb3f0c6903703b421bebc92148d7643a25063e7dab34d73c57` /
+  5,537 bytes
+- architect decision: `APPROVE`
+- accepted: new-session-only provider switching; no provider-native history replay; registry → fixed
+  config → OpenRouter adapter → SEH-owned tool loop → verifier completion; exact candidate identity;
+  full clean release 247/247 and 131 schemas; focused 35/35; audit 0; package/version evidence
+- authorized publication: unchanged fast-forward only, guarded by expected remote head
+  `d7310d7e1eca24d5c6cdcb2d4558a7a27c3f9ae8`
+- requested next: push unchanged, rerun `npm run verify:release` at exact commit, then submit only the
+  minimal post-publication closure record
+
+## Round 05S — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-05s-model-registry-post-publication.md`
+- packet SHA-256/size: `cb1498e018b25cbabb5b19558a03597318ed6e938f660cb8492b187e73440959` /
+  3,313 bytes
+- publication: expected-old lease from `d7310d7e...` to `fa0dec6a...`; observed normal fast-forward;
+  local and remote both equal exact approved candidate `fa0dec6aa8176bb01cff7515ce80d3ca0f0619ad`
+- post-push validation: separate clean worktree, full release PASS, 247/247 tests, 131 schemas,
+  secrets=0, environment paths=0, authorities granted=0, empty status, clean diff check
+- hosted CI: run `30871163981`, completed/success at exact candidate SHA
+- transport: Oracle 0.16.1 exact-tab dry-run passed; live attach failed before transmission; direct CDP
+  submitted one 3,511-character prompt and harvested one stable response in the same exact tab
+- response: `.codex/gpt-pro-architect/responses/response-05s-model-registry-post-publication.md`
+- response SHA-256/size: `b229b95206ba268dc9ec29471464142679a9a06f04138c6196383771fdc0651f` /
+  3,036 bytes; matches the browser digest exactly
+- architect decision: `APPROVE`
+- closure: provider-aware executable registry implementation PASS; post-publication integrity PASS;
+  live paid-provider interoperability and empirical research/self-evolution claims remain `NOT TESTED`
+- next: none for Packet 05 or its post-publication release closure
