@@ -211,23 +211,33 @@ export class HarnessComponentRegistry {
       const stored = asStoredComponent(record.payload);
       assertCondition(stored.kind === "component", "HASH_MISMATCH", "Bad component log record");
       await this.#validateStoredComponent(stored);
-      assertCondition(
-        !this.#components.has(stored.manifest.componentManifestId),
-        "CONFLICT",
-        "Duplicate component registry record",
-      );
-      this.#components.set(stored.manifest.componentManifestId, stored);
+      const existing = this.#components.get(stored.manifest.componentManifestId);
+      if (existing === undefined) {
+        this.#components.set(stored.manifest.componentManifestId, stored);
+      } else {
+        assertCondition(
+          sha256(existing as unknown as JsonValue) ===
+            sha256(stored as unknown as JsonValue),
+          "HASH_MISMATCH",
+          "Conflicting duplicate component registry record",
+        );
+      }
     }
     for (const record of await this.#harnessLog.readAll()) {
       const stored = asStoredHarness(record.payload);
       assertCondition(stored.kind === "harness", "HASH_MISMATCH", "Bad harness log record");
       this.#validateHarnessManifest(stored.manifest);
-      assertCondition(
-        !this.#harnesses.has(stored.manifest.harnessVersionId),
-        "CONFLICT",
-        "Duplicate harness registry record",
-      );
-      this.#harnesses.set(stored.manifest.harnessVersionId, stored);
+      const existing = this.#harnesses.get(stored.manifest.harnessVersionId);
+      if (existing === undefined) {
+        this.#harnesses.set(stored.manifest.harnessVersionId, stored);
+      } else {
+        assertCondition(
+          sha256(existing as unknown as JsonValue) ===
+            sha256(stored as unknown as JsonValue),
+          "HASH_MISMATCH",
+          "Conflicting duplicate harness registry record",
+        );
+      }
     }
   }
 
@@ -283,6 +293,26 @@ export class HarnessComponentRegistry {
       throw new HarnessError("ARTIFACT_UNAVAILABLE", `Missing harness ${harnessVersionId}`);
     }
     return cloneValue(stored.manifest);
+  }
+
+  public hasHarness(harnessVersionId: string): boolean {
+    return this.#harnesses.has(harnessVersionId);
+  }
+
+  public listComponents(): readonly ComponentManifest[] {
+    return [...this.#components.values()]
+      .map((stored) => cloneValue(stored.manifest))
+      .sort((left, right) =>
+        left.componentManifestId.localeCompare(right.componentManifestId),
+      );
+  }
+
+  public listHarnesses(): readonly HarnessVersionManifest[] {
+    return [...this.#harnesses.values()]
+      .map((stored) => cloneValue(stored.manifest))
+      .sort((left, right) =>
+        left.harnessVersionId.localeCompare(right.harnessVersionId),
+      );
   }
 
   public async exportHarnessClosure(

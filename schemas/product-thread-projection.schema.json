@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/product-thread-projection.schema.json",
+  "title": "Non-authoritative Product Thread / Turn / Item Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authority",
+    "threadId",
+    "forkedFromThreadId",
+    "harnessVersionIds",
+    "turns",
+    "projectionHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "authority": { "const": "projection_only" },
+    "threadId": { "$ref": "./common.schema.json#/$defs/entityId" },
+    "forkedFromThreadId": {
+      "oneOf": [
+        { "$ref": "./common.schema.json#/$defs/entityId" },
+        { "type": "null" }
+      ]
+    },
+    "harnessVersionIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "./common.schema.json#/$defs/harnessVersionId" }
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "turnId",
+          "sessionId",
+          "parentSessionId",
+          "lineageKind",
+          "harnessVersionId",
+          "state",
+          "items"
+        ],
+        "properties": {
+          "turnId": { "$ref": "./common.schema.json#/$defs/entityId" },
+          "sessionId": { "$ref": "./common.schema.json#/$defs/entityId" },
+          "parentSessionId": {
+            "oneOf": [
+              { "$ref": "./common.schema.json#/$defs/entityId" },
+              { "type": "null" }
+            ]
+          },
+          "lineageKind": {
+            "type": "string",
+            "enum": ["root", "resume", "fork", "legacy"]
+          },
+          "harnessVersionId": {
+            "oneOf": [
+              { "$ref": "./common.schema.json#/$defs/harnessVersionId" },
+              { "type": "null" }
+            ]
+          },
+          "state": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["itemId", "kind", "source", "payload"],
+              "properties": {
+                "itemId": { "$ref": "./common.schema.json#/$defs/entityId" },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "user_message",
+                    "model_request",
+                    "agent_message",
+                    "tool_call",
+                    "tool_result",
+                    "verification",
+                    "workflow_transition",
+                    "route_selection",
+                    "state_change",
+                    "failure"
+                  ]
+                },
+                "source": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["sourceType", "sourceId", "sourceHash"],
+                  "properties": {
+                    "sourceType": {
+                      "type": "string",
+                      "enum": ["session_metadata", "runtime_event"]
+                    },
+                    "sourceId": { "$ref": "./common.schema.json#/$defs/entityId" },
+                    "sourceHash": { "$ref": "./common.schema.json#/$defs/sha256" }
+                  }
+                },
+                "payload": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "projectionHash": { "$ref": "./common.schema.json#/$defs/sha256" }
+  }
+}

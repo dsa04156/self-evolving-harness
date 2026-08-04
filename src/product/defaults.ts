@@ -1,11 +1,14 @@
 import { sha256 } from "../core/canonical.js";
 import type { ContextPolicy, PromptPayload } from "../runtime/context.js";
+import type { MemoryRetrievalPolicy } from "../runtime/memory.js";
+import type { DeclarativeRoutingPolicy } from "../runtime/routing.js";
 import type { DeclarativeSkill } from "../runtime/skills.js";
 import type { ToolDescriptionBinding } from "../runtime/tools.js";
+import type { DeclarativeWorkflowPolicy } from "../runtime/workflow.js";
 import { registerBuiltinTools } from "../tools/builtins.js";
 import type { PermissionMode } from "./config.js";
 
-export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v3";
+export const PRODUCT_RUNTIME_VERSION = "seh-product-runtime-v4";
 
 const TOOL_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
   "filesystem.read":
@@ -261,5 +264,175 @@ export function codingContextPolicy(totalTokenLimit: number): ContextPolicy {
       },
     ],
     overflowPolicy: "drop_lowest_priority",
+  };
+}
+
+export function codingMemoryPolicy(): MemoryRetrievalPolicy {
+  return {
+    readableNamespaces: [
+      "project_facts",
+      "user_preferences",
+      "accepted_lessons",
+      "session_summaries",
+    ],
+    queryMode: "fixed_hybrid",
+    hybridLexicalWeightMicros: 750_000,
+    maxRecords: 12,
+    maxTokens: 4_096,
+    minimumScoreMicros: 1,
+    tieBreak: "created_at_then_record_id",
+  };
+}
+
+export function codingSubagentPrompt(): PromptPayload {
+  return {
+    sections: [
+      {
+        sectionId: "subagent-role",
+        purpose: "subagent_role",
+        content: [
+          "You are a bounded child agent for coding tasks.",
+          "Solve only the delegated task with the inherited reduced authority.",
+          "Return concise observations, changes, checks, and remaining risks to the parent.",
+          "You cannot delegate again or widen tools, budget, permissions, or workspace scope.",
+        ].join("\n"),
+      },
+    ],
+  };
+}
+
+export function codingRoutingPolicy(
+  coordinationEnabled = false,
+): DeclarativeRoutingPolicy {
+  if (!coordinationEnabled) {
+    return {
+      schemaVersion: 1,
+      language: "seh.routing-policy.v1",
+      rules: [],
+      defaultTarget: { kind: "primary", routeId: "primary-session" },
+    };
+  }
+  const delegatedClasses = [
+    "analysis",
+    "code_change",
+    "test",
+    "documentation",
+  ] as const;
+  return {
+    schemaVersion: 1,
+    language: "seh.routing-policy.v1",
+    rules: [
+      ...delegatedClasses.flatMap((taskClass, index) =>
+        (["low", "medium"] as const).map((riskClass, riskIndex) => ({
+          ruleId: `delegate_${taskClass}_${riskClass}`,
+          priority: 700 - index * 10 - riskIndex,
+          match: { taskClass, riskClass },
+          target: { kind: "subagent" as const, routeId: "bounded-child-v1" },
+        })),
+      ),
+      ...(["low", "medium", "high"] as const).map((riskClass, index) => ({
+        ruleId: `recovery_primary_${riskClass}`,
+        priority: 900 - index,
+        match: { taskClass: "recovery" as const, riskClass },
+        target: { kind: "primary" as const, routeId: "primary-session" },
+      })),
+      ...(
+        [
+          "analysis",
+          "code_change",
+          "test",
+          "documentation",
+          "unknown",
+        ] as const
+      ).map((taskClass, index) => ({
+        ruleId: `high_risk_primary_${taskClass}`,
+        priority: 1_000 - index,
+        match: { taskClass, riskClass: "high" as const },
+        target: { kind: "primary" as const, routeId: "primary-session" },
+      })),
+    ],
+    defaultTarget: { kind: "primary", routeId: "primary-session" },
+  };
+}
+
+export function codingWorkflowPolicy(): DeclarativeWorkflowPolicy {
+  return {
+    schemaVersion: 1,
+    language: "seh.workflow.v1",
+    entryState: "context",
+    states: [
+      {
+        stateId: "context",
+        actions: [
+          { action: "retrieve_memory", targetId: "product-memory" },
+          { action: "invoke_skill", targetId: "active-skills" },
+          { action: "construct_context", targetId: "model-request" },
+        ],
+      },
+      {
+        stateId: "model",
+        actions: [{ action: "model_turn", targetId: "configured-provider" }],
+      },
+      {
+        stateId: "tools",
+        actions: [{ action: "request_tool", targetId: "granted-tool-set" }],
+      },
+      {
+        stateId: "verify",
+        actions: [{ action: "verify", targetId: "external-verifier" }],
+      },
+      {
+        stateId: "complete",
+        actions: [{ action: "emit_completion", targetId: null }],
+      },
+      {
+        stateId: "blocked",
+        actions: [{ action: "emit_block", targetId: null }],
+      },
+    ],
+    transitions: [
+      { from: "context", trigger: "action_succeeded", guard: "always", to: "model" },
+      {
+        from: "context",
+        trigger: "action_failed",
+        guard: "always",
+        to: "blocked",
+      },
+      {
+        from: "model",
+        trigger: "action_succeeded",
+        guard: "evidence_incomplete",
+        to: "tools",
+      },
+      {
+        from: "model",
+        trigger: "action_succeeded",
+        guard: "evidence_complete",
+        to: "verify",
+      },
+      { from: "model", trigger: "action_failed", guard: "always", to: "blocked" },
+      { from: "tools", trigger: "tool_result", guard: "always", to: "context" },
+      { from: "tools", trigger: "action_failed", guard: "always", to: "blocked" },
+      {
+        from: "verify",
+        trigger: "verification_passed",
+        guard: "always",
+        to: "complete",
+      },
+      {
+        from: "verify",
+        trigger: "verification_failed",
+        guard: "retry_remaining",
+        to: "context",
+      },
+      {
+        from: "verify",
+        trigger: "verification_failed",
+        guard: "no_retry_remaining",
+        to: "blocked",
+      },
+      { from: "verify", trigger: "action_failed", guard: "always", to: "blocked" },
+    ],
+    terminalStates: ["blocked", "complete"],
   };
 }

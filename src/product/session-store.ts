@@ -32,6 +32,9 @@ export type ProductSessionState =
   | "terminated"
   | "failed";
 
+export type ProductSessionLineageKind = "root" | "resume" | "fork";
+export type ProductHarnessSelection = "current" | "inherited" | "explicit" | "legacy-current";
+
 export interface ProductSessionResult {
   readonly state: AgentRunResult["state"];
   readonly finalText: string | null;
@@ -52,6 +55,10 @@ export interface ProductSessionRecord {
   readonly schemaVersion: 1;
   readonly sessionId: string;
   readonly parentSessionId: string | null;
+  /** Product thread lineage. Optional only for records written before CLI 0.8.0. */
+  readonly lineageKind?: ProductSessionLineageKind;
+  readonly threadId?: string;
+  readonly forkedFromThreadId?: string | null;
   readonly workspaceRoot: string;
   readonly task: string;
   /** Hash of the bounded task actually submitted to the runtime. Added in CLI 0.3.0. */
@@ -71,6 +78,12 @@ export interface ProductSessionRecord {
   readonly activeSkillIds?: readonly string[];
   readonly permissionMode: PermissionMode;
   readonly verificationCommands: readonly string[];
+  /** Authoritative HarnessVersion pins committed before provider construction. */
+  readonly harnessVersionId?: string;
+  readonly harnessManifestHash?: string;
+  readonly harnessClosureHash?: string;
+  readonly runtimeContractHash?: string;
+  readonly harnessSelection?: ProductHarnessSelection;
   readonly state: ProductSessionState;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -111,6 +124,47 @@ function asRecord(value: JsonValue): ProductSessionRecord {
     "HASH_MISMATCH",
     `Product session metadata changed for ${record.sessionId}`,
   );
+  if (record.lineageKind !== undefined) {
+    assertCondition(
+      (record.lineageKind === "root" ||
+        record.lineageKind === "resume" ||
+        record.lineageKind === "fork") &&
+        typeof record.threadId === "string" &&
+        (record.forkedFromThreadId === null ||
+          typeof record.forkedFromThreadId === "string"),
+      "HASH_MISMATCH",
+      `Malformed session lineage for ${record.sessionId}`,
+    );
+    assertSessionId(record.threadId as string);
+    if (record.forkedFromThreadId !== null) {
+      assertSessionId(record.forkedFromThreadId as string);
+    }
+  }
+  const harnessFields = [
+    record.harnessVersionId,
+    record.harnessManifestHash,
+    record.harnessClosureHash,
+    record.runtimeContractHash,
+    record.harnessSelection,
+  ];
+  if (harnessFields.some((field) => field !== undefined)) {
+    assertCondition(
+      typeof record.harnessVersionId === "string" &&
+        /^hv-sha256:[a-f0-9]{64}$/u.test(record.harnessVersionId) &&
+        typeof record.harnessManifestHash === "string" &&
+        /^sha256:[a-f0-9]{64}$/u.test(record.harnessManifestHash) &&
+        typeof record.harnessClosureHash === "string" &&
+        /^sha256:[a-f0-9]{64}$/u.test(record.harnessClosureHash) &&
+        typeof record.runtimeContractHash === "string" &&
+        /^sha256:[a-f0-9]{64}$/u.test(record.runtimeContractHash) &&
+        (record.harnessSelection === "current" ||
+          record.harnessSelection === "inherited" ||
+          record.harnessSelection === "explicit" ||
+          record.harnessSelection === "legacy-current"),
+      "HASH_MISMATCH",
+      `Malformed HarnessVersion pins for ${record.sessionId}`,
+    );
+  }
   return record;
 }
 
@@ -141,6 +195,9 @@ export class ProductSessionStore {
   public async create(input: {
     readonly sessionId: string;
     readonly parentSessionId?: string | null;
+    readonly lineageKind: ProductSessionLineageKind;
+    readonly threadId: string;
+    readonly forkedFromThreadId: string | null;
     readonly workspaceRoot: string;
     readonly task: string;
     readonly runtimeTaskHash: string;
@@ -149,12 +206,27 @@ export class ProductSessionStore {
     readonly activeSkillIds?: readonly string[];
     readonly permissionMode: PermissionMode;
     readonly verificationCommands: readonly string[];
+    readonly harnessVersionId: string;
+    readonly harnessManifestHash: string;
+    readonly harnessClosureHash: string;
+    readonly runtimeContractHash: string;
+    readonly harnessSelection: ProductHarnessSelection;
     readonly createdAt: string;
   }): Promise<ProductSessionRecord> {
     assertSessionId(input.sessionId);
     if (input.parentSessionId !== undefined && input.parentSessionId !== null) {
       assertSessionId(input.parentSessionId);
     }
+    assertSessionId(input.threadId);
+    if (input.forkedFromThreadId !== null) assertSessionId(input.forkedFromThreadId);
+    assertCondition(
+      /^hv-sha256:[a-f0-9]{64}$/u.test(input.harnessVersionId) &&
+        /^sha256:[a-f0-9]{64}$/u.test(input.harnessManifestHash) &&
+        /^sha256:[a-f0-9]{64}$/u.test(input.harnessClosureHash) &&
+        /^sha256:[a-f0-9]{64}$/u.test(input.runtimeContractHash),
+      "SCHEMA_INVALID",
+      "HarnessVersion pins are malformed",
+    );
     assertCondition(
       /^sha256:[a-f0-9]{64}$/u.test(input.runtimeTaskHash),
       "SCHEMA_INVALID",
@@ -186,6 +258,46 @@ export class ProductSessionStore {
       "SCHEMA_INVALID",
       "Thread context must end at the parent session",
     );
+    assertCondition(
+      (parentSessionId === null &&
+        input.lineageKind === "root" &&
+        input.forkedFromThreadId === null) ||
+        (parentSessionId !== null && input.lineageKind !== "root"),
+      "SCHEMA_INVALID",
+      "Session lineage does not match its parent",
+    );
+    const parentRecord =
+      parentSessionId === null ? null : await this.get(parentSessionId);
+    if (parentRecord === null) {
+      assertCondition(
+        input.threadId === `thread.${input.sessionId}` &&
+          input.forkedFromThreadId === null &&
+          input.harnessSelection !== "inherited",
+        "SCHEMA_INVALID",
+        "Root session thread identity is invalid",
+      );
+    } else {
+      const parentThreadId = parentRecord.threadId ?? `thread.${parentRecord.sessionId}`;
+      assertCondition(
+        input.lineageKind === "resume"
+          ? input.threadId === parentThreadId && input.forkedFromThreadId === null
+          : input.threadId === `thread.${input.sessionId}` &&
+              input.forkedFromThreadId === parentThreadId,
+        "SCHEMA_INVALID",
+        "Resume/fork thread identity does not match the parent",
+      );
+      if (parentRecord.harnessVersionId !== undefined) {
+        assertCondition(
+          input.harnessVersionId === parentRecord.harnessVersionId &&
+            input.harnessManifestHash === parentRecord.harnessManifestHash &&
+            input.harnessClosureHash === parentRecord.harnessClosureHash &&
+            input.runtimeContractHash === parentRecord.runtimeContractHash &&
+            input.harnessSelection === "inherited",
+          "AUTHORIZATION_DENIED",
+          "Resume/fork must inherit the parent's exact HarnessVersion closure",
+        );
+      }
+    }
     for (const referencedId of input.contextSessionIds) {
       const referenced = await this.get(referencedId);
       assertCondition(
@@ -211,6 +323,9 @@ export class ProductSessionStore {
       schemaVersion: 1,
       sessionId: input.sessionId,
       parentSessionId,
+      lineageKind: input.lineageKind,
+      threadId: input.threadId,
+      forkedFromThreadId: input.forkedFromThreadId,
       workspaceRoot: input.workspaceRoot,
       task: input.task,
       runtimeTaskHash: input.runtimeTaskHash,
@@ -224,6 +339,11 @@ export class ProductSessionStore {
       activeSkillIds,
       permissionMode: input.permissionMode,
       verificationCommands: [...input.verificationCommands],
+      harnessVersionId: input.harnessVersionId,
+      harnessManifestHash: input.harnessManifestHash,
+      harnessClosureHash: input.harnessClosureHash,
+      runtimeContractHash: input.runtimeContractHash,
+      harnessSelection: input.harnessSelection,
       state: "created",
       createdAt: input.createdAt,
       updatedAt: input.createdAt,
@@ -247,6 +367,9 @@ export class ProductSessionStore {
     assertCondition(
       core.sessionId === previous.sessionId &&
         core.parentSessionId === previous.parentSessionId &&
+        core.lineageKind === previous.lineageKind &&
+        core.threadId === previous.threadId &&
+        core.forkedFromThreadId === previous.forkedFromThreadId &&
         core.workspaceRoot === previous.workspaceRoot &&
         core.task === previous.task &&
         core.runtimeTaskHash === previous.runtimeTaskHash &&
@@ -257,6 +380,11 @@ export class ProductSessionStore {
         core.permissionMode === previous.permissionMode &&
         JSON.stringify(core.verificationCommands) ===
           JSON.stringify(previous.verificationCommands) &&
+        core.harnessVersionId === previous.harnessVersionId &&
+        core.harnessManifestHash === previous.harnessManifestHash &&
+        core.harnessClosureHash === previous.harnessClosureHash &&
+        core.runtimeContractHash === previous.runtimeContractHash &&
+        core.harnessSelection === previous.harnessSelection &&
         core.createdAt === previous.createdAt,
       "AUTHORIZATION_DENIED",
       "Product session immutable fields cannot change",

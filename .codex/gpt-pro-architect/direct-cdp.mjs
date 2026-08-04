@@ -219,6 +219,40 @@ async function digestLatest(client) {
   console.log(JSON.stringify(result, null, 2));
 }
 
+async function compareLatest(client, localPath) {
+  const local = await readFile(localPath, "utf8");
+  const remote = await client.evaluate(`(() => {
+    const messages = [...document.querySelectorAll(
+      '[data-message-author-role="assistant"]',
+    )];
+    return (messages.at(-1)?.innerText ?? "") + "\\n";
+  })()`);
+  const localLines = local.split("\n");
+  const remoteLines = remote.split("\n");
+  const differences = [];
+  const length = Math.max(localLines.length, remoteLines.length);
+  for (let index = 0; index < length; index += 1) {
+    if (localLines[index] === remoteLines[index]) continue;
+    differences.push({
+      line: index + 1,
+      local: localLines[index] ?? null,
+      remote: remoteLines[index] ?? null,
+    });
+  }
+  console.log(
+    JSON.stringify(
+      {
+        equal: local === remote,
+        localCharacters: local.length,
+        remoteCharacters: remote.length,
+        differences,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 async function submit(client, packetPath) {
   const before = await pageState(client);
   if (
@@ -501,6 +535,12 @@ async function main() {
       await inspect(client);
     } else if (mode === "digest-latest") {
       await digestLatest(client);
+    } else if (mode === "compare-latest") {
+      const localPath = process.argv[3];
+      if (localPath === undefined) {
+        throw new Error("compare-latest requires a local response path");
+      }
+      await compareLatest(client, localPath);
     } else if (mode === "submit") {
       const packetPath = process.argv[3];
       if (packetPath === undefined) throw new Error("packet path is required");
@@ -527,7 +567,7 @@ async function main() {
       await harvest(client, baselineResponsePath);
     } else {
       throw new Error(
-        "mode must be inspect, digest-latest, submit, send-existing, resume-interrupted, or harvest",
+        "mode must be inspect, digest-latest, compare-latest, submit, send-existing, resume-interrupted, or harvest",
       );
     }
   } finally {

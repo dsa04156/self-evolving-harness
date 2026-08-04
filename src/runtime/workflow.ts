@@ -98,6 +98,40 @@ function guardPasses(
   }
 }
 
+export function standardAgentWorkflowPolicy(): DeclarativeWorkflowPolicy {
+  return {
+    schemaVersion: 1,
+    language: "seh.workflow.v1",
+    entryState: "context",
+    states: [
+      { stateId: "context", actions: [
+        { action: "retrieve_memory", targetId: "memory" },
+        { action: "invoke_skill", targetId: "skills" },
+        { action: "construct_context", targetId: "model" },
+      ] },
+      { stateId: "model", actions: [{ action: "model_turn", targetId: "provider" }] },
+      { stateId: "tools", actions: [{ action: "request_tool", targetId: "tools" }] },
+      { stateId: "verify", actions: [{ action: "verify", targetId: "verifier" }] },
+      { stateId: "complete", actions: [{ action: "emit_completion", targetId: null }] },
+      { stateId: "blocked", actions: [{ action: "emit_block", targetId: null }] },
+    ],
+    transitions: [
+      { from: "context", trigger: "action_succeeded", guard: "always", to: "model" },
+      { from: "context", trigger: "action_failed", guard: "always", to: "blocked" },
+      { from: "model", trigger: "action_succeeded", guard: "evidence_incomplete", to: "tools" },
+      { from: "model", trigger: "action_succeeded", guard: "evidence_complete", to: "verify" },
+      { from: "model", trigger: "action_failed", guard: "always", to: "blocked" },
+      { from: "tools", trigger: "tool_result", guard: "always", to: "context" },
+      { from: "tools", trigger: "action_failed", guard: "always", to: "blocked" },
+      { from: "verify", trigger: "verification_passed", guard: "always", to: "complete" },
+      { from: "verify", trigger: "verification_failed", guard: "retry_remaining", to: "context" },
+      { from: "verify", trigger: "verification_failed", guard: "no_retry_remaining", to: "blocked" },
+      { from: "verify", trigger: "action_failed", guard: "always", to: "blocked" },
+    ],
+    terminalStates: ["blocked", "complete"],
+  };
+}
+
 export class ClosedWorkflowRuntime {
   readonly #policy: DeclarativeWorkflowPolicy;
   readonly #stateById = new Map<
@@ -140,6 +174,25 @@ export class ClosedWorkflowRuntime {
 
   public get entryState(): string {
     return this.#policy.entryState;
+  }
+
+  public actionsFor(stateId: string): DeclarativeWorkflowPolicy["states"][number]["actions"] {
+    const state = this.#stateById.get(stateId);
+    assertCondition(
+      state !== undefined,
+      "INVALID_STATE_TRANSITION",
+      `Unknown workflow state ${stateId}`,
+    );
+    return structuredClone(state.actions);
+  }
+
+  public isTerminal(stateId: string): boolean {
+    assertCondition(
+      this.#stateById.has(stateId),
+      "INVALID_STATE_TRANSITION",
+      `Unknown workflow state ${stateId}`,
+    );
+    return this.#policy.terminalStates.includes(stateId);
   }
 
   public async dispatch(input: {

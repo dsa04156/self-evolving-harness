@@ -11,6 +11,8 @@ export const PRODUCT_TOP_LEVEL_COMMANDS = [
   "sessions",
   "status",
   "resume",
+  "fork",
+  "thread",
   "doctor",
   "config",
   "harness",
@@ -83,6 +85,8 @@ _seh() {
     'sessions:List durable sessions'
     'status:Show session evidence and usage'
     'resume:Resume a durable session'
+    'fork:Fork a session with its pinned HarnessVersion'
+    'thread:Show the Thread / Turn / Item projection'
     'doctor:Check the local runtime'
     'config:Show project configuration'
     'harness:Show the latest pinned HarnessVersion'
@@ -119,6 +123,8 @@ function fishCompletion(): string {
     ["sessions", "List durable sessions"],
     ["status", "Show session evidence and usage"],
     ["resume", "Resume a durable session"],
+    ["fork", "Fork a session with its pinned HarnessVersion"],
+    ["thread", "Show the Thread / Turn / Item projection"],
     ["doctor", "Check the local runtime"],
     ["config", "Show project configuration"],
     ["harness", "Show the latest pinned HarnessVersion"],

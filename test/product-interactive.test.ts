@@ -34,6 +34,11 @@ test("interactive input distinguishes tasks, escaped slashes, and commands", () 
     name: "resume",
     argument: "session.1 finish it",
   });
+  assert.deepEqual(parseInteractiveInput("/fork session.1 try another path"), {
+    kind: "command",
+    name: "fork",
+    argument: "session.1 try another path",
+  });
 });
 
 test("top-level CLI follows interactive prompt and explicit print routing", () => {
@@ -58,6 +63,10 @@ test("top-level CLI follows interactive prompt and explicit print routing", () =
   assert.deepEqual(resolveProductCliInvocation(["doctor"], true), {
     command: "doctor",
     args: [],
+  });
+  assert.deepEqual(resolveProductCliInvocation(["thread", "session.1"], true), {
+    command: "thread",
+    args: ["session.1"],
   });
 });
 
@@ -93,7 +102,7 @@ test("interactive banner reports runtime authority without requiring color", () 
     verificationCommands: ["npm test"],
   });
   const banner = interactiveBanner({ workspaceRoot: "/workspace", config, color: false });
-  assert.match(banner, /SEH 0\.7\.0/u);
+  assert.match(banner, /SEH 0\.8\.0/u);
   assert.match(banner, /reasoning\s+provider default/u);
   assert.match(banner, /read-only · shell network denied/u);
   assert.match(banner, /verification 1 command/u);
@@ -130,6 +139,8 @@ test("slash command palette opens on slash and narrows by name or alias", () => 
   assert.ok(all.length >= 12);
   assert.equal(all[0]?.name, "help");
   assert.equal(slashCommandSuggestions("/res")[0]?.name, "resume");
+  assert.equal(slashCommandSuggestions("/for")[0]?.name, "fork");
+  assert.equal(slashCommandSuggestions("/turn")[0]?.name, "thread");
   assert.equal(slashCommandSuggestions("/q")[0]?.name, "exit");
   assert.deepEqual(slashCommandSuggestions("/resume session"), []);
 });

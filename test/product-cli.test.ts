@@ -92,7 +92,7 @@ test("product CLI exposes top-level and command-local help plus a version", asyn
   const help = await cli(["run", "--help"], stateRoot);
   assert.match(help.stdout, /seh run \[OPTIONS\]/u);
   const version = await cli(["--version"], stateRoot);
-  assert.equal(version.stdout, "0.7.0\n");
+  assert.equal(version.stdout, "0.8.0\n");
 });
 
 test("product CLI generates native shell completion scripts", async () => {
@@ -102,6 +102,7 @@ test("product CLI generates native shell completion scripts", async () => {
   assert.match(bash.stdout, /openai openrouter ollama/u);
   assert.match(bash.stdout, /auto none minimal low medium high xhigh max/u);
   assert.match(bash.stdout, /parallel-research/u);
+  assert.match(bash.stdout, /fork thread/u);
   const zsh = await cli(["completion", "zsh"], stateRoot);
   assert.match(zsh.stdout, /#compdef seh/u);
   const fish = await cli(["completion", "fish"], stateRoot);

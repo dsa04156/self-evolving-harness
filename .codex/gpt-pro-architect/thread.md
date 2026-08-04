@@ -24,11 +24,11 @@
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
 - updated: 2026-08-04
-- last packet: `.codex/gpt-pro-architect/packets/packet-06s-model-execution-profile-post-publication.md`
-- last packet sha256: `5588d623e88b44b832789bfc40a1c8ef045fe10c81c84d05627d185407bbdb35`
-- last response: `.codex/gpt-pro-architect/responses/response-06s-model-execution-profile-post-publication.md`
-- last response sha256: `911899a3dbb3bed3cf007eab3dee1d064ef40210ac48cfb718f2c7b957561ba1`
-- next packet: none for Packet 06 model execution profiles or their publication closure
+- last packet: `.codex/gpt-pro-architect/packets/packet-08-product-harness-execution.md`
+- last packet sha256: `7a618a88e226a182e9065b7e9e1183738a39014f0a1df75a9956bc4a79ba8032`
+- last response: `.codex/gpt-pro-architect/responses/response-08-product-harness-execution.md`
+- last response sha256: `109f870632e76565a335d77115134cdf68b789178cf7701ddc8104c877cf2fdf`
+- next packet: Packet 08R, exact clean-commit release seal
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -38,6 +38,18 @@
 - model evidence: Oracle 0.16.1; the same topic originally requested `gpt-5-pro` and resolved the existing
   target. Manual fallback reused the same prior Pro-selected project tab, but did not independently
   expose the picker label; server-side generation identity remains vendor-opaque.
+- Round 07 decision: `REVISE`. A full Codex fork would replace the central independent-runtime research
+  object and is not authorized. Option B is selected: retain the SEH-owned runtime, add exact
+  ProductExecutionConfig-to-HarnessVersion materialization, executable workflow/routing/subagent
+  policies, session pinning/resume/fork rules, and a non-authoritative Thread/Turn/Item-style projection.
+  Any Codex reuse requires exact-SHA provenance and Apache-2.0 disposition; Codex may not become a
+  process, crate, app-server, login, session, provider, or evidence dependency.
+- Round 08 decision: `APPROVE`. The ProductExecutionConfig-to-component materialization, persistent
+  content-addressed HarnessVersion, immutable root/resume/fork session pin, causally enforced workflow/
+  routing/subagent prompt, SEH-owned runtime path, and projection-only Thread/Turn/Item view close the
+  Round 07 architecture blocker. This approval does not establish a releasable 0.8.0 commit or any
+  empirical evolution claim. The exact committed candidate must now pass the complete release gate in
+  a separate clean worktree and return once as Packet 08R before publication.
 - Round 06 decision: `APPROVE`. The typed model capability profile, model-specific two-stage picker,
   separate Fast service tier, honest omission of Ultra, persisted immutable session profile,
   provider-wire propagation, provider-bound reasoning continuation, backward compatibility, and

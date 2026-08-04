@@ -89,6 +89,8 @@ recommended first command because it records the permission and verification cho
 | `seh sessions` | List recent sessions for this workspace |
 | `seh status [ID]` | Inspect the latest or selected session |
 | `seh resume [ID] [GUIDANCE]` | Pick or load a prior session and continue interactively |
+| `seh fork [ID] [GUIDANCE]` | Branch from a prior session with its exact HarnessVersion |
+| `seh thread [ID]` | Show a derived Thread / Turn / Item projection (`--json` supported) |
 | `seh doctor` | Check the sandbox, provider endpoint, and selected model |
 | `seh config` | Print the non-secret project configuration and its state path |
 | `seh harness` | Show the latest task's content-addressed HarnessVersion and runtime snapshot |
@@ -117,7 +119,7 @@ the command palette and session picker open as keyboard-driven overlays:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ SEH v0.7.0  SELF-EVOLVING CODING AGENT                                      │
+│ SEH v0.8.0  SELF-EVOLVING CODING AGENT                                      │
 │ my-project     openai/gpt-5.6-sol · HIGH · FAST · WRITE · agents 4 · skills 1│
 └──────────────────────────────────────────────────────────────────────────────┘
 
@@ -154,6 +156,8 @@ moving the cursor.
 | `/new` | Clear the current thread context without deleting workspace memory |
 | `/status`, `/sessions` | Inspect durable session state |
 | `/resume [ID] [guidance]` | Pick or load a prior task and answer, optionally run guidance |
+| `/fork [ID] [guidance]` | Branch from a prior task while inheriting its exact HarnessVersion |
+| `/thread`, `/turns` | Inspect the non-authoritative Thread / Turn / Item projection |
 | `/model [model-id]`, `/models` | Search providers and live/curated model routes, or select an exact ID |
 | `/effort [LEVEL\|auto]`, `/reasoning` | Pick a model-advertised reasoning level or use the provider default |
 | `/fast [on\|off]` | Toggle OpenAI priority processing for models that advertise it |
@@ -247,8 +251,10 @@ any still-running child or command is cancelled and reaped when the parent task 
 `/job` are convenient prompt-level shortcuts for these model tools; they do not bypass the task
 session, permissions, budget, or evidence lifecycle.
 
-`seh harness` and `/harness` expose the exact content-addressed execution identities saved after a
-task. `seh evolution` and `/evolution` are read-only projections: they count observed traces and
+`seh harness` and `/harness` expose the exact content-addressed execution identities committed before
+the first provider call. `seh thread` and `/thread` derive a convenient view from hash-validated
+RuntimeEvents; it is always `projection_only` and cannot authorize a tool, evaluator, promotion, or
+rollback. `seh evolution` and `/evolution` are read-only projections: they count observed traces and
 distinct HarnessVersions and restate the candidate gate. They intentionally do not turn one failed
 task into an automatic prompt rewrite. Candidate mutation remains in the separate governed
 Evolution Control Plane, where attribution, isolated evaluation, matched budgets, and an append-only
@@ -329,9 +335,11 @@ seh memory add --namespace user_preferences "Prefer minimal diffs"
 seh memory list
 ```
 
-`continue`, `resume`, and successive interactive prompts create new auditable child sessions. They reuse the
-workspace, persistent memory, and bounded thread context, but they do not create a `HarnessVersion`
-and are not recorded as harness evolution.
+`continue`, `resume`, and successive interactive prompts create new auditable child sessions in the
+same thread and inherit the parent's exact HarnessVersion. `fork` creates a new thread ID while
+recording its source thread and inheriting the same version. Current model, permission, skill, or
+workflow configuration changes take effect in a new root thread; they do not silently rebind an
+existing one. None of these operations is recorded as harness evolution.
 
 ## Remote providers
 

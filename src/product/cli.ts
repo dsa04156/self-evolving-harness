@@ -39,8 +39,10 @@ import {
 } from "./interactive.js";
 import {
   ProductSessionStore,
+  type ProductSessionLineageKind,
   type ProductSessionRecord,
 } from "./session-store.js";
+import { projectProductThread } from "./thread-projection.js";
 import { renderShellCompletion } from "./shell-completion.js";
 import {
   buildProductModelChoices,
@@ -184,6 +186,9 @@ interface InteractiveShellStartup {
   readonly resumeSessionId?: string;
   readonly resumeLatest?: boolean;
   readonly resumePicker?: boolean;
+  readonly forkSessionId?: string;
+  readonly forkLatest?: boolean;
+  readonly forkPicker?: boolean;
   readonly skillIds?: readonly string[];
 }
 
@@ -233,6 +238,7 @@ async function executeTask(input: {
   readonly executionTask?: string;
   readonly contextSessionIds?: readonly string[];
   readonly parentSessionId?: string | null;
+  readonly lineageKind?: ProductSessionLineageKind;
   readonly json: boolean;
   readonly quiet: boolean;
   readonly showProjectHeader?: boolean;
@@ -245,18 +251,22 @@ async function executeTask(input: {
   }
   if (!input.json && input.showProjectHeader !== false) {
     err(`SEH workspace: ${input.project.workspaceRoot}\n`);
-    err(
-      `Provider: ${input.project.config.provider.kind}/${input.project.config.provider.model}\n`,
-    );
-    err(
-      `Reasoning: ${input.project.config.provider.reasoningEffort ?? "provider default"}${
-        input.project.config.provider.kind === "openai" &&
-        input.project.config.provider.serviceTier === "priority"
-          ? " · FAST"
-          : ""
-      }\n`,
-    );
-    err(`Permissions: ${input.project.config.permissionMode} (shell network: denied)\n`);
+    if (input.parentSessionId !== undefined && input.parentSessionId !== null) {
+      err(`Harness: inherit exact pin from ${input.parentSessionId}\n`);
+    } else {
+      err(
+        `Provider: ${input.project.config.provider.kind}/${input.project.config.provider.model}\n`,
+      );
+      err(
+        `Reasoning: ${input.project.config.provider.reasoningEffort ?? "provider default"}${
+          input.project.config.provider.kind === "openai" &&
+          input.project.config.provider.serviceTier === "priority"
+            ? " · FAST"
+            : ""
+        }\n`,
+      );
+      err(`Permissions: ${input.project.config.permissionMode} (shell network: denied)\n`);
+    }
   }
   const ownedController = input.abortSignal === undefined ? new AbortController() : null;
   const abortSignal = input.abortSignal ?? ownedController?.signal;
@@ -287,6 +297,7 @@ async function executeTask(input: {
       ...(input.parentSessionId === undefined
         ? {}
         : { parentSessionId: input.parentSessionId }),
+      ...(input.lineageKind === undefined ? {} : { lineageKind: input.lineageKind }),
       onEvent: async (event) => {
         events.render(event);
         await input.onRuntimeEvent?.(event);
@@ -411,13 +422,24 @@ function statusText(record: ProductSessionRecord): string {
     `Task: ${record.task}`,
   ];
   if (record.parentSessionId !== null) lines.push(`Parent: ${record.parentSessionId}`);
+  if (record.threadId !== undefined) lines.push(`Thread: ${record.threadId}`);
+  if (record.lineageKind !== undefined) lines.push(`Lineage: ${record.lineageKind}`);
+  if (record.forkedFromThreadId !== undefined && record.forkedFromThreadId !== null) {
+    lines.push(`Forked from: ${record.forkedFromThreadId}`);
+  }
+  if (record.harnessVersionId !== undefined) {
+    lines.push(`HarnessVersion: ${record.harnessVersionId} (${record.harnessSelection ?? "pinned"})`);
+  }
+  if (record.harnessClosureHash !== undefined) {
+    lines.push(`Harness closure: ${record.harnessClosureHash}`);
+  }
   if (record.runtimeTaskHash !== undefined) lines.push(`Runtime task hash: ${record.runtimeTaskHash}`);
   if ((record.contextSessionIds?.length ?? 0) > 0) {
     lines.push(`Thread context sessions: ${record.contextSessionIds?.join(", ") ?? ""}`);
   }
   if (record.result !== null) {
     lines.push(`Lifecycle: ${record.result.lifecycleState}`);
-    if (record.result.harnessVersionId !== undefined) {
+    if (record.harnessVersionId === undefined && record.result.harnessVersionId !== undefined) {
       lines.push(`HarnessVersion: ${record.result.harnessVersionId}`);
     }
     if (record.result.runtimeStateSnapshotId !== undefined) {
@@ -488,6 +510,57 @@ async function statusCommand(args: readonly string[]): Promise<number> {
   return record.state === "completed" ? 0 : 2;
 }
 
+function threadProjectionText(
+  projection: Awaited<ReturnType<typeof projectProductThread>>,
+): string {
+  const lines = [
+    `Thread: ${projection.threadId}`,
+    `Authority: ${projection.authority} (view only)`,
+    ...(projection.forkedFromThreadId === null
+      ? []
+      : [`Forked from: ${projection.forkedFromThreadId}`]),
+    `HarnessVersions: ${projection.harnessVersionIds.join(", ") || "legacy/unavailable"}`,
+    `Projection hash: ${projection.projectionHash}`,
+    "",
+  ];
+  for (const turn of projection.turns) {
+    lines.push(
+      `${turn.turnId}  ${turn.state}  ${turn.lineageKind}  ${turn.items.length} item(s)`,
+      `  session ${turn.sessionId}`,
+      `  harness ${turn.harnessVersionId ?? "legacy/unavailable"}`,
+    );
+    for (const item of turn.items) {
+      lines.push(`  · ${item.kind.padEnd(20)} ${item.source.sourceId}`);
+    }
+  }
+  lines.push("", "This projection cannot authorize tools, evaluation, promotion, or rollback.", "");
+  return lines.join("\n");
+}
+
+async function threadCommand(args: readonly string[]): Promise<number> {
+  const parsed = parseArgs({
+    args: [...args],
+    options: {
+      workspace: { type: "string" },
+      json: { type: "boolean" },
+    },
+    allowPositionals: true,
+  });
+  assertCondition(parsed.positionals.length <= 1, "SCHEMA_INVALID", "thread accepts one session ID");
+  const { workspaceRoot, paths } = await workspaceAndPaths(parsed.values.workspace);
+  await loadProductConfig(paths, workspaceRoot);
+  const projection = await projectProductThread({
+    paths,
+    ...(parsed.positionals[0] === undefined ? {} : { sessionId: parsed.positionals[0] }),
+  });
+  out(
+    parsed.values.json === true
+      ? `${JSON.stringify(projection, null, 2)}\n`
+      : threadProjectionText(projection),
+  );
+  return 0;
+}
+
 interface ProductHarnessStatus {
   readonly workspaceRoot: string;
   readonly observedTaskTraces: number;
@@ -509,9 +582,9 @@ async function productHarnessStatus(
   const records = await new ProductSessionStore(paths).list();
   const harnessVersionIds = [...new Set(
     records.flatMap((record) =>
-      record.result?.harnessVersionId === undefined
+      (record.harnessVersionId ?? record.result?.harnessVersionId) === undefined
         ? []
-        : [record.result.harnessVersionId],
+        : [record.harnessVersionId ?? record.result!.harnessVersionId!],
     ),
   )].sort();
   const latest = records[0] ?? null;
@@ -526,7 +599,7 @@ async function productHarnessStatus(
         ? null
         : {
             sessionId: latest.sessionId,
-            harnessVersionId: latest.result?.harnessVersionId ?? null,
+            harnessVersionId: latest.harnessVersionId ?? latest.result?.harnessVersionId ?? null,
             runtimeStateSnapshotId: latest.result?.runtimeStateSnapshotId ?? null,
             activeSkillIds: latest.activeSkillIds ?? [],
           },
@@ -585,7 +658,10 @@ async function harnessStatusCommand(
   return 0;
 }
 
-async function resumeCommand(args: readonly string[]): Promise<number> {
+async function lineageCommand(
+  args: readonly string[],
+  lineageKind: "resume" | "fork",
+): Promise<number> {
   const parsed = parseArgs({
     args: [...args],
     options: {
@@ -629,9 +705,17 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
     parsed.values.json !== true
   ) {
     return runInteractiveShell(project, parsed.values.quiet === true, {
-      ...(sessionId === undefined ? {} : { resumeSessionId: sessionId }),
-      ...(useLatest ? { resumeLatest: true } : {}),
-      ...(sessionId === undefined && !useLatest ? { resumePicker: true } : {}),
+      ...(lineageKind === "resume"
+        ? {
+            ...(sessionId === undefined ? {} : { resumeSessionId: sessionId }),
+            ...(useLatest ? { resumeLatest: true } : {}),
+            ...(sessionId === undefined && !useLatest ? { resumePicker: true } : {}),
+          }
+        : {
+            ...(sessionId === undefined ? {} : { forkSessionId: sessionId }),
+            ...(useLatest ? { forkLatest: true } : {}),
+            ...(sessionId === undefined && !useLatest ? { forkPicker: true } : {}),
+          }),
       ...(parsed.positionals.length <= 1
         ? {}
         : { initialPrompt: parsed.positionals.slice(1).join(" ").trim() }),
@@ -640,14 +724,14 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
   assertCondition(
     sessionId !== undefined || useLatest,
     "SCHEMA_INVALID",
-    "non-interactive resume requires a session ID or --last",
+    `non-interactive ${lineageKind} requires a session ID or --last`,
   );
   const store = new ProductSessionStore(project.paths);
   const prior = useLatest ? await store.latest() : await store.get(sessionId as string);
   assertCondition(prior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
   const guidance = parsed.positionals.slice(1).join(" ").trim();
   const task = [
-    "Resume a prior coding-agent task as a new auditable session.",
+    `${lineageKind === "fork" ? "Fork" : "Resume"} a prior coding-agent task as a new auditable session.`,
     `Original task:\n${prior.task}`,
     `Prior state: ${prior.state}`,
     `Prior answer:\n${(prior.result?.finalText ?? "No prior final answer.").slice(0, 8_000)}`,
@@ -660,12 +744,21 @@ async function resumeCommand(args: readonly string[]): Promise<number> {
     project,
     task,
     parentSessionId: prior.sessionId,
+    lineageKind,
     contextSessionIds: [prior.sessionId],
     json: parsed.values.json === true,
     quiet: parsed.values.quiet === true,
   });
   printSession(record, parsed.values.json === true);
   return record.state === "completed" ? 0 : 2;
+}
+
+async function resumeCommand(args: readonly string[]): Promise<number> {
+  return lineageCommand(args, "resume");
+}
+
+async function forkCommand(args: readonly string[]): Promise<number> {
+  return lineageCommand(args, "fork");
 }
 
 async function doctorCommand(args: readonly string[]): Promise<number> {
@@ -1012,6 +1105,7 @@ async function runInteractiveShell(
   let latest: ProductSessionRecord | null = null;
   let turns: ConversationTurn[] = [];
   let threadNumber = 1;
+  let nextLineageKind: "resume" | "fork" = "resume";
   let activeSkillIds = [...new Set(startup.skillIds ?? [])];
   selectProductSkills(
     activeSkillIds,
@@ -1048,11 +1142,23 @@ async function runInteractiveShell(
   };
   const terminal = startFullscreenTui(await tuiStatus());
   const refreshStatus = async (): Promise<void> => terminal.updateStatus(await tuiStatus());
+  const detachPinnedThread = (): string => {
+    if (latest === null) return "";
+    latest = null;
+    turns = [];
+    nextLineageKind = "resume";
+    threadNumber += 1;
+    return ` · started thread ${threadNumber} because a pinned HarnessVersion cannot be rebound`;
+  };
   if (activeProject.initialized) {
     terminal.setNotice(`Initialized project policy · ${activeProject.paths.configFile}`);
   }
-  const loadPrior = (prior: ProductSessionRecord): void => {
+  const loadPrior = (
+    prior: ProductSessionRecord,
+    lineageKind: "resume" | "fork" = "resume",
+  ): void => {
     latest = prior;
+    nextLineageKind = lineageKind;
     const availableSkills = new Set(
       productSkillCatalog(
         activeProject.config.permissionMode,
@@ -1069,7 +1175,7 @@ async function runInteractiveShell(
     }];
     terminal.appendMessage(
       "system",
-      `Loaded ${prior.sessionId}. The prior answer is bounded thread context, not a retry or HarnessVersion evolution.`,
+      `Loaded ${prior.sessionId} for ${lineageKind}. The exact HarnessVersion is inherited; this is not HarnessVersion evolution.`,
       { title: "SESSION" },
     );
   };
@@ -1130,6 +1236,7 @@ async function runInteractiveShell(
         executionTask: buildConversationalTask(task, turns),
         contextSessionIds: turns.map((turn) => turn.sessionId),
         parentSessionId: latest?.sessionId ?? null,
+        ...(latest === null ? {} : { lineageKind: nextLineageKind }),
         json: false,
         quiet,
         showProjectHeader: false,
@@ -1138,6 +1245,7 @@ async function runInteractiveShell(
         skillIds: activeSkillIds,
       });
       latest = record;
+      nextLineageKind = "resume";
       turns = [
         ...turns,
         {
@@ -1193,8 +1301,21 @@ async function runInteractiveShell(
         terminal.setNotice("Resume cancelled");
       }
     }
+    let startupLineageKind: "resume" | "fork" = "resume";
+    if (startup.forkSessionId !== undefined) {
+      startupPrior = await store.get(startup.forkSessionId);
+      startupLineageKind = "fork";
+    } else if (startup.forkLatest === true) {
+      startupPrior = await store.latest();
+      assertCondition(startupPrior !== null, "ARTIFACT_UNAVAILABLE", "No sessions exist for this workspace");
+      startupLineageKind = "fork";
+    } else if (startup.forkPicker === true) {
+      startupPrior = await selectFullscreenSession(terminal, store);
+      startupLineageKind = "fork";
+      if (startupPrior === null) terminal.setNotice("Fork cancelled");
+    }
     if (startupPrior !== null) {
-      loadPrior(startupPrior);
+      loadPrior(startupPrior, startupLineageKind);
       await refreshStatus();
     }
     if ((startup.initialPrompt?.trim().length ?? 0) > 0) {
@@ -1219,6 +1340,7 @@ async function runInteractiveShell(
         } else if (name === "new") {
           turns = [];
           latest = null;
+          nextLineageKind = "resume";
           threadNumber += 1;
           terminal.clearMessages();
           await refreshStatus();
@@ -1228,13 +1350,23 @@ async function runInteractiveShell(
           terminal.appendMessage("system", record === null ? "No sessions." : statusText(record), {
             title: "STATUS",
           });
+        } else if (name === "thread" || name === "turns") {
+          const activeSession = latest as ProductSessionRecord | null;
+          const requested = argument.length > 0 ? argument : activeSession?.sessionId;
+          const projection = await projectProductThread({
+            paths: activeProject.paths,
+            ...(requested === undefined ? {} : { sessionId: requested }),
+          });
+          terminal.appendMessage("system", threadProjectionText(projection).trimEnd(), {
+            title: "THREAD / TURN / ITEM",
+          });
         } else if (name === "sessions") {
           terminal.appendMessage(
             "system",
             recentSessionsText((await store.list()).slice(0, 10)),
             { title: "SESSIONS" },
           );
-        } else if (name === "resume") {
+        } else if (name === "resume" || name === "fork") {
           let prior: ProductSessionRecord | null;
           let guidance = "";
           if (argument === "") {
@@ -1248,7 +1380,7 @@ async function runInteractiveShell(
             guidance = split.rest;
           }
           if (prior !== null) {
-            loadPrior(prior);
+            loadPrior(prior, name);
             await refreshStatus();
             if (guidance.length > 0) await safelyRunTurn(guidance);
           }
@@ -1310,6 +1442,7 @@ async function runInteractiveShell(
             await saveProductConfig(activeProject.paths, activeProject.config, {
               overwrite: true,
             });
+            const threadReset = detachPinnedThread();
             await refreshStatus();
             const availability = selectedChoice?.source === "example"
               ? " · example; provider access or installation is still required"
@@ -1320,7 +1453,7 @@ async function runInteractiveShell(
             terminal.setNotice(
               `Model: ${selectedChoice.providerKind}/${modelId} · reasoning ${
                 selectedReasoning ?? "provider default"
-              } · saved for following sessions${availability}${discovery}`,
+              } · saved for following sessions${threadReset}${availability}${discovery}`,
             );
           } else {
             const capabilities = bundledReasoningCapabilities(
@@ -1335,11 +1468,12 @@ async function runInteractiveShell(
             await saveProductConfig(activeProject.paths, activeProject.config, {
               overwrite: true,
             });
+            const threadReset = detachPinnedThread();
             await refreshStatus();
             terminal.setNotice(
               `Model: ${activeProject.config.provider.kind}/${argument} · reasoning ${
                 activeProject.config.provider.reasoningEffort ?? "provider default"
-              } · saved for following sessions`,
+              } · saved for following sessions${threadReset}`,
             );
           }
         } else if (name === "effort" || name === "reasoning") {
@@ -1390,9 +1524,10 @@ async function runInteractiveShell(
           await saveProductConfig(activeProject.paths, activeProject.config, {
             overwrite: true,
           });
+          const threadReset = detachPinnedThread();
           await refreshStatus();
           terminal.setNotice(
-            `Reasoning: ${effort ?? "provider default"} · saved for following sessions`,
+            `Reasoning: ${effort ?? "provider default"} · saved for following sessions${threadReset}`,
           );
         } else if (name === "fast") {
           assertCondition(
@@ -1427,9 +1562,10 @@ async function runInteractiveShell(
           await saveProductConfig(activeProject.paths, activeProject.config, {
             overwrite: true,
           });
+          const threadReset = detachPinnedThread();
           await refreshStatus();
           terminal.setNotice(
-            `Fast mode: ${enable ? "ON · OpenAI priority processing" : "OFF · default service tier"} · applies to next task session`,
+            `Fast mode: ${enable ? "ON · OpenAI priority processing" : "OFF · default service tier"} · applies to next task session${threadReset}`,
           );
         } else if (name === "permissions") {
           terminal.appendMessage("system", permissionLabel(activeProject.config.permissionMode), {
@@ -1441,8 +1577,9 @@ async function runInteractiveShell(
             ...activeProject,
             config: applyProductConfigOverrides(activeProject.config, { permissionMode: mode }),
           };
+          const threadReset = detachPinnedThread();
           await refreshStatus();
-          terminal.setNotice(`Permissions: ${permissionLabel(mode)} · ephemeral`);
+          terminal.setNotice(`Permissions: ${permissionLabel(mode)} · ephemeral${threadReset}`);
         } else if (name === "verify") {
           if (activeProject.config.verification.commands.length === 0) {
             terminal.appendMessage(
@@ -1472,6 +1609,7 @@ async function runInteractiveShell(
           );
         } else if (name === "review") {
           const priorProject = activeProject;
+          const beforeReviewReset = detachPinnedThread();
           activeProject = {
             ...activeProject,
             config: applyProductConfigOverrides(activeProject.config, {
@@ -1485,6 +1623,13 @@ async function runInteractiveShell(
             );
           } finally {
             activeProject = priorProject;
+            const afterReviewReset = detachPinnedThread();
+            await refreshStatus();
+            if (beforeReviewReset.length > 0 || afterReviewReset.length > 0) {
+              terminal.setNotice(
+                "Review ran as an isolated read-only root session · next task starts a new configured thread",
+              );
+            }
           }
         } else if (name === "tools") {
           terminal.appendMessage(
@@ -1561,8 +1706,9 @@ async function runInteractiveShell(
           }
           if (selectedId === "off" || selectedId === "none") {
             activeSkillIds = [];
+            const threadReset = detachPinnedThread();
             await refreshStatus();
-            terminal.setNotice("Workflow skills cleared · repository_task remains active");
+            terminal.setNotice(`Workflow skills cleared · repository_task remains active${threadReset}`);
             continue;
           }
           const selected = catalog.find((skill) => skill.skillId === selectedId);
@@ -1570,6 +1716,7 @@ async function runInteractiveShell(
           activeSkillIds = activeSkillIds.includes(selectedId)
             ? activeSkillIds.filter((skillId) => skillId !== selectedId)
             : [...activeSkillIds, selectedId];
+          const threadReset = detachPinnedThread();
           await refreshStatus();
           terminal.appendMessage(
             "system",
@@ -1580,6 +1727,7 @@ async function runInteractiveShell(
               )),
               "",
               `Active: ${activeSkillIds.length === 0 ? "repository_task only" : activeSkillIds.join(", ")}`,
+              ...(threadReset.length === 0 ? [] : [threadReset.slice(3)]),
             ].join("\n"),
             { title: activeSkillIds.includes(selectedId) ? "SKILL ENABLED" : "SKILL DISABLED" },
           );
@@ -1705,6 +1853,8 @@ export function productUsage(): string {
     "  seh sessions [--limit N]",
     "  seh status [SESSION_ID]",
     "  seh resume [SESSION_ID] [guidance] [--last]",
+    "  seh fork [SESSION_ID] [guidance] [--last]",
+    "  seh thread [SESSION_ID] [--json]",
     "  seh doctor",
     "  seh config [--max-descendants N]",
     "  seh harness [--json]",
@@ -1744,6 +1894,8 @@ export async function runProductCommand(
   if (command === "sessions") return sessionsCommand(args);
   if (command === "status") return statusCommand(args);
   if (command === "resume") return resumeCommand(args);
+  if (command === "fork") return forkCommand(args);
+  if (command === "thread") return threadCommand(args);
   if (command === "doctor") return doctorCommand(args);
   if (command === "config") return configCommand(args);
   if (command === "harness") return harnessStatusCommand(args, false);

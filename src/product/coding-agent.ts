@@ -1,7 +1,3 @@
-import { access } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { sha256, type JsonValue } from "../core/canonical.js";
 import { RandomIdFactory, SystemClock } from "../core/determinism.js";
 import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
@@ -16,18 +12,22 @@ import { CodingTaskVerifier } from "../runtime/coding-verifier.js";
 import type { DeclarativeSkill } from "../runtime/skills.js";
 import type { TaskVerifier } from "../runtime/verifier.js";
 import { PrincipalSigner } from "../trust/identity.js";
-import type { ProductConfig, ProductStatePaths } from "./config.js";
+import type {
+  ProductConfig,
+  ProductProviderConfig,
+  ProductStatePaths,
+} from "./config.js";
+import { PRODUCT_RUNTIME_VERSION } from "./defaults.js";
 import {
-  PRODUCT_RUNTIME_VERSION,
-  allowedToolIds,
-  codingContextPolicy,
-  codingPrompt,
-  codingSkill,
-  codingToolDescriptions,
-} from "./defaults.js";
+  PRODUCT_RUNTIME_CONTRACT_HASH,
+  ProductHarnessRegistry,
+} from "./harness-registry.js";
+import { bundledSchemasPath } from "./resources.js";
 import {
   ProductSessionStore,
   createProductSessionId,
+  type ProductHarnessSelection,
+  type ProductSessionLineageKind,
   type ProductSessionRecord,
 } from "./session-store.js";
 
@@ -40,6 +40,8 @@ export interface CodingAgentRunOptions {
   readonly executionTask?: string;
   readonly contextSessionIds?: readonly string[];
   readonly parentSessionId?: string | null;
+  readonly lineageKind?: ProductSessionLineageKind;
+  readonly pinnedHarnessVersionId?: string;
   readonly providerOverride?: ModelProvider;
   readonly verifierOverride?: TaskVerifier;
   readonly additionalSkills?: readonly DeclarativeSkill[];
@@ -58,43 +60,21 @@ function contentId(prefix: "protocol-sha256" | "hv-sha256" | "rss-sha256", value
   return `${prefix}:${sha256(value).slice("sha256:".length)}`;
 }
 
-async function schemasPath(): Promise<string> {
-  const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
-  const configured = process.env["SEH_SCHEMAS_DIR"];
-  const candidates = [
-    ...(configured === undefined ? [] : [path.resolve(configured)]),
-    path.resolve(moduleDirectory, "../../schemas"),
-    path.resolve(moduleDirectory, "../../../schemas"),
-  ];
-  for (const candidate of candidates) {
-    try {
-      await access(path.join(candidate, "common.schema.json"));
-      return candidate;
-    } catch {
-      // Try the next source/dist layout.
-    }
-  }
-  throw new HarnessError(
-    "ARTIFACT_UNAVAILABLE",
-    "Cannot locate bundled schemas; reinstall the seh package or set SEH_SCHEMAS_DIR",
-  );
-}
-
-function createProvider(config: ProductConfig): ProviderBinding {
-  if (config.provider.kind === "ollama") {
-    const modelIdentity = `ollama:${config.provider.model}`;
+function createProvider(provider: ProductProviderConfig): ProviderBinding {
+  if (provider.kind === "ollama") {
+    const modelIdentity = `ollama:${provider.model}`;
     return {
       provider: new OllamaProvider({
-        model: config.provider.model,
+        model: provider.model,
         modelIdentity,
-        baseUrl: config.provider.endpoint,
-        requestTimeoutMillis: config.provider.requestTimeoutMillis,
+        baseUrl: provider.endpoint,
+        requestTimeoutMillis: provider.requestTimeoutMillis,
       }),
       modelIdentity,
       secrets: {},
     };
   }
-  if (config.provider.kind === "openrouter") {
+  if (provider.kind === "openrouter") {
     const apiKey = process.env["OPENROUTER_API_KEY"] ?? "";
     if (apiKey.length === 0) {
       throw new HarnessError(
@@ -102,14 +82,14 @@ function createProvider(config: ProductConfig): ProviderBinding {
         "OPENROUTER_API_KEY is not set. Select OpenAI with /model, or use Ollama for the no-key local path.",
       );
     }
-    const modelIdentity = `openrouter:${config.provider.model}`;
+    const modelIdentity = `openrouter:${provider.model}`;
     return {
       provider: OpenAICompatibleChatProvider.fromApiKey(apiKey, {
         providerId: "openrouter",
-        apiModel: config.provider.model,
+        apiModel: provider.model,
         modelIdentity,
-        baseUrl: config.provider.endpoint,
-        requestTimeoutMillis: config.provider.requestTimeoutMillis,
+        baseUrl: provider.endpoint,
+        requestTimeoutMillis: provider.requestTimeoutMillis,
         defaultHeaders: {
           "X-OpenRouter-Title": "Self-Evolving Harness",
         },
@@ -125,12 +105,12 @@ function createProvider(config: ProductConfig): ProviderBinding {
       "OPENAI_API_KEY is not set. Select OpenRouter with /model, or use Ollama for the no-key local path.",
     );
   }
-  const modelIdentity = `openai:${config.provider.model}`;
+  const modelIdentity = `openai:${provider.model}`;
   return {
     provider: OpenAIResponsesProvider.fromApiKey(apiKey, {
-      apiModel: config.provider.model,
+      apiModel: provider.model,
       modelIdentity,
-      serviceTier: config.provider.serviceTier,
+      serviceTier: provider.serviceTier,
     }),
     modelIdentity,
     secrets: { OPENAI_API_KEY: apiKey },
@@ -210,80 +190,107 @@ export async function runCodingAgentTask(
   const ids = new RandomIdFactory();
   const sessionId = createProductSessionId(options.now);
   const store = new ProductSessionStore(options.paths);
+  const parentSessionId = options.parentSessionId ?? null;
+  const parent = parentSessionId === null ? null : await store.get(parentSessionId);
+  if (parent !== null) {
+    assertCondition(
+      parent.workspaceRoot === options.workspaceRoot,
+      "AUTHORIZATION_DENIED",
+      "A continued session cannot cross workspace boundaries",
+    );
+  }
+  const lineageKind = options.lineageKind ?? (parent === null ? "root" : "resume");
+  assertCondition(
+    (parent === null && lineageKind === "root") ||
+      (parent !== null && (lineageKind === "resume" || lineageKind === "fork")),
+    "SCHEMA_INVALID",
+    "Session lineage does not match its parent",
+  );
+  const harnessRegistry = await ProductHarnessRegistry.open(options.paths);
+  let harnessSelection: ProductHarnessSelection;
+  let materialized;
+  if (parent?.harnessVersionId !== undefined) {
+    assertCondition(
+      options.pinnedHarnessVersionId === undefined ||
+        options.pinnedHarnessVersionId === parent.harnessVersionId,
+      "AUTHORIZATION_DENIED",
+      "Resume and fork must inherit the parent's exact HarnessVersion",
+    );
+    materialized = await harnessRegistry.resolve(parent.harnessVersionId);
+    harnessSelection = "inherited";
+  } else if (options.pinnedHarnessVersionId !== undefined) {
+    materialized = await harnessRegistry.resolve(options.pinnedHarnessVersionId);
+    harnessSelection = "explicit";
+  } else {
+    materialized = await harnessRegistry.materialize(
+      options.config,
+      options.additionalSkills ?? [],
+    );
+    harnessSelection = parent === null ? "current" : "legacy-current";
+  }
+  const harnessManifest = materialized.manifest;
+  const executionConfig = materialized.execution;
+  const threadId =
+    lineageKind === "resume"
+      ? (parent?.threadId ?? `thread.${parentSessionId!}`)
+      : `thread.${sessionId}`;
+  const forkedFromThreadId =
+    lineageKind === "fork"
+      ? (parent?.threadId ?? `thread.${parentSessionId!}`)
+      : null;
   let record = await store.create({
     sessionId,
-    ...(options.parentSessionId === undefined
-      ? {}
-      : { parentSessionId: options.parentSessionId }),
+    parentSessionId,
+    lineageKind,
+    threadId,
+    forkedFromThreadId,
     workspaceRoot: options.workspaceRoot,
     task,
     runtimeTaskHash: sha256({ task: executionTask }),
     contextSessionIds: options.contextSessionIds ?? [],
-    provider: options.config.provider,
-    activeSkillIds: (options.additionalSkills ?? []).map((skill) => skill.skillId),
-    permissionMode: options.config.permissionMode,
-    verificationCommands: options.config.verification.commands,
+    provider: executionConfig.provider,
+    activeSkillIds: executionConfig.skills
+      .map((skill) => skill.skillId)
+      .filter((skillId) => skillId !== "repository_task"),
+    permissionMode: executionConfig.permissionMode,
+    verificationCommands: executionConfig.verification.commands,
+    harnessVersionId: harnessManifest.harnessVersionId,
+    harnessManifestHash: harnessManifest.manifestHash,
+    harnessClosureHash: harnessManifest.identity.behaviorClosure.closureHash,
+    runtimeContractHash: harnessManifest.identity.requiredRuntimeContractHash,
+    harnessSelection,
     createdAt: (options.now ?? new Date()).toISOString(),
   });
 
   try {
     const binding =
       options.providerOverride === undefined
-        ? createProvider(options.config)
+        ? createProvider(executionConfig.provider)
         : {
             provider: options.providerOverride,
-            modelIdentity: `${options.config.provider.kind}:${options.config.provider.model}`,
+            modelIdentity: `${executionConfig.provider.kind}:${executionConfig.provider.model}`,
             secrets: {},
           };
     const modelIdentityHash = sha256({ modelIdentity: binding.modelIdentity });
-    const coordinationEnabled = options.config.budget.maxDescendants > 0;
-    const prompt = codingPrompt(options.config.permissionMode, coordinationEnabled);
-    const skill = codingSkill(options.config.permissionMode, coordinationEnabled);
-    const toolDescriptions = codingToolDescriptions(
-      options.config.permissionMode,
-      coordinationEnabled,
-    );
-    const contextPolicy = codingContextPolicy(options.config.contextTokenLimit);
-    const grantedToolIds = allowedToolIds(
-      options.config.permissionMode,
-      coordinationEnabled,
-    );
-    const skills = [skill, ...(options.additionalSkills ?? [])];
-    assertCondition(
-      new Set(skills.map((candidate) => candidate.skillId)).size === skills.length,
-      "CONFLICT",
-      "Active skills contain a duplicate skill ID",
-    );
-    assertCondition(
-      skills.every((candidate) =>
-        candidate.allowedToolIds.every((toolId) => grantedToolIds.includes(toolId)),
-      ),
-      "AUTHORIZATION_DENIED",
-      "An active skill requests a tool outside the session grant",
-    );
     const protocolId = contentId("protocol-sha256", {
       protocol: PRODUCT_RUNTIME_VERSION,
-      sessionContract: 1,
+      runtimeContractHash: PRODUCT_RUNTIME_CONTRACT_HASH,
+      sessionContract: 2,
     });
-    const harnessVersionId = contentId("hv-sha256", {
-      productRuntime: PRODUCT_RUNTIME_VERSION,
-      prompt,
-      skills,
-      toolDescriptions,
-      contextPolicy,
-      provider: options.config.provider,
-    } as unknown as JsonValue);
+    const harnessVersionId = harnessManifest.harnessVersionId;
     const runtimeStateSnapshotId = contentId("rss-sha256", {
       harnessVersionId,
+      harnessManifestHash: harnessManifest.manifestHash,
+      harnessClosureHash: harnessManifest.identity.behaviorClosure.closureHash,
       modelIdentityHash,
-      permissionMode: options.config.permissionMode,
-      budget: options.config.budget,
+      permissionMode: executionConfig.permissionMode,
+      budget: executionConfig.budget,
       workspaceRoot: options.workspaceRoot,
-      verification: options.config.verification,
+      verification: executionConfig.verification,
     } as unknown as JsonValue);
     const permissionPolicyHash = sha256({
-      mode: options.config.permissionMode,
-      allowedToolIds: grantedToolIds,
+      mode: executionConfig.permissionMode,
+      allowedToolIds: executionConfig.allowedToolIds,
       workspaceRoot: options.workspaceRoot,
       shellNetwork: false,
     });
@@ -291,19 +298,19 @@ export async function runCodingAgentTask(
       policy: "workspace-only-no-network-no-host-secrets-v1",
       stateOutsideWorkspace: true,
     });
-    const budgetPolicyHash = sha256(options.config.budget as unknown as JsonValue);
+    const budgetPolicyHash = sha256(executionConfig.budget as unknown as JsonValue);
     const signers = principals(sessionId, modelIdentityHash);
     const verifier =
       options.verifierOverride ??
       (await CodingTaskVerifier.create({
         workspaceRoot: options.workspaceRoot,
-        commands: options.config.verification.commands,
-        timeoutMillis: options.config.verification.timeoutMillis,
-        maxOutputBytes: options.config.verification.maxOutputBytes,
-        maxCommandBytes: options.config.process.maxCommandBytes,
+        commands: executionConfig.verification.commands,
+        timeoutMillis: executionConfig.verification.timeoutMillis,
+        maxOutputBytes: executionConfig.verification.maxOutputBytes,
+        maxCommandBytes: executionConfig.process.maxCommandBytes,
         secrets: binding.secrets,
       }));
-    const schemas = await SchemaRegistry.load(await schemasPath());
+    const schemas = await SchemaRegistry.load(await bundledSchemasPath());
     const runtime = await createManagedStandaloneRuntime({
       root: options.paths.sessionRuntimeRoot(sessionId),
       workspaceRoot: options.workspaceRoot,
@@ -324,36 +331,26 @@ export async function runCodingAgentTask(
         datasetPermissions: ["user_workspace"],
       },
       modelIdentity: binding.modelIdentity,
-      ...(options.config.provider.reasoningEffort === null
+      ...(executionConfig.provider.reasoningEffort === null
         ? {}
-        : { reasoningEffort: options.config.provider.reasoningEffort }),
+        : { reasoningEffort: executionConfig.provider.reasoningEffort }),
       runtimeSigner: signers.runtime,
       operationsSigner: signers.operations,
       auditSigner: signers.audit,
-      budgetLimits: options.config.budget,
+      budgetLimits: executionConfig.budget,
       clock,
       ids,
-      prompt,
-      contextPolicy,
-      skills,
-      toolDescriptions,
-      allowedToolIds: grantedToolIds,
-      memoryPolicy: {
-        readableNamespaces: [
-          "project_facts",
-          "user_preferences",
-          "accepted_lessons",
-          "session_summaries",
-        ],
-        queryMode: "fixed_hybrid",
-        hybridLexicalWeightMicros: 750_000,
-        maxRecords: 12,
-        maxTokens: 4_096,
-        minimumScoreMicros: 1,
-        tieBreak: "created_at_then_record_id",
-      },
+      prompt: executionConfig.prompt,
+      contextPolicy: executionConfig.contextPolicy,
+      workflowPolicy: executionConfig.workflowPolicy,
+      routingPolicy: executionConfig.routingPolicy,
+      subagentPrompt: executionConfig.subagentPrompt,
+      skills: executionConfig.skills,
+      toolDescriptions: executionConfig.toolDescriptions,
+      allowedToolIds: executionConfig.allowedToolIds,
+      memoryPolicy: executionConfig.memoryPolicy,
       secrets: binding.secrets,
-      processLimits: options.config.process,
+      processLimits: executionConfig.process,
       ...(options.onEvent === undefined ? {} : { onEvent: options.onEvent }),
     });
 

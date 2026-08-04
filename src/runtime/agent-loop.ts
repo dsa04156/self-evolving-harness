@@ -19,6 +19,15 @@ import type { DeclarativeSkill } from "./skills.js";
 import { SessionStateMachine } from "./state-machines.js";
 import type { ToolDescriptionBinding, ToolExecutor, ToolRegistry } from "./tools.js";
 import type { TaskVerifier } from "./verifier.js";
+import {
+  ClosedWorkflowRuntime,
+  standardAgentWorkflowPolicy,
+  type DeclarativeWorkflowPolicy,
+  type WorkflowAction,
+  type WorkflowActionHandlers,
+  type WorkflowGuardFacts,
+  type WorkflowTrigger,
+} from "./workflow.js";
 
 function emptyModelUsage(): ModelUsage {
   return {
@@ -96,6 +105,7 @@ export interface AgentLoopConfiguration {
   readonly prompt: PromptPayload;
   readonly skills: readonly DeclarativeSkill[];
   readonly toolDescriptions: readonly ToolDescriptionBinding[];
+  readonly workflowPolicy?: DeclarativeWorkflowPolicy;
   readonly memory?: {
     readonly store: FilesystemMemory;
     readonly policy: MemoryRetrievalPolicy;
@@ -115,6 +125,7 @@ export class AgentExecutionLoop {
   readonly #ids: IdFactory;
   readonly #runtimeIdentity: PrincipalIdentity;
   readonly #state: SessionStateMachine;
+  readonly #workflow: ClosedWorkflowRuntime;
 
   public constructor(input: {
     configuration: AgentLoopConfiguration;
@@ -142,6 +153,9 @@ export class AgentExecutionLoop {
     this.#ids = input.ids;
     this.#runtimeIdentity = input.runtimeIdentity;
     this.#state = new SessionStateMachine(input.initialState);
+    this.#workflow = new ClosedWorkflowRuntime(
+      input.configuration.workflowPolicy ?? standardAgentWorkflowPolicy(),
+    );
   }
 
   public get state(): SessionStateMachine {
@@ -155,6 +169,7 @@ export class AgentExecutionLoop {
     let terminationReason: AgentRunResult["terminationReason"];
     const transcript: ModelInputItem[] = [];
     let verificationFeedback: string | null = null;
+    let workflowState = this.#workflow.entryState;
 
     try {
       if (this.#state.state === "created") {
@@ -178,6 +193,11 @@ export class AgentExecutionLoop {
       while (true) {
         assertSessionAuthority(abortSignal);
         this.#budget.assertTime();
+        this.#requireWorkflowActions(workflowState, [
+          "retrieve_memory",
+          "invoke_skill",
+          "construct_context",
+        ]);
         const memory =
           this.#configuration.memory === undefined
             ? []
@@ -206,6 +226,13 @@ export class AgentExecutionLoop {
             trustLevel: "authenticated_principal",
           },
         });
+
+        workflowState = await this.#transitionWorkflow(
+          workflowState,
+          "action_succeeded",
+          { retryRemaining: false, evidenceComplete: false },
+        );
+        this.#requireWorkflowActions(workflowState, ["model_turn"]);
 
         const requestId = this.#ids.next("model-request");
         const request = {
@@ -269,6 +296,12 @@ export class AgentExecutionLoop {
           }
         }
         if (calls.length > 0) {
+          workflowState = await this.#transitionWorkflow(
+            workflowState,
+            "action_succeeded",
+            { retryRemaining: false, evidenceComplete: false },
+          );
+          this.#requireWorkflowActions(workflowState, ["request_tool"]);
           for (const call of calls) {
             await this.#events.emit({
               eventType: "tool_call_requested",
@@ -310,15 +343,32 @@ export class AgentExecutionLoop {
               },
             });
           }
+          workflowState = await this.#transitionWorkflow(
+            workflowState,
+            "tool_result",
+            { retryRemaining: false, evidenceComplete: false },
+          );
           continue;
         }
 
         finalText = messages.map((message) => message.text).join("\n").trim();
         if (finalText.length === 0) {
+          workflowState = await this.#transitionWorkflow(
+            workflowState,
+            "action_failed",
+            { retryRemaining: false, evidenceComplete: false },
+          );
+          this.#requireWorkflowActions(workflowState, ["emit_block"]);
           this.#state.transition("blocked");
           await this.#emitState("running", "blocked");
           break;
         }
+        workflowState = await this.#transitionWorkflow(
+          workflowState,
+          "action_succeeded",
+          { retryRemaining: false, evidenceComplete: true },
+        );
+        this.#requireWorkflowActions(workflowState, ["verify"]);
         this.#state.transition("validating");
         await this.#emitState("running", "validating");
         verification = await this.#verifier.verify({
@@ -346,15 +396,35 @@ export class AgentExecutionLoop {
           epistemicClass: "verifier_outcome",
         });
         if (verification.passed) {
+          workflowState = await this.#transitionWorkflow(
+            workflowState,
+            "verification_passed",
+            { retryRemaining: false, evidenceComplete: true },
+          );
+          this.#requireWorkflowActions(workflowState, ["emit_completion"]);
           this.#state.transition("completed");
           await this.#emitState("validating", "completed");
           break;
         }
-        if (!verification.retryable) {
+        const retryRemaining =
+          verification.retryable &&
+          this.#budget.snapshot().retries < this.#budget.limits.maxRetries;
+        workflowState = await this.#transitionWorkflow(
+          workflowState,
+          "verification_failed",
+          { retryRemaining, evidenceComplete: true },
+        );
+        if (!retryRemaining) {
+          this.#requireWorkflowActions(workflowState, ["emit_block"]);
           this.#state.transition("blocked");
           await this.#emitState("validating", "blocked");
           break;
         }
+        this.#requireWorkflowActions(workflowState, [
+          "retrieve_memory",
+          "invoke_skill",
+          "construct_context",
+        ]);
         this.#budget.reserveRetry();
         verificationFeedback = verification.summary;
         this.#state.transition("running");
@@ -426,6 +496,57 @@ export class AgentExecutionLoop {
       eventCount: events.length,
       ...(terminationReason === undefined ? {} : { terminationReason }),
     };
+  }
+
+  #requireWorkflowActions(stateId: string, required: readonly WorkflowAction[]): void {
+    const available = new Set(
+      this.#workflow.actionsFor(stateId).map((entry) => entry.action),
+    );
+    for (const action of required) {
+      if (!available.has(action)) {
+        throw new HarnessError(
+          "AUTHORIZATION_DENIED",
+          `Harness workflow state ${stateId} does not authorize ${action}`,
+        );
+      }
+    }
+  }
+
+  async #transitionWorkflow(
+    from: string,
+    trigger: WorkflowTrigger,
+    facts: WorkflowGuardFacts,
+  ): Promise<string> {
+    const authorize = ({
+      stateId,
+      targetId,
+    }: {
+      readonly stateId: string;
+      readonly targetId: string | null;
+    }): JsonValue => ({ stateId, targetId, authorization: "selected_by_pinned_workflow" });
+    const handlers: WorkflowActionHandlers = {
+      construct_context: authorize,
+      model_turn: authorize,
+      retrieve_memory: authorize,
+      invoke_skill: authorize,
+      request_tool: authorize,
+      spawn_subagent: authorize,
+      wait_job: authorize,
+      verify: authorize,
+      emit_completion: authorize,
+      emit_block: authorize,
+    };
+    const receipt = await this.#workflow.dispatch({ from, trigger, facts, handlers });
+    await this.#events.emit({
+      eventType: "workflow_transitioned",
+      payload: receipt as unknown as { readonly [key: string]: JsonValue },
+      origin: {
+        originClass: "runtime",
+        originId: this.#runtimeIdentity.principalId,
+        trustLevel: "authenticated_principal",
+      },
+    });
+    return receipt.to;
   }
 
   async #emitState(from: string, to: string): Promise<void> {

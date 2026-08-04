@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.8.0 — product HarnessVersion execution and thread lineage
+
+### Runtime ownership
+
+- Product configuration now materializes into the persistent typed component graph before provider
+  construction. Sessions pin the HarnessVersion manifest, behavior closure, and runtime contract as
+  immutable metadata rather than recording an informal configuration hash after startup.
+- System prompt, context selection, memory retrieval, skills, workflow, routing, subagent prompt, and
+  tool descriptions are executable versioned components. Tool implementations, model identity,
+  permissions, safety, budget, evaluator, trace collector, and middleware remain frozen components.
+- The pinned WorkflowPolicy causally gates context, model, tool, verification, retry, completion, and
+  block transitions. The pinned RoutingPolicy gates child-agent creation. Both append receipts to the
+  SEH RuntimeEvent chain.
+
+### Session and terminal UX
+
+- Resume now inherits the parent's exact HarnessVersion despite changes to the current project
+  configuration. New `/fork` and `seh fork` commands create an explicit branch with the same pin.
+- `/thread` and `seh thread [SESSION_ID] [--json]` expose a Thread / Turn / Item-style projection
+  derived from validated runtime events. It is marked `projection_only` and cannot authorize tools,
+  evaluation, promotion, or rollback.
+- Session status reports thread lineage, fork origin, HarnessVersion selection, manifest/closure
+  identities, runtime snapshot, usage, and verification.
+
+### Architecture decision
+
+- A fresh exact-SHA Codex audit and external architect gate rejected a whole Codex fork. SEH retains
+  its own runtime and clean-room implements selected interaction patterns. No Codex process, crate,
+  app server, login, provider, or session is in the execution path.
+
 ## 0.7.0 — owned subagents, backend jobs, and workflow skills
 
 ### New features

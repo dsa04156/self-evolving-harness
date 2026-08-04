@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.7.0";
+export const PRODUCT_CLI_VERSION = "0.8.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -43,6 +43,8 @@ const PRODUCT_COMMANDS: ReadonlySet<string> = new Set([
   "sessions",
   "status",
   "resume",
+  "fork",
+  "thread",
   "doctor",
   "config",
   "harness",
@@ -190,6 +192,8 @@ export function interactiveHelp(): string {
     "  /status                   Show the current or latest durable session",
     "  /sessions                 List recent sessions",
     "  /resume [ID] [guidance]   Pick or load a prior session into this thread",
+    "  /fork [ID] [guidance]     Branch a session with its exact pinned HarnessVersion",
+    "  /thread                   Show the derived Thread / Turn / Item projection",
     "  /model [model-id]         Search providers and 250+ tool-capable model routes",
     "  /effort [LEVEL|auto]      Select only reasoning levels advertised by the model",
     "  /fast [on|off]            Toggle OpenAI priority processing when supported",

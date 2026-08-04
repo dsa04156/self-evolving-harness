@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <img alt="Version 0.7.0" src="https://img.shields.io/badge/version-0.7.0-a78bfa?style=flat-square">
+  <img alt="Version 0.8.0" src="https://img.shields.io/badge/version-0.8.0-a78bfa?style=flat-square">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-22d3ee?style=flat-square">
   <img alt="Standalone runtime" src="https://img.shields.io/badge/runtime-standalone-34d399?style=flat-square">
   <img alt="Research alpha" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
@@ -68,6 +68,7 @@ Type `/` and the command palette appears immediately:
 - command descriptions and argument hints in place;
 - prompt history with arrow-key recall;
 - a keyboard-driven session picker for `/resume`;
+- explicit `/fork` lineage and a derived `/thread` view of turns and runtime items;
 - a searchable `/model` registry spanning direct OpenAI, 250+ live tool-capable OpenRouter routes,
   installed local models, curated examples, and exact custom IDs;
 - a second model-specific reasoning picker (`Low`, `Medium`, `High`, `Extra high`, then advanced
@@ -86,6 +87,8 @@ Common interactive commands:
 | --- | --- |
 | `/new` | Start a clean conversation thread |
 | `/resume` | Open the session picker or resume by ID |
+| `/fork` | Branch from a session while inheriting its exact HarnessVersion |
+| `/thread` | Inspect the non-authoritative Thread / Turn / Item projection |
 | `/sessions` | List recent durable sessions |
 | `/status` | Show lifecycle, usage, and verification evidence |
 | `/diff` | Inspect the sandboxed workspace diff |
@@ -133,6 +136,8 @@ seh "Fix the authentication regression"  # open with an initial task
 seh continue                             # continue the latest thread
 seh resume                               # choose a durable session
 seh resume --last                        # resume the newest session
+seh fork --last                          # branch from it with the same pinned harness
+seh thread                               # inspect the derived event projection
 seh harness                              # inspect the latest execution identity
 seh evolution                            # inspect trace/version readiness
 ```
@@ -178,6 +183,21 @@ The normal task path is fully owned by SEH:
 ```text
 prompt → context → model → tool call → tool result → verifier → completion or bounded retry
 ```
+
+### Why SEH does not fork Codex
+
+SEH borrows product ideas—full-screen terminal composition, command discovery, model profiles,
+session lineage, and Thread / Turn / Item terminology—but not Codex's execution backend. An
+exact-commit code audit found that the Codex TUI is coupled to its app server, core runtime, login,
+provider, tool, sandbox, and persistence surfaces. Forking it would turn SEH into a Codex-derived
+runtime and invalidate the independent-harness contribution.
+
+Instead, every product setting is now materialized into SEH's typed component registry. A session
+commits the resulting manifest, behavior-closure hash, and runtime contract before provider
+construction. Resume and fork inherit that exact version. The Thread / Turn / Item screen is derived
+from SEH RuntimeEvents and is permanently marked `projection_only`; it cannot authorize execution or
+evolution decisions. See [ADR-0007](docs/architecture/adr-0007-codex-patterns-not-runtime.md) and the
+[exact-SHA reuse ledger](docs/research/codex-reuse-ledger.md).
 
 ## Two real lifecycles
 
@@ -226,9 +246,9 @@ SEH is a working research alpha, not a finished empirical claim.
 
 | Area | Status |
 | --- | --- |
-| User coding-agent CLI | Implemented: home, palette, model profiles, searchable skills, child agents/jobs, sessions, memory, permissions, verification |
+| User coding-agent CLI | Implemented: home, palette, model profiles, searchable skills, child agents/jobs, resume/fork/thread lineage, memory, permissions, verification |
 | Deterministic standalone runtime | Implemented and covered by fake-model/fake-tool tests |
-| Versioned harness registry | Implemented |
+| Versioned harness registry | Implemented and wired to product execution/session pins |
 | Worktree-isolated bounded mutation | Implemented prototype |
 | External evaluator and audit trail | Implemented deterministic boundary |
 | Fair B0–B6 real-provider experiment | Not run |

@@ -72,6 +72,20 @@ export const INTERACTIVE_SLASH_COMMANDS: readonly SlashCommandSpec[] = [
     group: "thread",
   },
   {
+    name: "fork",
+    aliases: [],
+    description: "Branch a session while inheriting its exact HarnessVersion",
+    argumentHint: "[ID] [guidance]",
+    group: "thread",
+  },
+  {
+    name: "thread",
+    aliases: ["turns"],
+    description: "Show the non-authoritative Thread / Turn / Item view",
+    argumentHint: "[ID]",
+    group: "thread",
+  },
+  {
     name: "sessions",
     aliases: [],
     description: "List recent durable sessions",

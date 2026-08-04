@@ -769,3 +769,45 @@ any paid-provider request.
 - Deterministic model-profile implementation and post-publication integrity are `PASS`. Live provider
   interoperability and empirical research/self-evolution claims remain `NOT TESTED`.
 - No further packet is requested for Packet 06. Any later byte or ancestry change is a new candidate.
+
+## Durable Round 07 Codex-fork decision
+
+- External decision: `REVISE`; replacing the SEH core with a full Codex fork is not authorized under
+  the standalone research contract.
+- Official Codex source was audited at exact commit
+  `db1a4145692fcfc88fb354f478b0019ca0d2ef9d` (Apache-2.0). The selected core, TUI, and app-server
+  trees contain roughly 666k Rust lines including tests and are coupled across provider, login, state,
+  sandbox, skills, plugins, MCP, rollout, protocol, and app-server crates.
+- Option B is selected: preserve the SEH-owned runtime and implement a bounded harness-bound session
+  facade: ProductExecutionConfig → typed components → persistent HarnessVersion → pinned session →
+  SEH execution → non-authoritative Thread/Turn/Item-style projection.
+- WorkflowPolicy, RoutingPolicy, and SubagentPrompt must causally affect the product execution path.
+  Resume must retain the original version; fork must record parentage and a frozen version choice.
+- Codex CLI, app-server, crates, login/session/browser state, account tokens, and provider path may not
+  become SEH runtime dependencies. A future Codex-derived product would require a separate name,
+  package/repository, license/provenance ledger, release/evaluation manifests, and permanent exclusion
+  from standalone evidence.
+- Every reused Codex element must be classified as observed pattern, clean-room reimplementation,
+  adapted Apache-2.0 code, or copied Apache-2.0 code and bound to exact source SHA/path/symbol, local
+  destination, attribution/modification notice, and dependency/security review.
+- B0–B6, held-out improvement, attribution benefit, evidence efficiency, cross-model transfer, and
+  self-improvement remain `NOT RUN` or `NOT TESTED`.
+
+## Durable Round 08 product-harness execution decision
+
+- External decision: `APPROVE`; no release-blocking architecture defects remain in the Round 07
+  vertical slice.
+- ProductExecutionConfig now materializes into typed persistent components and a content-addressed
+  HarnessVersion before provider construction. The session durably pins the version, manifest,
+  behavior closure, runtime contract, and selection reason.
+- Root selects an exact version; resume and fork inherit that frozen identity. A conflicting pin is
+  rejected, and interactive execution-affecting changes detach into a new root thread.
+- Pinned WorkflowPolicy, RoutingPolicy, and SubagentPrompt affect runtime behavior and authoritative
+  events. The Thread/Turn/Item surface is derived from validated append-only evidence and remains
+  explicitly projection-only.
+- No Codex binary, app server, crate, login, provider, session store, or execution process enters the
+  SEH authority path. Current reuse is exact-SHA observation and clean-room pattern implementation.
+- This accepts architecture only. An exact committed 0.8.0 candidate must pass the complete release
+  gate in a separate clean worktree and return as Packet 08R before publication.
+- Live-provider interoperability, protected benchmarks, B0–B6, held-out performance, attribution,
+  transfer, empirical evolution, self-improvement, and production security remain `NOT TESTED`.

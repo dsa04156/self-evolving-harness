@@ -5,6 +5,8 @@ import {
   ClosedRoutingRuntime,
   ClosedWorkflowRuntime,
   HarnessError,
+  classifyDelegatedTask,
+  codingRoutingPolicy,
   type DeclarativeRoutingPolicy,
   type DeclarativeWorkflowPolicy,
   type WorkflowActionHandlers,
@@ -138,4 +140,21 @@ test("closed routing uses priority then stable rule ID and a default", () => {
   assert.equal(fallback.selectedRuleId, null);
   assert.equal(fallback.target.kind, "primary");
   assert.notEqual(matched.receiptHash, fallback.receiptHash);
+});
+
+test("product routing delegates bounded work and retains high-risk work on the primary", () => {
+  const runtime = new ClosedRoutingRuntime(codingRoutingPolicy(true));
+  const inspection = classifyDelegatedTask(
+    "Inspect the repository independently and report one finding.",
+  );
+  assert.deepEqual(inspection, { taskClass: "analysis", riskClass: "low" });
+  assert.equal(runtime.select(inspection).target.kind, "subagent");
+
+  const dangerous = classifyDelegatedTask(
+    "Deploy to production and force-push while reading credentials.",
+  );
+  assert.equal(dangerous.riskClass, "high");
+  const selected = runtime.select(dangerous);
+  assert.equal(selected.target.kind, "primary");
+  assert.equal(selected.target.routeId, "primary-session");
 });

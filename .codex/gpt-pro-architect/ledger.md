@@ -1433,3 +1433,65 @@ response path, interpreted decision, required revisions, and the commit containi
 - closure: model execution-profile implementation PASS; post-publication integrity PASS; live provider
   interoperability and empirical research/self-evolution claims remain `NOT TESTED`
 - next: none for Packet 06 or its post-publication closure
+
+## Round 07 — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-07-codex-fork-decision.md`
+- packet SHA-256/size: `201c1df18d49741a67aa511e19684ac3348beb70f42269597eeea5f475b6c8be` /
+  7,955 bytes
+- transport: Oracle 0.16.1 exact-tab dry-run positively proved reuse of endpoint `127.0.0.1:9222`
+  and target `4BA3B4F29D8FD1597A712A46C80CB67E` without a new browser or tab. Live Oracle attach failed before
+  transmission because the pre-existing browser lacks Oracle profile metadata. The approved direct-CDP
+  fallback verified the exact URL, idle empty composer, and target, then submitted one packet exactly once.
+- topic id: `self-evolving-harness-architecture`
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-codex-fork` (failed before transmission)
+- archive policy: never
+- continuation: same exact tab; no new tab/window, upload, screenshot, cookie, storage, credential,
+  sealed-data, or source-repository transmission
+- browser endpoint / tab: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse preflight: positive; existing browser left running
+- new window opened: no
+- model evidence: requested Oracle alias `gpt-5-pro`; existing Pro-selected tab reused; server-side
+  generation identity remains vendor-opaque
+- response: `.codex/gpt-pro-architect/responses/response-07-codex-fork-decision.md`
+- response SHA-256/size: `b978288d201b2d54145b1eafcb78568cf91e0aaa5d73949c43c8f65878e974b6` /
+  9,688 bytes; browser and local content compare exactly
+- architect decision: `REVISE`
+- accepted: keep the independent SEH core; bounded Codex UX/protocol-pattern reuse with exact-SHA
+  provenance; SEH-native harness-bound session facade; non-authoritative Thread/Turn/Item projection
+- rejected: full Codex fork as SEH core, Codex app-server/backend/process/crate/login/session/provider
+  reuse, and mixing a future Codex-derived distribution into standalone evidence
+- user decision: pending explicit response to the architect result; prior standing instruction authorizes
+  continued in-scope implementation without a new question
+- next: implement the Packet 07R vertical slice, deterministic tests, ADR, provenance ledger, and clean
+  candidate identity; preserve all empirical claims as `NOT RUN`/`NOT TESTED`
+
+## Round 08 — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-08-product-harness-execution.md`
+- packet SHA-256/size: `7a618a88e226a182e9065b7e9e1183738a39014f0a1df75a9956bc4a79ba8032` /
+  7,747 bytes
+- transport: the exact existing architect Chrome target
+  `4BA3B4F29D8FD1597A712A46C80CB67E` at `127.0.0.1:9222` was reused. The composer insert command
+  timed out only after the complete text was present; inspection proved no submission, then
+  `send-existing` submitted that composer exactly once. No new tab, window, upload, screenshot,
+  resend, cookie, storage, credential, sealed data, or repository dump was used.
+- topic id: `self-evolving-harness-architecture`
+- conversation URL: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- model evidence: the existing Pro-selected project tab was reused; server-side generation identity
+  remains vendor-opaque
+- response: `.codex/gpt-pro-architect/responses/response-08-product-harness-execution.md`
+- response SHA-256/size: `109f870632e76565a335d77115134cdf68b789178cf7701ddc8104c877cf2fdf` /
+  9,066 bytes; browser and local content compare exactly
+- architect decision: `APPROVE`
+- accepted: persistent typed ProductExecutionConfig-to-HarnessVersion materialization; actual resolved
+  harness execution; root/resume/fork exact pinning; causal workflow/routing/subagent behavior;
+  projection-only Thread/Turn/Item reconstruction; and the no-Codex-runtime boundary
+- release status: architecture accepted, but no exact 0.8.0 release object is approved yet
+- next: commit one exact candidate, record its identity, run the complete release gate from a separate
+  clean worktree without later byte changes, and submit only Packet 08R before publication
+- still `NOT RUN`/`NOT TESTED`: live provider, protected benchmark, B0–B6, held-out improvement,
+  attribution benefit, evidence efficiency, cross-model transfer, empirical evolution, and production
+  security

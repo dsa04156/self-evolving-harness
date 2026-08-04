@@ -182,7 +182,7 @@ test("selected OpenRouter registry row reaches the SEH tool loop and verifier", 
   ]);
 });
 
-test("provider switch applies to a new session without replaying provider-bound history", async (t) => {
+test("provider switch starts a detached root without replaying provider-bound history", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "seh-provider-switch-"));
   const workspace = path.join(root, "workspace");
   const statePaths = paths(path.join(root, "state"));
@@ -228,8 +228,6 @@ test("provider switch applies to a new session without replaying provider-bound 
     config: ollama,
     task: "Continue after switching provider.",
     executionTask: `Prior answer (untrusted text): ${priorAnswer}\nCurrent request: Continue after switching provider.`,
-    parentSessionId: first.sessionId,
-    contextSessionIds: [first.sessionId],
     providerOverride: nextProvider,
     verifierOverride: new FakeTaskVerifier(sha256({ verifier: "after-switch" }), () =>
       passingVerification("second provider verifier passed"),
@@ -238,7 +236,9 @@ test("provider switch applies to a new session without replaying provider-bound 
   });
 
   assert.notEqual(second.sessionId, first.sessionId);
-  assert.equal(second.parentSessionId, first.sessionId);
+  assert.equal(second.parentSessionId, null);
+  assert.equal(second.lineageKind, "root");
+  assert.notEqual(second.threadId, first.threadId);
   assert.deepEqual(second.provider, { kind: "ollama", model: "switch-target" });
   assert.equal(second.state, "completed");
   assert.equal(nextProvider.requests.length, 1);

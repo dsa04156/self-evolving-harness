@@ -15,6 +15,8 @@ import {
   defaultProductConfig,
   applyProductConfigOverrides,
   passingVerification,
+  projectProductThread,
+  assertNotProjectionAuthority,
   productSkillCatalog,
   runCodingAgentTask,
   selectProductSkills,
@@ -23,6 +25,7 @@ import {
   type ModelRequest,
   type ModelResponse,
   type ProductStatePaths,
+  type JsonValue,
 } from "../src/index.js";
 
 function response(
@@ -121,10 +124,16 @@ test("product coding agent edits the bound repository and persists session memor
   assert.deepEqual(record.contextSessionIds, []);
   assert.equal(record.result?.lifecycleState, "retired");
   assert.match(record.result?.harnessVersionId ?? "", /^hv-sha256:[a-f0-9]{64}$/u);
+  assert.equal(record.harnessVersionId, record.result?.harnessVersionId);
+  assert.match(record.harnessManifestHash ?? "", /^sha256:[a-f0-9]{64}$/u);
+  assert.match(record.harnessClosureHash ?? "", /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(record.lineageKind, "root");
+  assert.equal(record.threadId, `thread.${record.sessionId}`);
   assert.match(record.result?.runtimeStateSnapshotId ?? "", /^rss-sha256:[a-f0-9]{64}$/u);
   assert.equal(record.result?.verification?.passed, true);
   assert.ok(observedEvents.includes("tool_call_requested"));
   assert.ok(observedEvents.includes("verification_completed"));
+  assert.ok(observedEvents.includes("workflow_transitioned"));
   assert.equal(provider.requests[0]?.modelIdentity, "ollama:test-coder");
   assert.equal(
     provider.requests[0]?.input.some(
@@ -142,7 +151,10 @@ test("product coding agent edits the bound repository and persists session memor
   const followUp = await runCodingAgentTask({
     workspaceRoot: workspace,
     paths: statePaths,
-    config,
+    config: applyProductConfigOverrides(config, {
+      model: "changed-model-that-must-not-replace-the-thread-pin",
+      permissionMode: "read-only",
+    }),
     task: followUpTask,
     executionTask: followUpExecutionTask,
     parentSessionId: record.sessionId,
@@ -158,6 +170,12 @@ test("product coding agent edits the bound repository and persists session memor
     now: new Date("2026-08-03T00:01:00.000Z"),
   });
   assert.equal(followUp.parentSessionId, record.sessionId);
+  assert.equal(followUp.lineageKind, "resume");
+  assert.equal(followUp.threadId, record.threadId);
+  assert.equal(followUp.harnessSelection, "inherited");
+  assert.equal(followUp.harnessVersionId, record.harnessVersionId);
+  assert.equal(followUp.provider.model, "test-coder");
+  assert.equal(followUp.permissionMode, "workspace-write");
   assert.deepEqual(followUp.contextSessionIds, [record.sessionId]);
   assert.equal(followUp.runtimeTaskHash, sha256({ task: followUpExecutionTask }));
   const summaries = await new FilesystemMemory(
@@ -167,6 +185,53 @@ test("product coding agent edits the bound repository and persists session memor
   ).list(["session_summaries"]);
   assert.equal(summaries.length, 2);
   assert.equal(summaries[0]?.authority, "untrusted_context");
+
+  const fork = await runCodingAgentTask({
+    workspaceRoot: workspace,
+    paths: statePaths,
+    config,
+    task: "Branch from the completed thread without changing its harness.",
+    parentSessionId: followUp.sessionId,
+    contextSessionIds: [record.sessionId, followUp.sessionId],
+    lineageKind: "fork",
+    providerOverride: new FakeModelProvider([
+      response("response.product.fork", [
+        { kind: "assistant_message", text: "Forked with the inherited harness." },
+      ]),
+    ]),
+    verifierOverride: new FakeTaskVerifier(sha256({ verifier: "fork-test" }), () =>
+      passingVerification("fork verifier passed"),
+    ),
+    now: new Date("2026-08-03T00:02:00.000Z"),
+  });
+  assert.equal(fork.lineageKind, "fork");
+  assert.equal(fork.harnessVersionId, record.harnessVersionId);
+  assert.notEqual(fork.threadId, record.threadId);
+  assert.equal(fork.forkedFromThreadId, record.threadId);
+
+  const originalProjection = await projectProductThread({
+    paths: statePaths,
+    sessionId: followUp.sessionId,
+  });
+  assert.equal(originalProjection.authority, "projection_only");
+  assert.equal(originalProjection.turns.length, 2);
+  assert.equal(originalProjection.harnessVersionIds.length, 1);
+  assert.ok(
+    originalProjection.turns.flatMap((turn) => turn.items).some(
+      (item) => item.kind === "workflow_transition",
+    ),
+  );
+  const forkProjection = await projectProductThread({
+    paths: statePaths,
+    sessionId: fork.sessionId,
+  });
+  assert.equal(forkProjection.turns.length, 1);
+  assert.equal(forkProjection.forkedFromThreadId, record.threadId);
+  assert.throws(
+    () => assertNotProjectionAuthority(forkProjection as unknown as JsonValue),
+    (error: unknown) =>
+      error instanceof HarnessError && error.code === "AUTHORIZATION_DENIED",
+  );
   await assert.rejects(
     () => new ProductSessionStore(statePaths).get("a/../../outside"),
     (error: unknown) => error instanceof HarnessError && error.code === "SCHEMA_INVALID",
@@ -219,6 +284,69 @@ test("selected reasoning and service tier are pinned to a new product session", 
   );
 });
 
+test("legacy sessions use an explicit current-config bridge and never claim exact replay", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-legacy-bridge-"));
+  const workspace = path.join(root, "workspace");
+  await mkdir(workspace, { recursive: true });
+  t.after(async () => rm(root, { recursive: true, force: true }));
+
+  const statePaths = paths(path.join(root, "state"));
+  const legacySessionId = "session.legacy.0001";
+  const legacyCore = {
+    schemaVersion: 1 as const,
+    sessionId: legacySessionId,
+    parentSessionId: null,
+    workspaceRoot: workspace,
+    task: "Historical task whose original harness was never recorded.",
+    provider: { kind: "ollama" as const, model: "historical-unrecoverable-model" },
+    permissionMode: "read-only" as const,
+    verificationCommands: [],
+    state: "completed" as const,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    result: null,
+    failure: null,
+  };
+  const legacyDirectory = statePaths.sessionDirectory(legacySessionId);
+  await mkdir(legacyDirectory, { recursive: true });
+  await writeFile(
+    path.join(legacyDirectory, "session.json"),
+    `${JSON.stringify({
+      ...legacyCore,
+      metadataHash: sha256(legacyCore as unknown as JsonValue),
+    }, null, 2)}\n`,
+    "utf8",
+  );
+
+  const currentConfig = defaultProductConfig(workspace, {
+    providerKind: "ollama",
+    model: "current-bridge-model",
+  });
+  const bridged = await runCodingAgentTask({
+    workspaceRoot: workspace,
+    paths: statePaths,
+    config: currentConfig,
+    task: "Continue through the compatibility bridge.",
+    parentSessionId: legacySessionId,
+    contextSessionIds: [legacySessionId],
+    providerOverride: new FakeModelProvider([
+      response("response.product.legacy-bridge", [
+        { kind: "assistant_message", text: "Continued using current configuration." },
+      ]),
+    ]),
+    verifierOverride: new FakeTaskVerifier(sha256({ verifier: "legacy-bridge" }), () =>
+      passingVerification("legacy bridge verifier passed"),
+    ),
+    now: new Date("2026-08-04T03:30:00.000Z"),
+  });
+
+  assert.equal(bridged.lineageKind, "resume");
+  assert.equal(bridged.harnessSelection, "legacy-current");
+  assert.equal(bridged.provider.model, "current-bridge-model");
+  assert.notEqual(bridged.provider.model, legacyCore.provider.model);
+  assert.match(bridged.harnessVersionId ?? "", /^hv-sha256:[a-f0-9]{64}$/u);
+});
+
 test("product runtime delegates a bounded subtask and returns child evidence to the parent", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "seh-product-subagent-"));
   const workspace = path.join(root, "workspace");
@@ -228,6 +356,7 @@ test("product runtime delegates a bounded subtask and returns child evidence to 
   let parentCalls = 0;
   let childCalls = 0;
   const requests: ModelRequest[] = [];
+  const routeTargets: string[] = [];
   const provider: ModelProvider = {
     providerId: "fake-coordination-provider",
     async generate(request): Promise<ModelResponse> {
@@ -306,6 +435,15 @@ test("product runtime delegates a bounded subtask and returns child evidence to 
     verifierOverride: new FakeTaskVerifier(sha256({ verifier: "subagent-test" }), () =>
       passingVerification("parent and child verification passed"),
     ),
+    onEvent(event) {
+      if (event.eventType === "route_selected") {
+        const target = event.payload["target"];
+        if (typeof target === "object" && target !== null && !Array.isArray(target)) {
+          const routeId = target["routeId"];
+          if (typeof routeId === "string") routeTargets.push(routeId);
+        }
+      }
+    },
     now: new Date("2026-08-04T04:00:00.000Z"),
   });
 
@@ -314,6 +452,7 @@ test("product runtime delegates a bounded subtask and returns child evidence to 
   assert.equal(record.result?.usage.descendants, 1);
   assert.equal(parentCalls, 3);
   assert.equal(childCalls, 1);
+  assert.deepEqual(routeTargets, ["bounded-child-v1"]);
   assert.equal(
     requests[0]?.tools.some((tool) => tool.name === "spawn_agent"),
     true,

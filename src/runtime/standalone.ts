@@ -31,6 +31,12 @@ import {
 } from "./memory.js";
 import { WorkspacePathGuard } from "./path-guard.js";
 import { BubblewrapProcessRunner } from "./sandbox-process.js";
+import {
+  ClosedRoutingRuntime,
+  type DeclarativeRoutingPolicy,
+  type RoutingRiskClass,
+  type RoutingTaskClass,
+} from "./routing.js";
 import type { DeclarativeSkill } from "./skills.js";
 import {
   ToolExecutor,
@@ -39,6 +45,10 @@ import {
   type ToolDescriptionBinding,
 } from "./tools.js";
 import type { TaskVerifier } from "./verifier.js";
+import {
+  standardAgentWorkflowPolicy,
+  type DeclarativeWorkflowPolicy,
+} from "./workflow.js";
 
 export interface StandaloneRuntimeOptions {
   readonly root: string;
@@ -59,6 +69,9 @@ export interface StandaloneRuntimeOptions {
   readonly ids: IdFactory;
   readonly prompt: PromptPayload;
   readonly contextPolicy: ContextPolicy;
+  readonly workflowPolicy?: DeclarativeWorkflowPolicy;
+  readonly routingPolicy?: DeclarativeRoutingPolicy;
+  readonly subagentPrompt?: PromptPayload;
   readonly skills?: readonly DeclarativeSkill[];
   readonly toolDescriptions?: readonly ToolDescriptionBinding[];
   readonly allowedToolIds?: readonly string[];
@@ -109,6 +122,46 @@ function descendantBudgetSlice(parent: BudgetLimits): BudgetLimits {
 function withoutCoordination(toolIds: readonly string[]): readonly string[] {
   const coordinationIds = new Set<string>(COORDINATION_TOOL_IDS);
   return toolIds.filter((toolId) => !coordinationIds.has(toolId));
+}
+
+function defaultRoutingPolicy(): DeclarativeRoutingPolicy {
+  return {
+    schemaVersion: 1,
+    language: "seh.routing-policy.v1",
+    rules: [],
+    defaultTarget: { kind: "primary", routeId: "primary-session" },
+  };
+}
+
+export function classifyDelegatedTask(task: string): {
+  readonly taskClass: RoutingTaskClass;
+  readonly riskClass: RoutingRiskClass;
+} {
+  const normalized = task.toLowerCase();
+  const highRisk =
+    /\b(rm\s+-rf|reset\s+--hard|force[- ]?push|production|deploy|credential|secret|sandbox|permission|delete\s+all)\b/u.test(
+      normalized,
+    );
+  let taskClass: RoutingTaskClass = "unknown";
+  if (/\b(recover|recovery|resume|crash|corrupt|rollback)\b/u.test(normalized)) {
+    taskClass = "recovery";
+  } else if (/\b(document|documentation|readme|docs?|changelog)\b/u.test(normalized)) {
+    taskClass = "documentation";
+  } else if (/\b(test|spec|coverage|assert|verify)\b/u.test(normalized)) {
+    taskClass = "test";
+  } else if (/\b(analy[sz]e|inspect|investigate|review|research|explain|find)\b/u.test(normalized)) {
+    taskClass = "analysis";
+  } else if (/\b(add|build|change|create|edit|fix|implement|refactor|remove|update|write)\b/u.test(normalized)) {
+    taskClass = "code_change";
+  }
+  return {
+    taskClass,
+    riskClass: highRisk
+      ? "high"
+      : taskClass === "code_change" || taskClass === "test"
+        ? "medium"
+        : "low",
+  };
 }
 
 export async function createStandaloneRuntime(
@@ -196,6 +249,7 @@ export async function createStandaloneRuntime(
     redactor: new SecretRedactor(input.secrets ?? {}),
     ...(input.onEvent === undefined ? {} : { onEvent: input.onEvent }),
   });
+  const routing = new ClosedRoutingRuntime(input.routingPolicy ?? defaultRoutingPolicy());
   const descendants = new DescendantManager({
     root,
     parentSessionId: input.sessionId,
@@ -240,6 +294,21 @@ export async function createStandaloneRuntime(
       if (abortSignal?.aborted === true) {
         throw new HarnessError("DEADLINE_EXCEEDED", "Subagent authority was revoked");
       }
+      const route = routing.select(classifyDelegatedTask(task));
+      await events.emit({
+        eventType: "route_selected",
+        payload: route as unknown as { readonly [key: string]: JsonValue },
+        origin: {
+          originClass: "runtime",
+          originId: input.runtimeSigner.identity.principalId,
+          trustLevel: "authenticated_principal",
+        },
+      });
+      assertCondition(
+        route.target.kind === "subagent" && route.target.routeId === "bounded-child-v1",
+        "AUTHORIZATION_DENIED",
+        `Pinned routing policy retained delegated task on ${route.target.routeId}`,
+      );
       const childToolIds = withoutCoordination(allowedToolIds);
       const childDescriptions = descriptions.filter((description) =>
         childToolIds.includes(description.toolId),
@@ -269,15 +338,26 @@ export async function createStandaloneRuntime(
             prompt: {
               sections: [
                 ...input.prompt.sections,
-                {
-                  sectionId: "subagent-role",
-                  purpose: "subagent_role",
-                  content:
-                    "You are a bounded child agent. Solve only the delegated task, use the inherited reduced authority, and return concise evidence to the parent. You cannot delegate again.",
-                },
+                ...(input.subagentPrompt?.sections ?? [
+                  {
+                    sectionId: "subagent-role",
+                    purpose: "subagent_role" as const,
+                    content:
+                      "You are a bounded child agent. Solve only the delegated task, use reduced authority, and return evidence. You cannot delegate again.",
+                  },
+                ]),
               ],
             },
             contextPolicy: input.contextPolicy,
+            ...(input.workflowPolicy === undefined
+              ? {}
+              : { workflowPolicy: input.workflowPolicy }),
+            ...(input.routingPolicy === undefined
+              ? {}
+              : { routingPolicy: input.routingPolicy }),
+            ...(input.subagentPrompt === undefined
+              ? {}
+              : { subagentPrompt: input.subagentPrompt }),
             skills: input.skills ?? [],
             toolDescriptions: childDescriptions,
             allowedToolIds: delegation.permissionToolIds,
@@ -372,6 +452,7 @@ export async function createStandaloneRuntime(
       prompt: input.prompt,
       skills: input.skills ?? [],
       toolDescriptions: descriptions,
+      workflowPolicy: input.workflowPolicy ?? standardAgentWorkflowPolicy(),
       ...(input.memoryPolicy === undefined
         ? {}
         : { memory: { store: memory, policy: input.memoryPolicy } }),
