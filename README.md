@@ -9,6 +9,14 @@
   Code, tools, memory, sessions, verification, and governed harness evolution in one terminal product.
 </p>
 
+> [!IMPORTANT]
+> This branch is the Codex-derived product track. It contains the complete Apache-2.0
+> `openai/codex@5af85998c24f…` source tree under `upstream/codex` and is being integrated with SEH's
+> versioned harness, evidence, evolution, and immutable trust planes. The independent TypeScript
+> runtime is preserved at `standalone-v0.9.0` and on `main`; evidence from the two tracks is never
+> pooled. See [the fork decision](docs/architecture/adr-0008-codex-derived-product-track.md) and
+> [source notice](CODEX_FORK_NOTICE.md).
+
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
   <img alt="Version 0.9.0" src="https://img.shields.io/badge/version-0.9.0-a78bfa?style=flat-square">

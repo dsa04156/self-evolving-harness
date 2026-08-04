@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "track": "codex-derived",
+  "importedAt": "2026-08-04T15:38:01+09:00",
+  "upstream": {
+    "repository": "https://github.com/openai/codex.git",
+    "branch": "main",
+    "commit": "5af85998c24fb3353ddd8164c3ed472057b03cb3",
+    "commitTree": "b1b2e93b17bb668020982c5a43ed5ccc5e38cd64",
+    "commitTimestamp": "2026-08-04T05:24:58+00:00",
+    "license": "Apache-2.0",
+    "noticePath": "upstream/codex/NOTICE",
+    "licensePath": "upstream/codex/LICENSE"
+  },
+  "import": {
+    "method": "git-subtree-squash",
+    "prefix": "upstream/codex",
+    "squashCommit": "e5b41f734b280800e22c869b48ecc17e76ea40e6",
+    "mergeCommit": "220d8cfeadd94dfae631aee8b2c309587b082f5b",
+    "importedTree": "b1b2e93b17bb668020982c5a43ed5ccc5e38cd64",
+    "treeIdentityVerified": true
+  },
+  "standaloneBaseline": {
+    "commit": "58114ebbbfc3f442ffa896c4d534718ae1f76b69",
+    "tag": "standalone-v0.9.0",
+    "evidenceMayBePooled": false
+  },
+  "reuseClassification": "copied-apache-2.0-source-tree",
+  "modifiedFiles": [],
+  "claims": {
+    "officialOpenAIDistribution": false,
+    "openAIEndorsed": false,
+    "independentRuntime": false,
+    "firstClassEvolutionTarget": true
+  }
+}

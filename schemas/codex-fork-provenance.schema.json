@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://self-evolving-harness.local/schemas/codex-fork-provenance.schema.json",
+  "title": "Codex Fork Provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "track",
+    "importedAt",
+    "upstream",
+    "import",
+    "standaloneBaseline",
+    "reuseClassification",
+    "modifiedFiles",
+    "claims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "track": { "const": "codex-derived" },
+    "importedAt": { "type": "string", "format": "date-time" },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "branch",
+        "commit",
+        "commitTree",
+        "commitTimestamp",
+        "license",
+        "noticePath",
+        "licensePath"
+      ],
+      "properties": {
+        "repository": { "const": "https://github.com/openai/codex.git" },
+        "branch": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "commitTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "commitTimestamp": { "type": "string", "format": "date-time" },
+        "license": { "const": "Apache-2.0" },
+        "noticePath": { "type": "string", "minLength": 1 },
+        "licensePath": { "type": "string", "minLength": 1 }
+      }
+    },
+    "import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "prefix",
+        "squashCommit",
+        "mergeCommit",
+        "importedTree",
+        "treeIdentityVerified"
+      ],
+      "properties": {
+        "method": { "const": "git-subtree-squash" },
+        "prefix": { "const": "upstream/codex" },
+        "squashCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "mergeCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "importedTree": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "treeIdentityVerified": { "const": true }
+      }
+    },
+    "standaloneBaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "tag", "evidenceMayBePooled"],
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "tag": { "type": "string", "minLength": 1 },
+        "evidenceMayBePooled": { "const": false }
+      }
+    },
+    "reuseClassification": { "const": "copied-apache-2.0-source-tree" },
+    "modifiedFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "classification",
+          "upstreamPath",
+          "description",
+          "securityReviewed"
+        ],
+        "properties": {
+          "path": { "type": "string", "pattern": "^upstream/codex/" },
+          "classification": {
+            "type": "string",
+            "enum": ["modified-upstream", "new-derivative-file", "deleted-upstream"]
+          },
+          "upstreamPath": { "type": ["string", "null"] },
+          "description": { "type": "string", "minLength": 1 },
+          "securityReviewed": { "type": "boolean" }
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "officialOpenAIDistribution",
+        "openAIEndorsed",
+        "independentRuntime",
+        "firstClassEvolutionTarget"
+      ],
+      "properties": {
+        "officialOpenAIDistribution": { "const": false },
+        "openAIEndorsed": { "const": false },
+        "independentRuntime": { "const": false },
+        "firstClassEvolutionTarget": { "const": true }
+      }
+    }
+  }
+}
