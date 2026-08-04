@@ -591,24 +591,72 @@ impl Session {
                 .unwrap_or(usize::MAX),
         );
         let seh_codex_home = config.codex_home.clone();
+        let seh_resumed = matches!(&initial_history, InitialHistory::Resumed(_));
+        let seh_collaboration_mode_hash = codex_seh::configuration_text_hash(
+            &serde_json::to_string(&session_configuration.collaboration_mode)?,
+        )?;
+        let seh_developer_instructions_hash = session_configuration
+            .developer_instructions
+            .as_deref()
+            .map(codex_seh::configuration_text_hash)
+            .transpose()?;
+        let seh_compact_prompt_hash = session_configuration
+            .compact_prompt
+            .as_deref()
+            .map(codex_seh::configuration_text_hash)
+            .transpose()?;
+        let seh_dynamic_tools_hash = codex_seh::configuration_text_hash(&serde_json::to_string(
+            &session_configuration.dynamic_tools,
+        )?)?;
+        let mut seh_feature_keys = config
+            .features
+            .enabled_features()
+            .into_iter()
+            .map(codex_features::Feature::key)
+            .collect::<Vec<_>>();
+        seh_feature_keys.sort_unstable();
+        let seh_feature_set_hash =
+            codex_seh::configuration_text_hash(&seh_feature_keys.join("\n"))?;
+        let seh_sandbox_policy_hash = codex_seh::configuration_text_hash(&serde_json::to_string(
+            &session_configuration.sandbox_policy(),
+        )?)?;
         let seh_request = SehPinRequest {
             thread_id: thread_id.to_string(),
             parent_thread_id: parent_thread_id.map(|id| id.to_string()),
             forked_from_thread_id: forked_from_id.map(|id| id.to_string()),
-            resumed: matches!(&initial_history, InitialHistory::Resumed(_)),
+            resumed: seh_resumed,
             is_subagent: session_configuration.session_source.is_non_root_agent(),
             runtime_binding: SehRuntimeBinding {
                 integration_version: codex_seh::INTEGRATION_VERSION.to_string(),
                 upstream_commit: codex_seh::UPSTREAM_COMMIT.to_string(),
                 model: session_configuration.collaboration_mode.model().to_string(),
                 model_provider: config.model_provider_id.clone(),
+                reasoning_effort: session_configuration
+                    .collaboration_mode
+                    .reasoning_effort()
+                    .map(|effort| effort.to_string()),
+                reasoning_summary: session_configuration
+                    .model_reasoning_summary
+                    .map(|summary| format!("{summary:?}")),
+                service_tier: session_configuration.service_tier.clone(),
+                collaboration_mode_hash: seh_collaboration_mode_hash,
+                developer_instructions_hash: seh_developer_instructions_hash,
+                compact_prompt_hash: seh_compact_prompt_hash,
+                personality: session_configuration
+                    .personality
+                    .map(|personality| format!("{personality:?}")),
+                dynamic_tools_hash: seh_dynamic_tools_hash,
+                feature_set_hash: seh_feature_set_hash,
                 approval_policy: session_configuration.approval_policy.value().to_string(),
-                sandbox_policy: format!("{:?}", session_configuration.sandbox_policy()),
+                sandbox_policy_hash: seh_sandbox_policy_hash,
             },
             base_instructions: session_configuration.base_instructions.clone(),
         };
-        let seh_resolved = tokio::task::spawn_blocking(move || {
-            codex_seh::resolve_and_pin(seh_codex_home.as_path(), seh_request)
+        let (seh_resolved, seh_evidence) = tokio::task::spawn_blocking(move || {
+            let resolved = codex_seh::resolve_and_pin(seh_codex_home.as_path(), seh_request)?;
+            let evidence =
+                codex_seh::open_evidence(seh_codex_home.as_path(), &resolved.pin, seh_resumed)?;
+            Ok::<_, codex_seh::SehError>((resolved, evidence))
         })
         .await??;
         info!(
@@ -619,6 +667,7 @@ impl Session {
         );
         session_configuration.base_instructions = seh_resolved.instructions;
         thread_extension_init.insert(seh_resolved.pin);
+        thread_extension_init.insert(seh_evidence);
         let time_provider = crate::current_time::resolve_time_provider(
             config.current_time_reminder.as_ref(),
             external_time_provider,

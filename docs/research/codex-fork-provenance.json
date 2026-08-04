@@ -28,10 +28,31 @@
   "reuseClassification": "copied-apache-2.0-source-tree",
   "modifiedFiles": [
     {
+      "path": "upstream/codex/MODULE.bazel.lock",
+      "classification": "modified-upstream",
+      "upstreamPath": "MODULE.bazel.lock",
+      "description": "Pins the added cross-platform evidence writer lock dependency for Bazel builds.",
+      "securityReviewed": false
+    },
+    {
       "path": "upstream/codex/codex-rs/Cargo.lock",
       "classification": "modified-upstream",
       "upstreamPath": "codex-rs/Cargo.lock",
       "description": "Registers the codex-seh crate dependency graph.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/app-server/Cargo.toml",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/app-server/Cargo.toml",
+      "description": "Links the app-server composition root to the SEH evidence extension.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/app-server/src/extensions.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/app-server/src/extensions.rs",
+      "description": "Installs SEH lifecycle evidence contributors in the production extension registry.",
       "securityReviewed": false
     },
     {
@@ -56,6 +77,55 @@
       "securityReviewed": false
     },
     {
+      "path": "upstream/codex/codex-rs/core/src/session/turn.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/src/session/turn.rs",
+      "description": "Fails closed at model boundaries when the authoritative SEH evidence writer is unhealthy.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/core/src/tools/lifecycle.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/src/tools/lifecycle.rs",
+      "description": "Fails closed before tool handlers when tool-start evidence cannot be persisted.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/core/src/tools/registry.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/src/tools/registry.rs",
+      "description": "Propagates the SEH pre-tool evidence integrity gate into tool dispatch.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/core/tests/suite/mod.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/core/tests/suite/mod.rs",
+      "description": "Registers the Codex-to-SEH runtime evidence integration test.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/core/tests/suite/seh_evidence.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Exercises a fake-provider turn and real tool dispatch while proving evidence is metadata-only and chained.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/mcp-server/Cargo.toml",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/mcp-server/Cargo.toml",
+      "description": "Links the direct MCP runtime composition root to the SEH evidence extension.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/mcp-server/src/message_processor.rs",
+      "classification": "modified-upstream",
+      "upstreamPath": "codex-rs/mcp-server/src/message_processor.rs",
+      "description": "Installs the same SEH lifecycle evidence contributors for direct MCP sessions.",
+      "securityReviewed": false
+    },
+    {
       "path": "upstream/codex/codex-rs/seh/BUILD.bazel",
       "classification": "new-derivative-file",
       "upstreamPath": null,
@@ -67,6 +137,41 @@
       "classification": "new-derivative-file",
       "upstreamPath": null,
       "description": "Declares the SEH Rust crate and its minimal dependencies.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/evidence/extension.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Maps Codex thread, turn, tool, token, and skill lifecycle hooks to allowlisted observations.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/evidence/mod.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Exposes the SEH Evidence Plane integration boundary.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/evidence/model.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Defines RuntimeEvent, EvidenceReceipt, audit, signer, and evidence status records.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/evidence/signer.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Creates an ephemeral in-memory runtime-observer Ed25519 principal, persists only public verification material, and signs receipts without provider credentials.",
+      "securityReviewed": false
+    },
+    {
+      "path": "upstream/codex/codex-rs/seh/src/evidence/store.rs",
+      "classification": "new-derivative-file",
+      "upstreamPath": null,
+      "description": "Persists and verifies atomic append-only event and signed receipt hash chains with single-writer isolation.",
       "securityReviewed": false
     },
     {

@@ -117,8 +117,17 @@ pub struct RuntimeBinding {
     pub upstream_commit: String,
     pub model: String,
     pub model_provider: String,
+    pub reasoning_effort: Option<String>,
+    pub reasoning_summary: Option<String>,
+    pub service_tier: Option<String>,
+    pub collaboration_mode_hash: String,
+    pub developer_instructions_hash: Option<String>,
+    pub compact_prompt_hash: Option<String>,
+    pub personality: Option<String>,
+    pub dynamic_tools_hash: String,
+    pub feature_set_hash: String,
     pub approval_policy: String,
-    pub sandbox_policy: String,
+    pub sandbox_policy_hash: String,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

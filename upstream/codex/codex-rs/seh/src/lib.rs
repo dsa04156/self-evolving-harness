@@ -1,5 +1,6 @@
 mod bootstrap;
 mod canonical;
+mod evidence;
 mod model;
 mod store;
 mod verify;
@@ -7,6 +8,10 @@ mod verify;
 pub use bootstrap::INTEGRATION_VERSION;
 pub use bootstrap::UPSTREAM_COMMIT;
 pub use bootstrap::runtime_contract_hash;
+pub use evidence::EvidenceHandle;
+pub use evidence::EvidenceStatus;
+pub use evidence::install as install_evidence_extension;
+pub use evidence::open_evidence;
 pub use model::HarnessBundle;
 pub use model::HarnessPin;
 pub use model::PinRequest;
@@ -15,6 +20,10 @@ pub use model::ResolvedHarness;
 pub use model::RuntimeBinding;
 pub use store::resolve_and_pin;
 pub use verify::verify_bundle;
+
+pub fn configuration_text_hash(value: &str) -> Result<String> {
+    canonical::sha256_value(&serde_json::Value::String(value.to_string()))
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum SehError {

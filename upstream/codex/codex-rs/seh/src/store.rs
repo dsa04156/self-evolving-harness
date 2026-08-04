@@ -456,7 +456,7 @@ fn sha256_serialized<T: Serialize>(value: &T) -> Result<String> {
     )
 }
 
-fn validate_filename(value: &str) -> Result<()> {
+pub(crate) fn validate_filename(value: &str) -> Result<()> {
     require(
         !value.is_empty()
             && value.len() <= 128
@@ -496,8 +496,25 @@ mod tests {
                 upstream_commit: UPSTREAM_COMMIT.to_string(),
                 model: "fake-model".to_string(),
                 model_provider: "fake-provider".to_string(),
+                reasoning_effort: Some("medium".to_string()),
+                reasoning_summary: Some("Auto".to_string()),
+                service_tier: None,
+                collaboration_mode_hash:
+                    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+                        .to_string(),
+                developer_instructions_hash: None,
+                compact_prompt_hash: None,
+                personality: None,
+                dynamic_tools_hash:
+                    "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+                        .to_string(),
+                feature_set_hash:
+                    "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+                        .to_string(),
                 approval_policy: "never".to_string(),
-                sandbox_policy: "workspace-write".to_string(),
+                sandbox_policy_hash:
+                    "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+                        .to_string(),
             },
             base_instructions: "Pinned system prompt".to_string(),
         }
@@ -563,5 +580,20 @@ mod tests {
             child.pin.inherited_from_thread_id, None,
             "configuration versions must not claim exact inheritance"
         );
+    }
+
+    #[test]
+    fn reasoning_effort_override_creates_a_distinct_configuration_version() {
+        let home = TempDir::new().unwrap();
+        let baseline = resolve_and_pin(home.path(), request("thread-effort")).unwrap();
+        let mut changed = request("thread-effort");
+        changed.resumed = true;
+        changed.runtime_binding.reasoning_effort = Some("xhigh".to_string());
+        let rebound = resolve_and_pin(home.path(), changed).unwrap();
+        assert_ne!(
+            rebound.pin.harness_version_id,
+            baseline.pin.harness_version_id
+        );
+        assert_eq!(rebound.pin.selection, PinSelection::ConfigurationDerived);
     }
 }

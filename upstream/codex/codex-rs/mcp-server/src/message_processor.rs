@@ -95,6 +95,7 @@ impl MessageProcessor {
                     .enabled(codex_features::Feature::SkillSearch),
             },
         );
+        codex_seh::install_evidence_extension(&mut extensions);
         let thread_manager = Arc::new(ThreadManager::new(
             config.as_ref(),
             Arc::clone(&auth_manager),

@@ -522,7 +522,7 @@ impl ToolRegistry {
             return Err(err);
         }
 
-        notify_tool_start(&invocation).await;
+        notify_tool_start(&invocation).await?;
 
         if let Some(pre_tool_use_payload) = tool.pre_tool_use_payload(&invocation) {
             match run_pre_tool_use_hooks(

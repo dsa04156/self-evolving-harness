@@ -2165,6 +2165,7 @@ async fn try_run_sampling_request(
     prompt: &Prompt,
     cancellation_token: CancellationToken,
 ) -> CodexResult<SamplingRequestResult> {
+    ensure_seh_evidence_healthy(&sess)?;
     feedback_tags!(
         model = turn_context.model_info.slug.clone(),
         approval_policy = turn_context.approval_policy.value(),
@@ -2744,7 +2745,24 @@ async fn try_run_sampling_request(
         }
     }
 
+    ensure_seh_evidence_healthy(&sess)?;
     outcome
+}
+
+fn ensure_seh_evidence_healthy(sess: &Session) -> CodexResult<()> {
+    if let Some(evidence) = sess
+        .services
+        .thread_extension_data
+        .get::<codex_seh::EvidenceHandle>()
+    {
+        evidence.ensure_healthy().map_err(|_| {
+            CodexErr::Fatal(
+                "SEH evidence integrity failed; model execution stopped before untracked work"
+                    .to_string(),
+            )
+        })?;
+    }
+    Ok(())
 }
 
 pub(crate) fn get_last_assistant_message_from_turn(responses: &[ResponseItem]) -> Option<String> {

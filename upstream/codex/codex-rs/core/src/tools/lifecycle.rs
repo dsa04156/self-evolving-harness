@@ -4,12 +4,15 @@ use codex_extension_api::ToolFinishInput;
 use codex_extension_api::ToolStartInput;
 use codex_tools::ToolName;
 
+use crate::function_tool::FunctionCallError;
 use crate::session::session::Session;
 use crate::session::turn_context::TurnContext;
 use crate::tools::context::ToolCallSource;
 use crate::tools::context::ToolInvocation;
 
-pub(crate) async fn notify_tool_start(invocation: &ToolInvocation) {
+pub(crate) async fn notify_tool_start(
+    invocation: &ToolInvocation,
+) -> Result<(), FunctionCallError> {
     for contributor in invocation
         .session
         .services
@@ -28,6 +31,20 @@ pub(crate) async fn notify_tool_start(invocation: &ToolInvocation) {
             })
             .await;
     }
+    if let Some(evidence) = invocation
+        .session
+        .services
+        .thread_extension_data
+        .get::<codex_seh::EvidenceHandle>()
+    {
+        evidence.ensure_healthy().map_err(|_| {
+            FunctionCallError::Fatal(
+                "SEH evidence integrity failed; tool execution stopped before untracked work"
+                    .to_string(),
+            )
+        })?;
+    }
+    Ok(())
 }
 
 pub(crate) async fn notify_tool_finish(invocation: &ToolInvocation, outcome: ToolCallOutcome) {
