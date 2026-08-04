@@ -9,6 +9,7 @@ import { SchemaRegistry } from "../contracts/schema-registry.js";
 import type { ModelProvider } from "../domain/model.js";
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import { OllamaProvider } from "../providers/ollama-provider.js";
+import { OpenAICompatibleChatProvider } from "../providers/openai-compatible-chat-provider.js";
 import { OpenAIResponsesProvider } from "../providers/openai-responses-provider.js";
 import { createManagedStandaloneRuntime } from "../runtime/managed.js";
 import { CodingTaskVerifier } from "../runtime/coding-verifier.js";
@@ -91,11 +92,35 @@ function createProvider(config: ProductConfig): ProviderBinding {
       secrets: {},
     };
   }
+  if (config.provider.kind === "openrouter") {
+    const apiKey = process.env["OPENROUTER_API_KEY"] ?? "";
+    if (apiKey.length === 0) {
+      throw new HarnessError(
+        "AUTHENTICATION_FAILED",
+        "OPENROUTER_API_KEY is not set. Select OpenAI with /model, or use Ollama for the no-key local path.",
+      );
+    }
+    const modelIdentity = `openrouter:${config.provider.model}`;
+    return {
+      provider: OpenAICompatibleChatProvider.fromApiKey(apiKey, {
+        providerId: "openrouter",
+        apiModel: config.provider.model,
+        modelIdentity,
+        baseUrl: config.provider.endpoint,
+        requestTimeoutMillis: config.provider.requestTimeoutMillis,
+        defaultHeaders: {
+          "X-OpenRouter-Title": "Self-Evolving Harness",
+        },
+      }),
+      modelIdentity,
+      secrets: { OPENROUTER_API_KEY: apiKey },
+    };
+  }
   const apiKey = process.env["OPENAI_API_KEY"] ?? "";
   if (apiKey.length === 0) {
     throw new HarnessError(
       "AUTHENTICATION_FAILED",
-      "OPENAI_API_KEY is not set. Use `seh init --provider ollama` for the no-key local path.",
+      "OPENAI_API_KEY is not set. Select OpenRouter with /model, or use Ollama for the no-key local path.",
     );
   }
   const modelIdentity = `openai:${config.provider.model}`;
@@ -204,10 +229,7 @@ export async function runCodingAgentTask(
         ? createProvider(options.config)
         : {
             provider: options.providerOverride,
-            modelIdentity:
-              options.config.provider.kind === "ollama"
-                ? `ollama:${options.config.provider.model}`
-                : `openai:${options.config.provider.model}`,
+            modelIdentity: `${options.config.provider.kind}:${options.config.provider.model}`,
             secrets: {},
           };
     const modelIdentityHash = sha256({ modelIdentity: binding.modelIdentity });

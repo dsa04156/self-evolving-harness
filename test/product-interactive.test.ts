@@ -93,7 +93,7 @@ test("interactive banner reports runtime authority without requiring color", () 
     verificationCommands: ["npm test"],
   });
   const banner = interactiveBanner({ workspaceRoot: "/workspace", config, color: false });
-  assert.match(banner, /SEH 0\.4\.0/u);
+  assert.match(banner, /SEH 0\.5\.0/u);
   assert.match(banner, /read-only · shell network denied/u);
   assert.match(banner, /verification 1 command/u);
   assert.doesNotMatch(banner, /\u001B/u);
@@ -140,7 +140,7 @@ test("home screen makes workspace state and slash discovery visible", () => {
     verificationCommands: ["npm test"],
   });
   const screen = renderHomeScreen({
-    version: "0.4.0",
+    version: "0.5.0",
     workspaceRoot: "/workspace",
     config,
     recentSessions: [{ sessionId: "session.123456", state: "completed", task: "Fix login" }],

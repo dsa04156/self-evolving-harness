@@ -1,6 +1,7 @@
 # CLI UX code-path reference
 
-Inspected on 2026-08-03. These repositories are design references only; no source code was copied.
+Initially inspected on 2026-08-03, with a provider/model-registry follow-up on 2026-08-04. These
+repositories are design references only; no source code was copied.
 
 ## OpenAI Codex
 
@@ -72,3 +73,73 @@ are not runtime dependencies of SEH.
   lifecycle with candidate isolation, evaluation, promotion, rejection, and rollback evidence.
 - SEH's Ink-based alternate-screen application, Evolution Core, transcript renderer, composer,
   command palette, and model catalog are original implementations with deterministic UI tests.
+
+## Provider/model registry follow-up — 2026-08-04
+
+This follow-up was performed because SEH's first picker exposed too few routes and kept the provider
+fixed. The research-baseline commits in `source-ledger.md` remain frozen; these are newer UX and
+runtime-integration observations.
+
+### Gajae-Code
+
+- Repository / branch / exact commit: `Yeachan-Heo/gajae-code` / `main` /
+  `38e026c785968e722e5b3a1b8025cadfc54c8c84`
+- License: MIT
+- [`model-manager.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/38e026c785968e722e5b3a1b8025cadfc54c8c84/packages/ai/src/model-manager.ts)
+  merges model sources with explicit `static → models.dev → cache → dynamic` precedence and records
+  whether endpoint discovery is stale or authoritative.
+- [`descriptors.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/38e026c785968e722e5b3a1b8025cadfc54c8c84/packages/ai/src/provider-models/descriptors.ts)
+  is a provider metadata source shared by runtime discovery and catalog generation.
+- [`model-selector.ts`](https://github.com/Yeachan-Heo/gajae-code/blob/38e026c785968e722e5b3a1b8025cadfc54c8c84/packages/coding-agent/src/modes/components/model-selector.ts)
+  provides provider tabs, search, assignment actions, and model-state presentation instead of a
+  short literal menu.
+
+Observed fact: Gajae-Code has a broad, executable provider/catalog subsystem. Inference: SEH needed
+a typed provider registry and live discovery, but not Gajae-Code's code or full compatibility layer.
+
+### OpenCode
+
+- Repository / branch / exact commit: `anomalyco/opencode` / `dev` /
+  `7fe993879f98aa17cecc70f70d3f40d6f0f11689`
+- License: MIT
+- [`provider.ts`](https://github.com/anomalyco/opencode/blob/7fe993879f98aa17cecc70f70d3f40d6f0f11689/packages/core/src/plugin/provider.ts)
+  registers capability-specific provider plugins, including OpenAI, Anthropic, Google, OpenRouter,
+  GitHub Copilot, Bedrock, and OpenAI-compatible transports.
+- [`models-dev.ts`](https://github.com/anomalyco/opencode/blob/7fe993879f98aa17cecc70f70d3f40d6f0f11689/packages/core/src/models-dev.ts)
+  loads a model catalog from disk/snapshot/network, refreshes it under a cross-process lock, and
+  keeps a bounded cache lifetime.
+- [`dialog-select-model.tsx`](https://github.com/anomalyco/opencode/blob/7fe993879f98aa17cecc70f70d3f40d6f0f11689/packages/app/src/components/dialog-select-model.tsx)
+  searches model name, ID, and provider, groups results by provider, and exposes provider connection
+  and model-management actions from the selector.
+
+Observed fact: OpenCode separates provider integration, catalog data, user visibility, and selector
+presentation. Inference: a model picker should operate on `(provider, model)` identity and should not
+pretend a catalog row proves credentials or entitlement.
+
+### Oh My OpenAgent
+
+- Repository / branch / exact commit: `code-yeongyu/oh-my-openagent` / `dev` /
+  `55ea9490b70b2f2017077e3f78d4bf7db3555bc8`
+- License: Sustainable Use License 1.0 with separately licensed components
+- [`provider-cache.ts`](https://github.com/code-yeongyu/oh-my-openagent/blob/55ea9490b70b2f2017077e3f78d4bf7db3555bc8/packages/model-core/src/provider-cache.ts)
+  defines a narrow host-facing cache contract for connected providers and model metadata.
+- [`model-resolution-pipeline.ts`](https://github.com/code-yeongyu/oh-my-openagent/blob/55ea9490b70b2f2017077e3f78d4bf7db3555bc8/packages/model-core/src/model-resolution-pipeline.ts)
+  resolves UI overrides, user configuration, category defaults, connected-provider fallbacks, and
+  the system default with explicit provenance.
+
+Observed fact: this package consumes the host runtime's provider/model availability rather than
+owning provider transports. Inference: its resolution/provenance ideas are relevant, but SEH must
+implement its own adapters because it is a standalone harness. Its license also reinforces the
+clean-room, no-source-reuse decision.
+
+### SEH adoption
+
+- A typed provider registry now owns labels, credential slots, fixed endpoints, transports, and
+  curated model metadata.
+- `/model` now searches provider, display name, and exact model ID, then switches provider and model
+  together.
+- OpenRouter discovery projects the live public catalog to bounded, terminal-safe, tool-capable
+  rows; the SEH-owned Chat Completions adapter executes selected routes.
+- Catalog visibility, endpoint discovery, credential presence, and successful inference remain four
+  separate facts. No catalog row is presented as proof of account access.
+- No source or dependency was copied from any reference repository.

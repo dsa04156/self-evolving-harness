@@ -5,6 +5,7 @@ import { RandomIdFactory, SystemClock } from "../core/determinism.js";
 import { HarnessError, asHarnessError, assertCondition } from "../core/errors.js";
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import { listOllamaModels } from "../providers/ollama-provider.js";
+import { listOpenRouterModels } from "../providers/openrouter-catalog.js";
 import { FilesystemMemory, type MemoryNamespace } from "../runtime/memory.js";
 import { BubblewrapProcessRunner } from "../runtime/sandbox-process.js";
 import {
@@ -38,10 +39,14 @@ import {
 } from "./session-store.js";
 import { renderShellCompletion } from "./shell-completion.js";
 import {
-  CUSTOM_MODEL_CHOICE_ID,
   buildProductModelChoices,
   type ProductModelChoice,
 } from "./model-catalog.js";
+import {
+  isProductProviderKind,
+  productProviderDescriptor,
+  type ProductProviderKind,
+} from "./provider-registry.js";
 import {
   renderResponsePanel,
 } from "./terminal-ui.js";
@@ -69,12 +74,12 @@ function err(text: string): void {
   process.stderr.write(text);
 }
 
-function providerKind(value: string | undefined): "ollama" | "openai" | undefined {
+function providerKind(value: string | undefined): ProductProviderKind | undefined {
   if (value === undefined) return undefined;
   assertCondition(
-    value === "ollama" || value === "openai",
+    isProductProviderKind(value),
     "SCHEMA_INVALID",
-    "--provider must be ollama or openai",
+    "--provider must be openai, openrouter, or ollama",
   );
   return value;
 }
@@ -282,7 +287,8 @@ async function initCommand(args: readonly string[]): Promise<number> {
   if (config.provider.kind === "ollama") {
     out(`\nNext:\n  ollama serve\n  ollama pull ${config.provider.model}\n  seh run "your task"\n`);
   } else {
-    out(`\nNext:\n  export OPENAI_API_KEY=...\n  seh run "your task"\n`);
+    const credential = productProviderDescriptor(config.provider.kind).credentialEnvironmentVariable;
+    out(`\nNext:\n  export ${credential}=...\n  seh run "your task"\n`);
   }
   return 0;
 }
@@ -524,11 +530,29 @@ async function doctorCommand(args: readonly string[]): Promise<number> {
       out(`✗ provider: ${failure}\n`);
       out("  Install/start Ollama, then run `ollama serve`.\n");
     }
-  } else if ((process.env["OPENAI_API_KEY"] ?? "").length > 0) {
-    out("✓ OPENAI_API_KEY is present (value not read or displayed)\n");
   } else {
-    healthy = false;
-    out("✗ OPENAI_API_KEY is absent\n");
+    const descriptor = productProviderDescriptor(config.provider.kind);
+    const credential = descriptor.credentialEnvironmentVariable;
+    assertCondition(credential !== null, "SCHEMA_INVALID", "Remote provider has no credential slot");
+    if ((process.env[credential] ?? "").length > 0) {
+      out(`✓ ${credential} is present (value not read or displayed)\n`);
+    } else {
+      healthy = false;
+      out(`✗ ${credential} is absent\n`);
+    }
+    if (config.provider.kind === "openrouter") {
+      try {
+        const models = await listOpenRouterModels({ timeoutMillis: 2_500 });
+        out(`✓ OpenRouter catalog ${models.length} tool-capable models\n`);
+        if (!models.some((model) => model.modelId === config.provider.model)) {
+          out(`! model ${config.provider.model} was not found in the live catalog\n`);
+        }
+      } catch (error) {
+        healthy = false;
+        const failure = error instanceof HarnessError ? error.safeDetail : "OpenRouter catalog probe failed";
+        out(`✗ provider catalog: ${failure}\n`);
+      }
+    }
   }
   out(`✓ state is outside the workspace at ${paths.projectRoot}\n`);
   return healthy ? 0 : 2;
@@ -691,30 +715,43 @@ async function selectableModels(
   readonly choices: readonly ProductModelChoice[];
   readonly discoveryWarning: string | null;
 }> {
-  if (project.config.provider.kind !== "ollama") {
-    return {
-      choices: buildProductModelChoices({ provider: project.config.provider }),
-      discoveryWarning: null,
-    };
+  const ollamaEndpoint =
+    project.config.provider.kind === "ollama"
+      ? project.config.provider.endpoint
+      : (productProviderDescriptor("ollama").endpoint ?? "http://127.0.0.1:11434");
+  const [ollama, openrouter] = await Promise.allSettled([
+    listOllamaModels(ollamaEndpoint, { timeoutMillis: 700 }),
+    listOpenRouterModels({
+      ...((process.env["OPENROUTER_API_KEY"] ?? "").length === 0
+        ? {}
+        : { apiKey: process.env["OPENROUTER_API_KEY"] as string }),
+      timeoutMillis: 2_500,
+    }),
+  ]);
+  const warnings: string[] = [];
+  if (openrouter.status === "rejected") {
+    warnings.push(asHarnessError(openrouter.reason).safeDetail);
   }
-  try {
-    const discoveredModels = await listOllamaModels(project.config.provider.endpoint, {
-      timeoutMillis: 1_500,
-    });
-    return {
-      choices: buildProductModelChoices({
-        provider: project.config.provider,
-        discoveredModels,
-      }),
-      discoveryWarning: null,
-    };
-  } catch (error) {
-    const failure = asHarnessError(error);
-    return {
-      choices: buildProductModelChoices({ provider: project.config.provider }),
-      discoveryWarning: failure.safeDetail,
-    };
-  }
+  return {
+    choices: buildProductModelChoices({
+      provider: project.config.provider,
+      discoveredByProvider: {
+        ...(ollama.status === "fulfilled"
+          ? {
+              ollama: ollama.value.map((modelId) => ({
+                modelId,
+                name: modelId,
+                description: "installed locally",
+              })),
+            }
+          : {}),
+        ...(openrouter.status === "fulfilled"
+          ? { openrouter: openrouter.value }
+          : {}),
+      },
+    }),
+    discoveryWarning: warnings.length === 0 ? null : warnings.join(" · "),
+  };
 }
 
 async function runInteractiveShell(
@@ -941,22 +978,25 @@ async function runInteractiveShell(
             const catalog = await selectableModels(activeProject);
             terminal.setActivity(null);
             const selectedId = await terminal.select(
-              `Select model · ${activeProject.config.provider.kind.toUpperCase()}`,
+              `Model registry · ${catalog.choices.length} routes`,
               catalog.choices.map((choice) => ({
                 id: choice.id,
                 label: choice.label,
                 description: choice.description,
               })),
-              "type to filter · ↑↓ select · Enter apply · Esc cancel · provider fixed",
+              "type provider or model · ↑↓ select · Enter apply · Esc cancel",
             );
             if (selectedId === null) {
               terminal.setNotice("Model selection cancelled");
               continue;
             }
             const selectedChoice = catalog.choices.find((choice) => choice.id === selectedId);
+            assertCondition(selectedChoice !== undefined, "SCHEMA_INVALID", "Unknown model selection");
             let modelId = selectedChoice?.modelId ?? null;
-            if (selectedId === CUSTOM_MODEL_CHOICE_ID) {
-              terminal.setNotice("Enter an exact model ID · Enter apply · Ctrl-D cancel");
+            if (selectedChoice.source === "custom") {
+              terminal.setNotice(
+                `Enter an exact ${selectedChoice.providerKind} model ID · Enter apply · Ctrl-D cancel`,
+              );
               modelId = (await terminal.question())?.trim() ?? null;
               if (modelId === null || modelId.length === 0) {
                 terminal.setNotice("Model selection cancelled");
@@ -966,7 +1006,10 @@ async function runInteractiveShell(
             assertCondition(modelId !== null, "SCHEMA_INVALID", "Selected model has no model ID");
             activeProject = {
               ...activeProject,
-              config: applyProductConfigOverrides(activeProject.config, { model: modelId }),
+              config: applyProductConfigOverrides(activeProject.config, {
+                providerKind: selectedChoice.providerKind,
+                model: modelId,
+              }),
             };
             await refreshStatus();
             const availability = selectedChoice?.source === "example"
@@ -976,7 +1019,7 @@ async function runInteractiveShell(
               ? ""
               : ` · discovery unavailable: ${catalog.discoveryWarning}`;
             terminal.setNotice(
-              `Model: ${activeProject.config.provider.kind}/${modelId} · session only${availability}${discovery}`,
+              `Model: ${selectedChoice.providerKind}/${modelId} · applies to next task session · not persisted${availability}${discovery}`,
             );
           } else {
             activeProject = {
@@ -984,7 +1027,9 @@ async function runInteractiveShell(
               config: applyProductConfigOverrides(activeProject.config, { model: argument }),
             };
             await refreshStatus();
-            terminal.setNotice(`Model: ${activeProject.config.provider.kind}/${argument} · session only`);
+            terminal.setNotice(
+              `Model: ${activeProject.config.provider.kind}/${argument} · applies to next task session · not persisted`,
+            );
           }
         } else if (name === "permissions") {
           terminal.appendMessage("system", permissionLabel(activeProject.config.permissionMode), {
@@ -1155,7 +1200,7 @@ export function productUsage(): string {
     "  seh --version",
     "  seh                              Start the interactive coding agent",
     "  seh [OPTIONS] \"task\"             Start interactively with an initial prompt",
-    "  seh init [--provider ollama|openai] [--model MODEL] [--read-only]",
+    "  seh init [--provider openai|openrouter|ollama] [--model MODEL] [--read-only]",
     "  seh run [OPTIONS] \"task\"          Run one task non-interactively",
     "  seh exec [OPTIONS] \"task\"         Alias for `seh run`",
     "  seh chat [OPTIONS]               Start the interactive coding agent",
@@ -1171,7 +1216,7 @@ export function productUsage(): string {
     "",
     "Common options:",
     "  --workspace PATH     Workspace to inspect or modify (default: current directory)",
-    "  --provider NAME      ollama (no key) or openai",
+    "  --provider NAME      openai, openrouter (250+ tool models), or ollama (local)",
     "  --model MODEL        Provider model name",
     "  --endpoint URL       Ollama endpoint",
     "  --read-only          Disable write/edit/bash tools",

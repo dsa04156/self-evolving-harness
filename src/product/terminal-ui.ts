@@ -137,7 +137,7 @@ export const INTERACTIVE_SLASH_COMMANDS: readonly SlashCommandSpec[] = [
   {
     name: "model",
     aliases: ["models"],
-    description: "Search connected and example models",
+    description: "Search providers and tool-capable model routes",
     argumentHint: "[model-id]",
     group: "runtime",
   },

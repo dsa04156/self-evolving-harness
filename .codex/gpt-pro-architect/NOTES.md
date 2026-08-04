@@ -680,3 +680,17 @@ any paid-provider request.
   commit/tree/parent/path/diffstat/patch hash/status/remote ref, and one narrow resubmission.
 - Provider calls, protected data, B0–B6, promotion/deployment, empirical execution, and claim expansion
   are neither required nor authorized by this correction.
+
+## Durable Round 05 model-registry decision
+
+- External decision: `REVISE` on release sealing, not architecture.
+- The provider-aware `(provider, model)` picker, executable OpenRouter transport, independently owned
+  SEH loop/tool execution, fixed credential endpoint, environment-only secrets, redirect/size bounds,
+  cross-provider state rejection, fallback behavior, and entitlement wording are accepted.
+- First-party Anthropic/Google SDKs, GUI, persistent catalog caching, and paid inference are not required.
+- Before release, prove that provider selection applies only to a new task session and cannot replay
+  provider-native history, and prove registry → fixed config → OpenRouter adapter → SEH tool loop →
+  verifier completion with a fake transport.
+- Seal the final bytes as one commit, rerun the complete release gate from its clean tree, record exact
+  commit/tree/diff/lock identities and focused/audit/package evidence, and obtain a narrow same-tab
+  ruling before push. Live route counts remain operational observations, not thresholds.

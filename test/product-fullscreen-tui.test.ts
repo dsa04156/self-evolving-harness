@@ -9,12 +9,13 @@ import {
   FullscreenTuiApp,
   FullscreenTuiController,
   buildProductModelChoices,
+  customModelChoiceId,
   buildTranscriptLines,
   type FullscreenTuiStatus,
 } from "../src/index.js";
 
 const status: FullscreenTuiStatus = {
-  version: "0.4.0",
+  version: "0.5.0",
   workspaceRoot: "/workspace/example",
   provider: "openai",
   model: "test-coder",
@@ -185,7 +186,13 @@ test("model catalog orders current, discovered, examples, and custom entry", () 
     ["alpha:latest", "zeta:latest"],
   );
   assert.ok(choices.some((choice) => choice.modelId === "qwen3-coder:30b"));
-  assert.equal(choices.at(-1)?.id, CUSTOM_MODEL_CHOICE_ID);
+  assert.equal(
+    choices.find((choice) => choice.providerKind === "ollama" && choice.source === "custom")?.id,
+    customModelChoiceId("ollama"),
+  );
+  assert.ok(choices.some((choice) => choice.providerKind === "openrouter"));
+  assert.ok(choices.some((choice) => choice.providerKind === "openai"));
+  assert.ok(choices.some((choice) => choice.id.startsWith(CUSTOM_MODEL_CHOICE_ID)));
 });
 
 test("OpenAI model catalog exposes role-preserving examples without claiming access", () => {
@@ -200,10 +207,20 @@ test("OpenAI model catalog exposes role-preserving examples without claiming acc
   assert.equal(choices[0]?.modelId, "gpt-5.6-terra");
   assert.ok(choices.some((choice) => choice.modelId === "gpt-5.6-sol"));
   assert.ok(choices.some((choice) => choice.modelId === "gpt-5.6-luna"));
+  assert.ok(choices.length > 35);
   assert.ok(
     choices
-      .filter((choice) => choice.source === "example")
-      .every((choice) => choice.description.includes("account access may vary")),
+      .filter(
+        (choice) => choice.providerKind === "openai" && choice.source === "example",
+      )
+      .every((choice) => choice.description.includes("requires OPENAI_API_KEY")),
+  );
+  assert.ok(
+    choices.some(
+      (choice) =>
+        choice.providerKind === "openrouter" &&
+        choice.modelId === "anthropic/claude-sonnet-5",
+    ),
   );
 });
 

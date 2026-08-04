@@ -33,6 +33,25 @@ npm run build
 
 ## Provider setup
 
+SEH ships three executable provider routes. They all feed the same SEH-owned context builder,
+agent loop, tool executor, verifier, evidence stream, and session lifecycle.
+
+| Provider | Transport | Model source | Credential |
+| --- | --- | --- | --- |
+| OpenAI | Responses API | curated current/prior coding models | `OPENAI_API_KEY` |
+| OpenRouter | Chat Completions | live tool-capable catalog (currently 250+) | `OPENROUTER_API_KEY` |
+| Ollama | local `/api/chat` | installed models plus curated local examples | none |
+
+Catalog references: [OpenAI models](https://developers.openai.com/api/docs/models),
+[OpenRouter Models API](https://openrouter.ai/docs/api/api-reference/models/get-models),
+[OpenRouter tool calling](https://openrouter.ai/docs/guides/features/tool-calling), and the official
+[Ollama model library](https://ollama.com/library). Curated entries were checked on 2026-08-04;
+live discovery remains authoritative for what an endpoint currently advertises.
+
+Provider keys are read from the process environment only. A browser or Codex CLI login is not
+reused: doing so would couple this independent runtime to another harness's private credential
+store. Use `/model` to switch provider and model together for the current interactive session.
+
 ### Local no-key provider
 
 Install [Ollama](https://docs.ollama.com/quickstart), then start it and fetch the default model:
@@ -91,7 +110,7 @@ the command palette and session picker open as keyboard-driven overlays:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ SEH v0.4.0  SELF-EVOLVING CODING AGENT                                      │
+│ SEH v0.5.0  SELF-EVOLVING CODING AGENT                                      │
 │ my-project                    provider/model · WORKSPACE WRITE                │
 └──────────────────────────────────────────────────────────────────────────────┘
 
@@ -128,7 +147,7 @@ moving the cursor.
 | `/new` | Clear the current thread context without deleting workspace memory |
 | `/status`, `/sessions` | Inspect durable session state |
 | `/resume [ID] [guidance]` | Pick or load a prior task and answer, optionally run guidance |
-| `/model [model-id]`, `/models` | Search discovered and example models, or select an exact ID |
+| `/model [model-id]`, `/models` | Search providers and live/curated model routes, or select an exact ID |
 | `/permissions`, `/read-only`, `/write` | Inspect or temporarily change tool authority |
 | `/verify` | Show the external verifier commands |
 | `/diff [--staged]` | Show Git diff through the no-network sandbox |
@@ -144,27 +163,37 @@ intentionally ephemeral; use `seh init --force ...` to change stored configurati
 
 ### Model picker
 
-Run `/model` with no argument to open the provider-scoped picker. The current model is always first.
-For a local provider, SEH probes the configured endpoint and places models actually returned by the
-provider before curated coding-model examples. For OpenAI, the picker shows the current model plus
-role-preserving flagship, balanced, and fast examples; account availability is deliberately not
-assumed. `+ Enter another model ID` accepts any exact ID supported by the active provider.
+Run `/model` with no argument to open the provider-aware registry. The current route is always first,
+followed by useful examples across OpenAI, OpenRouter, and Ollama. SEH then adds installed local
+models and refreshes OpenRouter's public catalog, retaining only text-output models that advertise
+tool calling. The current live catalog contains more than 250 routes across OpenAI, Anthropic,
+Google, DeepSeek, Qwen, Mistral, xAI, and other vendors.
+
+Selecting an entry changes both provider and model for the next newly created task session in the
+current shell. A running turn is never rebound in place. Previous task sessions remain immutable;
+only their bounded, untrusted plain-text answer can enter later conversational context, never their
+provider-native assistant state, tool-call envelope, or tool results. A checkmark means the model was
+returned by live discovery, not that the current account is entitled to use it. A circle marks a
+curated catalog entry. Each provider also has its own `Enter another model ID` row.
 
 ```text
 ╔══════════════════════════════════════════════════════════════════╗
-║  Select model · OPENAI                                           ║
-║  type to filter · ↑↓ select · Enter apply · Esc cancel           ║
+║  Model registry · 293 routes                                     ║
+║  type provider or model · ↑↓ select · Enter apply · Esc cancel  ║
 ║  Search                                                          ║
-║  › ● gpt-5.6-terra      current · configured                     ║
-║    ○ gpt-5.6-sol        example · flagship coding and agents     ║
-║    ○ gpt-5.6-luna       example · fast, high-volume tasks        ║
-║    + Enter another model ID                                      ║
+║  › ● Ollama      Qwen2.5-Coder 7B       current                  ║
+║    ○ OpenAI      GPT-5.6 Sol            current flagship         ║
+║    ○ OpenAI      GPT-5.6 Terra          balanced                 ║
+║    ○ OpenRouter  OpenAI GPT-5.6 Sol     routed                   ║
+║    ○ OpenRouter  Anthropic Claude       routed                   ║
+║    ○ Ollama      Qwen3-Coder 30B        local                    ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
 Start typing anywhere in the picker to filter its labels and descriptions. `Esc` clears a non-empty
-search first and closes the picker on the next press. A selected example may still need provider
-access or local installation. Model changes made here are session-only.
+search first and closes the picker on the next press. Search matches provider name, display name,
+and exact model ID. A selected entry may still need provider access or local installation. Model
+changes made here are session-only.
 
 ### Shell completion
 
@@ -244,7 +273,7 @@ seh memory list
 workspace, persistent memory, and bounded thread context, but they do not create a `HarnessVersion`
 and are not recorded as harness evolution.
 
-## Optional OpenAI provider
+## Remote providers
 
 The OpenAI adapter is opt-in and requires an API key supplied only through the environment:
 
@@ -256,6 +285,18 @@ seh run "Fix the failing tests"
 
 No API key is needed for Ollama or the deterministic demo. The CLI never writes
 `OPENAI_API_KEY` to config, memory, events, or session metadata.
+
+OpenRouter exposes many vendors through one tool-capable adapter:
+
+```bash
+export OPENROUTER_API_KEY='...'
+seh init --force --provider openrouter --model 'anthropic/claude-sonnet-5' --verify "npm test"
+seh run "Fix the failing tests"
+```
+
+The key is sent only to the pinned `https://openrouter.ai/api/v1` endpoint. Custom endpoint changes
+fail configuration validation. SEH never writes `OPENROUTER_API_KEY` to configuration, memory,
+events, session metadata, or model-catalog cache.
 
 ## Troubleshooting
 

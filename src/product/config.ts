@@ -15,6 +15,10 @@ import path from "node:path";
 import { parseStrictJson, sha256Text, type JsonValue } from "../core/canonical.js";
 import { HarnessError, assertCondition } from "../core/errors.js";
 import type { BudgetLimits } from "../domain/runtime.js";
+import {
+  OPENROUTER_ENDPOINT,
+  type ProductProviderKind,
+} from "./provider-registry.js";
 
 export type ProductProviderConfig =
   | {
@@ -27,6 +31,12 @@ export type ProductProviderConfig =
       readonly kind: "openai";
       readonly model: string;
       readonly serviceTier: "auto" | "default" | "flex" | "scale" | "priority";
+    }
+  | {
+      readonly kind: "openrouter";
+      readonly model: string;
+      readonly endpoint: string;
+      readonly requestTimeoutMillis: number;
     };
 
 export type PermissionMode = "read-only" | "workspace-write";
@@ -63,7 +73,7 @@ export interface ProductStatePaths {
 }
 
 export interface ProductConfigOverrides {
-  readonly providerKind?: "ollama" | "openai";
+  readonly providerKind?: ProductProviderKind;
   readonly model?: string;
   readonly endpoint?: string;
   readonly permissionMode?: PermissionMode;
@@ -200,6 +210,41 @@ function parseProvider(value: JsonValue): ProductProviderConfig {
       ),
     };
   }
+  if (kind === "openrouter") {
+    exactKeys(
+      provider,
+      ["kind", "model", "endpoint", "requestTimeoutMillis"],
+      "OpenRouter provider",
+    );
+    const endpoint = stringValue(provider["endpoint"], "provider.endpoint");
+    let url: URL;
+    try {
+      url = new URL(endpoint);
+    } catch (error) {
+      throw new HarnessError("SCHEMA_INVALID", "provider.endpoint is not a URL", {
+        cause: error,
+      });
+    }
+    assertCondition(
+      url.protocol === "https:" &&
+        url.username.length === 0 &&
+        url.password.length === 0 &&
+        `${url.origin}${url.pathname.replace(/\/$/u, "")}` === OPENROUTER_ENDPOINT,
+      "AUTHORIZATION_DENIED",
+      `OpenRouter endpoint must be ${OPENROUTER_ENDPOINT}`,
+    );
+    return {
+      kind,
+      model: stringValue(provider["model"], "provider.model"),
+      endpoint: OPENROUTER_ENDPOINT,
+      requestTimeoutMillis: integerValue(
+        provider["requestTimeoutMillis"],
+        "provider.requestTimeoutMillis",
+        1_000,
+        86_400_000,
+      ),
+    };
+  }
   assertCondition(kind === "openai", "SCHEMA_INVALID", "Unknown provider kind");
   exactKeys(provider, ["kind", "model", "serviceTier"], "OpenAI provider");
   const serviceTier = provider["serviceTier"];
@@ -226,9 +271,14 @@ export function defaultProductConfig(
   const providerKind = overrides.providerKind ?? "ollama";
   const model = overrides.model ?? DEFAULT_OLLAMA_MODEL;
   assertCondition(
-    providerKind !== "openai" || overrides.model !== undefined,
+    overrides.endpoint === undefined || providerKind === "ollama",
+    "AUTHORIZATION_DENIED",
+    "--endpoint is supported only for the local Ollama provider",
+  );
+  assertCondition(
+    providerKind === "ollama" || overrides.model !== undefined,
     "SCHEMA_INVALID",
-    "OpenAI setup requires an explicit --model",
+    `${providerKind} setup requires an explicit --model`,
   );
   return {
     schemaVersion: 1,
@@ -241,11 +291,18 @@ export function defaultProductConfig(
             endpoint: overrides.endpoint ?? DEFAULT_OLLAMA_ENDPOINT,
             requestTimeoutMillis: 10 * 60_000,
           }
-        : {
+        : providerKind === "openai"
+          ? {
             kind: "openai",
             model,
             serviceTier: "default",
-          },
+          }
+          : {
+              kind: "openrouter",
+              model,
+              endpoint: OPENROUTER_ENDPOINT,
+              requestTimeoutMillis: 10 * 60_000,
+            },
     permissionMode: overrides.permissionMode ?? "workspace-write",
     budget: {
       maxModelCalls: 32,
@@ -275,6 +332,11 @@ export function applyProductConfigOverrides(
   overrides: ProductConfigOverrides,
 ): ProductConfig {
   const providerKind = overrides.providerKind ?? config.provider.kind;
+  assertCondition(
+    overrides.endpoint === undefined || providerKind === "ollama",
+    "AUTHORIZATION_DENIED",
+    "--endpoint is supported only for the local Ollama provider",
+  );
   let provider: ProductProviderConfig;
   if (providerKind === "ollama") {
     const prior = config.provider.kind === "ollama" ? config.provider : null;
@@ -284,7 +346,7 @@ export function applyProductConfigOverrides(
       endpoint: overrides.endpoint ?? prior?.endpoint ?? DEFAULT_OLLAMA_ENDPOINT,
       requestTimeoutMillis: prior?.requestTimeoutMillis ?? 10 * 60_000,
     };
-  } else {
+  } else if (providerKind === "openai") {
     const prior = config.provider.kind === "openai" ? config.provider : null;
     const model = overrides.model ?? prior?.model;
     assertCondition(
@@ -296,6 +358,20 @@ export function applyProductConfigOverrides(
       kind: "openai",
       model,
       serviceTier: prior?.serviceTier ?? "default",
+    };
+  } else {
+    const prior = config.provider.kind === "openrouter" ? config.provider : null;
+    const model = overrides.model ?? prior?.model;
+    assertCondition(
+      model !== undefined,
+      "SCHEMA_INVALID",
+      "Switching to OpenRouter requires an explicit --model",
+    );
+    provider = {
+      kind: "openrouter",
+      model,
+      endpoint: OPENROUTER_ENDPOINT,
+      requestTimeoutMillis: prior?.requestTimeoutMillis ?? 10 * 60_000,
     };
   }
   return parseProductConfig({

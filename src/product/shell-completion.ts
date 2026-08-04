@@ -44,7 +44,7 @@ _seh_completion() {
 
   case "\${previous}" in
     --workspace) COMPREPLY=( $(compgen -d -- "\${current}") ); return ;;
-    --provider) COMPREPLY=( $(compgen -W 'openai ollama' -- "\${current}") ); return ;;
+    --provider) COMPREPLY=( $(compgen -W 'openai openrouter ollama' -- "\${current}") ); return ;;
     --read-only|--write) return ;;
   esac
 
@@ -86,7 +86,7 @@ _seh() {
       case $words[2] in
         completion) _values 'shell' bash zsh fish ;;
         memory) _values 'action' add list ;;
-        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai ollama)' '--model[model name]:model' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' ;;
+        *) _arguments '--workspace[workspace path]:directory:_directories' '--provider[provider]:provider:(openai openrouter ollama)' '--model[model name]:model' '--read-only[disable mutation tools]' '--write[enable workspace mutation tools]' '--verify[verification command]:command' ;;
       esac
       ;;
   esac
@@ -118,7 +118,7 @@ function fishCompletion(): string {
         `complete -c seh -n '__fish_use_subcommand' -a '${command}' -d '${description}'`,
     ),
     "complete -c seh -l workspace -r -a '(__fish_complete_directories)' -d 'Workspace path'",
-    "complete -c seh -l provider -r -a 'openai ollama' -d 'Model provider'",
+    "complete -c seh -l provider -r -a 'openai openrouter ollama' -d 'Model provider'",
     "complete -c seh -l model -r -d 'Model name'",
     "complete -c seh -l read-only -d 'Disable mutation tools'",
     "complete -c seh -l write -d 'Enable workspace mutation tools'",

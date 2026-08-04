@@ -37,7 +37,7 @@
     <rect x="72" y="108" width="1056" height="82" rx="12" fill="#0c131f" stroke="#28364a"/>
     <rect x="72" y="108" width="5" height="82" rx="3" fill="url(#accent)"/>
     <text x="98" y="141" fill="#67e8f9" font-size="22" font-weight="700">SEH</text>
-    <text x="154" y="141" fill="#718096" font-size="13">v0.4.0</text>
+    <text x="154" y="141" fill="#718096" font-size="13">v0.5.0</text>
     <text x="223" y="141" fill="#f1f5f9" font-size="15" font-weight="700">SELF-EVOLVING CODING AGENT</text>
     <text x="98" y="170" fill="#67e8f9" font-size="13">my-project</text>
     <text x="734" y="170" fill="#c4b5fd" font-size="13">openai/gpt-5.6-terra</text>

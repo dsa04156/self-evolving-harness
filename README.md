@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/dsa04156/self-evolving-harness/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/dsa04156/self-evolving-harness/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <img alt="Version 0.4.0" src="https://img.shields.io/badge/version-0.4.0-a78bfa?style=flat-square">
+  <img alt="Version 0.5.0" src="https://img.shields.io/badge/version-0.5.0-a78bfa?style=flat-square">
   <img alt="Node 22 or newer" src="https://img.shields.io/badge/node-%E2%89%A522-22d3ee?style=flat-square">
   <img alt="Standalone runtime" src="https://img.shields.io/badge/runtime-standalone-34d399?style=flat-square">
   <img alt="Research alpha" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
@@ -68,7 +68,8 @@ Type `/` and the command palette appears immediately:
 - command descriptions and argument hints in place;
 - prompt history with arrow-key recall;
 - a keyboard-driven session picker for `/resume`;
-- a searchable `/model` picker with current, provider-discovered, curated example, and custom entries;
+- a searchable `/model` registry spanning direct OpenAI, 250+ live tool-capable OpenRouter routes,
+  installed local models, curated examples, and exact custom IDs;
 - `Shift+Enter` multiline editing and native bracketed paste;
 - `PageUp` / `PageDown` transcript navigation;
 - Korean and wide-character-aware cursor positioning;
@@ -87,7 +88,7 @@ Common interactive commands:
 | `/review` | Review current changes through a temporary read-only turn |
 | `/tools` / `/skills` | Inspect the active runtime surface |
 | `/context` | Show bounded thread and model context limits |
-| `/model` | Search discovered/example models or enter an exact model ID |
+| `/model` | Search providers and 250+ tool-capable model routes |
 | `/permissions` | Inspect the active authority profile |
 | `/read-only` / `/write` | Change authority for following turns |
 | `/memory` | Inspect persistent project memory |

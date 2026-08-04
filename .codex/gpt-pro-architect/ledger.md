@@ -1288,3 +1288,35 @@ response path, interpreted decision, required revisions, and the commit containi
 - sole blocker: uncommitted candidate bytes were not bound to an exact commit/tree/path/patch identity
 - next: commit the exact candidate, rerun `npm run verify:release` from a clean tree, record the
   candidate identity and remote pre-push ref, then submit one narrow release-sealing packet
+
+## Round 05 — 2026-08-04
+
+- sent: `.codex/gpt-pro-architect/packets/packet-05-model-registry.md`
+- packet SHA-256/size: `3c4d00098a77637a7a5e11346ab79b037ab179d98dd08ec9c821cdc300c13032` /
+  6,559 bytes including final newline
+- transport: Oracle 0.16.1 exact-tab dry-run passed; live Oracle attach failed before transmission due
+  missing profile metadata; approved direct-CDP fallback reused exact target
+  `4BA3B4F29D8FD1597A712A46C80CB67E` and the recorded conversation URL
+- topic id: `self-evolving-harness-architecture`
+- conversation url: `https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0`
+- oracle session: `self-evolving-harness-model-registry` (failed before transmission)
+- archive policy: never
+- continuation: direct-CDP submitted one 6,552-character packet and harvested one stable response;
+  no resend, upload, screenshot, new tab, or new window
+- browser endpoint / tab: `127.0.0.1:9222` /
+  `4BA3B4F29D8FD1597A712A46C80CB67E`
+- reuse preflight: positive exact endpoint/tab reuse with existing browser left running
+- new window opened: no
+- model evidence: requested `gpt-5-pro`; existing Pro-selected tab reused; server generation opaque
+- response: `.codex/gpt-pro-architect/responses/response-05-model-registry.md`
+- response SHA-256/size: `df2cffcbe54b6569fd46a15f007b652c83b5d585a755f978236aff4070f33f5b` /
+  6,564 bytes
+- architect decision: `REVISE`
+- accepted: provider-aware registry; executable OpenRouter adapter; SEH-owned agent/tool loop; fixed
+  credential endpoint; bounded redirect-safe catalog; provider-bound history; fallback and entitlement
+  semantics; no need for first-party vendor SDKs, GUI, cache, or paid inference
+- required: new-session provider-switch history test; fake registry-to-runtime execution test; exact
+  candidate commit/tree/diff/lock hashes; full clean-tree release; focused/audit/package/version checks;
+  narrow same-tab release-seal review before push
+- next: implement only the two tests and documentation clarification, commit exact bytes, run the full
+  clean-candidate gate, and submit Packet 05R

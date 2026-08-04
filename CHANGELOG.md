@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.5.0 — multi-provider model registry
+
+### New features
+
+- **Provider-aware `/model` registry**: One searchable overlay now switches both provider and model.
+  Its first screen mixes useful OpenAI, OpenRouter, and local examples instead of trapping users in
+  the active provider.
+- **250+ live model routes**: The picker refreshes OpenRouter's public catalog and includes only
+  bounded text-output entries that advertise tool calling. Provider, display name, and exact model
+  ID are all searchable.
+- **Executable OpenRouter adapter**: Added a native Chat Completions transport with tool-call history,
+  usage accounting, cancellation, safe errors, and SEH-owned tool execution. It does not delegate
+  the agent loop to an external harness.
+- **Central provider registry**: Provider metadata, credential slots, endpoints, curated models, and
+  transport kinds now have one typed source of truth.
+
+### Security and correctness
+
+- OpenRouter credential egress is pinned to `https://openrouter.ai/api/v1`; alternate endpoints and
+  credential-bearing URLs fail closed.
+- Live catalog fields are size-bounded and terminal-control characters are removed before display.
+- Provider-state replay is provider-bound, and forged cross-provider history is rejected.
+- Interactive provider changes apply only to the next newly created task session; prior provider-native
+  assistant/tool envelopes are never replayed across that boundary.
+- API keys remain environment-only and are excluded from config, sessions, events, and memory.
+
 ## 0.4.0 — full-screen terminal UX release
 
 ### New features

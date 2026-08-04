@@ -1,7 +1,7 @@
 # Source Ledger
 
 Status: Gate 1 evidence draft  
-Research cut-off: 2026-08-03 (Asia/Seoul)
+Research cut-off: 2026-08-03 (Asia/Seoul); non-baseline provider/model UX follow-up: 2026-08-04
 Method: public sources were cloned or opened read-only. README claims are recorded as claims unless a
 corresponding execution path was found in source. `Observed fact` and `Inference` are intentionally
 separate.

@@ -8,9 +8,9 @@
 - slug family: self-evolving-harness-gate1
 - active conversation url: https://chatgpt.com/c/6a6b1847-22c8-83e8-9558-8297a43979e0
 - previous conversation urls: https://chatgpt.com/c/6a66f5cc-77f4-83ee-a07c-869fcea72289 (unrelated EdgeX topic; invalid collision)
-- oracle latest session id: `self-evolving-harness-final-evidence` failed before transmission because
+- oracle latest session id: `self-evolving-harness-model-registry` failed before transmission because
   Oracle attach metadata did not recognize the pinned browser; the approved direct-CDP fallback then
-  continued the exact tab
+  submitted Packet 05 once in the exact tab
 - oracle session ids: self-evolving-harness-gate1-fresh, self-evolving-harness-gate1-packet-2, self-evolving-harness-gate1-packet-3, self-evolving-harness-gate1-packet-4, self-evolving-harness-gate2-packet, self-evolving-harness-gate2r-packet, self-evolving-harness-final-evidence
 - browser reuse mode: direct-remote-cdp
 - browser endpoint: 127.0.0.1:9222
@@ -18,19 +18,18 @@
 - browser tab ref: target `4BA3B4F29D8FD1597A712A46C80CB67E`, conversation URL above
 - reuse required: true
 - new window allowed: false unless explicitly approved
-- last reuse preflight: Round 04 Oracle 0.16.1 dry-run positively reported attach/reuse of target
+- last reuse preflight: Round 05 Oracle 0.16.1 dry-run positively reported attach/reuse of target
   `4BA3B4F29D8FD1597A712A46C80CB67E` without a new process or tab. Live Oracle attach failed before
-  transmission. Direct CDP then verified the exact URL, empty composer, no stop button, prior assistant
-  response, and complete 8,802-character rendered packet. One click submitted it; recovery confirmed
-  the last user message contained Packet 04, the composer was empty, and one Pro response completed.
+  transmission. Direct CDP verified the exact URL, target, empty composer, and idle state, then
+  submitted the 6,552-character packet exactly once and harvested one stable Pro response.
 - new windows opened this topic: 0; one new tab opened for the new project topic
 - created: 2026-07-30
-- updated: 2026-08-03
-- last packet: `architect/PACKET_04_FINAL_EVIDENCE.md`
-- last packet sha256: `047fc6d8bc8e0d914faa7a550a1d4fe100f6e4c5c2263176ba7d394889f0dab1`
-- last response: `.codex/gpt-pro-architect/responses/response-04-final-evidence.md`
-- last response sha256: `f2bafaabf8a4a6cb654cf3b5e74e53ab80d0ab264f261c4aa9f342e016462a6c`
-- next packet: narrow clean-commit release-sealing evidence only
+- updated: 2026-08-04
+- last packet: `.codex/gpt-pro-architect/packets/packet-05-model-registry.md`
+- last packet sha256: `3c4d00098a77637a7a5e11346ab79b037ab179d98dd08ec9c821cdc300c13032`
+- last response: `.codex/gpt-pro-architect/responses/response-05-model-registry.md`
+- last response sha256: `df2cffcbe54b6569fd46a15f007b652c83b5d585a755f978236aff4070f33f5b`
+- next packet: narrow clean-commit model-registry release-seal evidence only
 - approval scope: user explicitly authorized all planned actions on 2026-07-30; packet excluded secrets, source upload, raw traces, and sealed data
 - archive policy: never while active
 - reuse rule: reuse endpoint 9222 and exact active conversation URL/target; do not reuse the unrelated prior tab
@@ -40,6 +39,12 @@
 - model evidence: Oracle 0.16.1; the same topic originally requested `gpt-5-pro` and resolved the existing
   target. Manual fallback reused the same prior Pro-selected project tab, but did not independently
   expose the picker label; server-side generation identity remains vendor-opaque.
+- Round 05 decision: `REVISE`. The provider-aware registry, executable OpenRouter adapter,
+  independent SEH-owned loop, fixed endpoint, environment-only credentials, redirect and size bounds,
+  safe provider history, fallback semantics, and bounded claims were accepted. Release sealing requires
+  two deterministic tests—new-session-only provider switching without native-history replay and
+  registry-to-adapter-to-tool-loop-to-verifier execution—followed by one exact candidate commit, a full
+  clean-tree release run, identity hashes, and narrow same-tab resubmission before push.
 - Round 04 decision: `REVISE`. The transmitted packet hash was
   `6c800db86c637b2513504154d70d15cb8f3240b09bf12b21694456ef08bf96ec`; the tracked copy removed one
   trailing blank line for `git diff --check` and has the current hash above. The deterministic

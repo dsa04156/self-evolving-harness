@@ -11,8 +11,9 @@ sealed data, budgets, model identity, audit history, or promotion policy.
 - the local shell runs in Bubblewrap with a read-only host filesystem, a single writable workspace,
   an empty environment, a temporary home, no network namespace, timeouts, and output limits
 - read-only product sessions expose only file read, Git status, and Git diff tools
-- optional OpenAI credentials enter through the process environment and are literal-redacted from
-  verifier output; Ollama is the default credential-free provider
+- optional OpenAI and OpenRouter credentials enter through named process-environment slots and are
+  literal-redacted from verifier output; OpenRouter egress is pinned to its official HTTPS API and
+  Ollama remains the credential-free local provider
 - closed JSON Schema and canonical content hashes
 - Ed25519 principal identities and signed records
 - append-only receipts and remediation records
@@ -80,9 +81,11 @@ Git object database, and key-generation TCB. It does not turn a self-contained r
 external trust anchor and is not a security certification.
 
 No real-provider secret is required for deterministic verification or local Ollama use. The optional
-OpenAI product path accepts credentials only through the local environment; they are redacted from
-events and verifier diagnostics and must never be committed. A real-provider run is operational
-evidence, not independent harness-evolution evidence.
+OpenAI and OpenRouter product paths accept credentials only through the local environment; they are
+redacted from events and verifier diagnostics and must never be committed. The OpenRouter product
+configuration accepts only `https://openrouter.ai/api/v1`, so a model-catalog or config mutation
+cannot redirect its bearer token. A real-provider run is operational evidence, not independent
+harness-evolution evidence.
 
 The workspace-write profile is not a per-command approval system. Its shell can modify or remove
 content anywhere inside the selected workspace. Use `--read-only` for untrusted tasks, keep the

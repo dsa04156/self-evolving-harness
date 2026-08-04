@@ -1,7 +1,7 @@
 import type { RuntimeEvent } from "../evidence/runtime-events.js";
 import type { PermissionMode, ProductConfig } from "./config.js";
 
-export const PRODUCT_CLI_VERSION = "0.4.0";
+export const PRODUCT_CLI_VERSION = "0.5.0";
 export const INTERACTIVE_CONTEXT_LIMIT_BYTES = 24 * 1024;
 
 export interface ConversationTurn {
@@ -183,7 +183,7 @@ export function interactiveHelp(): string {
     "  /status                   Show the current or latest durable session",
     "  /sessions                 List recent sessions",
     "  /resume [ID] [guidance]   Pick or load a prior session into this thread",
-    "  /model [model-id]         Search connected/examples or select by ID",
+    "  /model [model-id]         Search providers and 250+ tool-capable model routes",
     "  /permissions              Show the active permission profile",
     "  /read-only                Use read-only tools for following turns",
     "  /write                    Use workspace-write tools for following turns",
